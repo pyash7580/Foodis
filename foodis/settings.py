@@ -134,6 +134,9 @@ if USE_POSTGRES:
                 'PASSWORD': config('DB_PASSWORD', default='npg_fJ9dPjhb7NwT'),
                 'HOST': config('DB_HOST', default='ep-rough-butterfly-aipo5jgg-pooler.c-4.us-east-1.aws.neon.tech'),
                 'PORT': config('DB_PORT', default='5432'),
+                'OPTIONS': {
+                    'sslmode': 'require',
+                }
             }
         }
 else:
@@ -158,7 +161,8 @@ if not DEBUG:
     CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
 # Redis Configuration
-REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+# Default to None to avoid accidental local connections in production
+REDIS_URL = config('REDIS_URL', default=None)
 
 # Cache configuration
 CACHES = {
@@ -168,8 +172,8 @@ CACHES = {
     }
 }
 
-# Use Redis for cache in production if available
-if not DEBUG and REDIS_URL:
+# Use Redis for cache in production IF valid REDIS_URL is provided
+if not DEBUG and REDIS_URL and 'localhost' not in REDIS_URL and '127.0.0.1' not in REDIS_URL:
     try:
         import redis
         CACHES['default'] = {
@@ -179,10 +183,11 @@ if not DEBUG and REDIS_URL:
     except ImportError:
         pass
 
-# Channel Layers (only if channels is installed)
+# Channel Layers (only if channels is installed) - Failsafe for Render Free tier
 try:
     import channels
-    if not DEBUG and REDIS_URL:
+    # Only use RedisChannelLayer if a real remote Redis URL is provided
+    if not DEBUG and REDIS_URL and 'localhost' not in REDIS_URL and '127.0.0.1' not in REDIS_URL:
         CHANNEL_LAYERS = {
             'default': {
                 'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -192,6 +197,7 @@ try:
             },
         }
     else:
+        # Fallback to InMemory for local or Render without Redis service
         CHANNEL_LAYERS = {
             'default': {
                 'BACKEND': 'channels.layers.InMemoryChannelLayer',
@@ -293,20 +299,25 @@ RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
 # Celery Configuration
 try:
     import celery
-    CELERY_BROKER_URL = REDIS_URL
-    try:
-        import django_celery_results
-        CELERY_RESULT_BACKEND = 'django-db'
-    except ImportError:
-        CELERY_RESULT_BACKEND = REDIS_URL
+    if REDIS_URL and 'localhost' not in REDIS_URL and '127.0.0.1' not in REDIS_URL:
+        CELERY_BROKER_URL = REDIS_URL
+        try:
+            import django_celery_results
+            CELERY_RESULT_BACKEND = 'django-db'
+        except ImportError:
+            CELERY_RESULT_BACKEND = REDIS_URL
+    else:
+        # Failsafe: Use eager tasks if no Redis is found
+        CELERY_TASK_ALWAYS_EAGER = True
     
     CELERY_ACCEPT_CONTENT = ['json']
     CELERY_TASK_SERIALIZER = 'json'
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_TIMEZONE = TIME_ZONE
     
-    # In production, use real Celery. In development/debug, can remain eager.
-    CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=DEBUG, cast=bool)
+    # In production, use real Celery IF configured. In development/debug, remain eager.
+    if not hasattr(locals(), 'CELERY_TASK_ALWAYS_EAGER'):
+        CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=DEBUG, cast=bool)
     CELERY_TASK_EAGER_PROPAGATES = True
 except ImportError:
     pass
