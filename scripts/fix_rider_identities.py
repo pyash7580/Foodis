@@ -3,13 +3,14 @@ import django
 import sys
 
 # Setup Django environment
-sys.path.append(r'd:\Foodis')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodis.settings')
 django.setup()
 
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from rider.models import RiderProfile, RiderEarnings, RiderLocation, RiderReview, RiderDocument, RiderBank
+from rider_legacy.models import RiderProfile, RiderEarnings, RiderLocation, RiderReview, RiderDocument, RiderBank
 from client.models import Order
 from collections import Counter
 
@@ -91,7 +92,6 @@ def merge_riders():
                 
                 # Move related data to primary_user
                 RiderEarnings.objects.filter(rider=dupe).update(rider=primary_user)
-                RiderLocation.objects.filter(rider=primary_user).update(rider=primary_user) # Wait, should be dupe
                 RiderLocation.objects.filter(rider=dupe).update(rider=primary_user)
                 RiderReview.objects.filter(rider=dupe).update(rider=primary_user)
                 RiderReview.objects.filter(user=dupe).update(user=primary_user)

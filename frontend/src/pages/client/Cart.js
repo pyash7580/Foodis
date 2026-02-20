@@ -50,33 +50,35 @@ const Cart = () => {
 
                             <div className="divide-y divide-gray-100">
                                 {cartItems.map((item) => (
-                                    <div key={item.id} className="p-6 flex items-center justify-between">
-                                        <div className="flex items-center space-x-4">
-                                            <span className={`h-4 w-4 rounded-sm border flex items-center justify-center text-[10px] ${item.veg_type === 'VEG' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>●</span>
+                                    <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+                                        <div className="flex items-start sm:items-center space-x-3 sm:space-x-4">
+                                            <span className={`h-4 w-4 rounded-sm border flex items-center justify-center mt-1 sm:mt-0 flex-shrink-0 text-[10px] ${item.veg_type === 'VEG' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>●</span>
                                             <div>
-                                                <h3 className="font-medium text-gray-900">{item.name}</h3>
+                                                <h3 className="font-medium text-gray-900 leading-tight mb-1 sm:mb-0">{item.name}</h3>
                                                 <p className="text-sm text-gray-500">₹{item.price}</p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                                            <button
-                                                onClick={() => updateQuantity(item.id, -1)}
-                                                className="px-3 py-1 text-gray-600 hover:bg-gray-100 font-bold"
-                                            >
-                                                -
-                                            </button>
-                                            <span className="px-3 py-1 text-sm font-medium bg-white">{item.quantity}</span>
-                                            <button
-                                                onClick={() => updateQuantity(item.id, 1)}
-                                                className="px-3 py-1 text-green-600 hover:bg-gray-100 font-bold"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 ml-7 sm:ml-0">
+                                            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden flex-shrink-0">
+                                                <button
+                                                    onClick={() => updateQuantity(item.id, -1)}
+                                                    className="px-3 py-1 sm:px-4 sm:py-1.5 text-gray-600 hover:bg-gray-100 font-bold transition-colors"
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="px-3 py-1 sm:px-4 sm:py-1.5 text-sm font-medium bg-white border-x border-gray-200">{item.quantity}</span>
+                                                <button
+                                                    onClick={() => updateQuantity(item.id, 1)}
+                                                    className="px-3 py-1 sm:px-4 sm:py-1.5 text-green-600 hover:bg-gray-100 font-bold transition-colors"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
 
-                                        <div className="text-right font-medium text-gray-900 w-20">
-                                            ₹{item.price * item.quantity}
+                                            <div className="text-right font-medium text-gray-900 w-20 flex-shrink-0 text-lg sm:text-base">
+                                                ₹{item.price * item.quantity}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

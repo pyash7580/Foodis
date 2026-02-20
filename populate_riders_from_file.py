@@ -9,12 +9,13 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodis.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
-from rider.models import RiderProfile, RiderBank
+from rider_legacy.models import RiderProfile, RiderBank
 
 User = get_user_model()
 
 def populate_riders():
-    file_path = 'd:\\Foodis\\RIDER_DETAILS.txt'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_dir, 'RIDER_DETAILS.txt')
     
     if not os.path.exists(file_path):
         print("RIDER_DETAILS.txt not found!")

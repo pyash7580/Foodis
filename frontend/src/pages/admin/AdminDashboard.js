@@ -121,7 +121,7 @@ const AdminDashboard = () => {
 
             {/* Quick Actions / Second Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 col-span-2">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 col-span-1 lg:col-span-2">
                     <h3 className="text-xl font-bold mb-4 flex items-center">
                         <FaChartLine className="mr-2 text-red-500" /> Revenue Trend (Last 7 Days)
                     </h3>

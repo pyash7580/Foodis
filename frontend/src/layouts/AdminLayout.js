@@ -30,10 +30,18 @@ const AdminLayout = ({ children }) => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
+        <div className="flex h-screen bg-gray-100 overflow-hidden font-sans relative">
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <aside
-                className={`bg-gray-900 text-white flex-shrink-0 transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'
+                className={`bg-gray-900 text-white flex-shrink-0 transition-all duration-300 absolute sm:relative z-50 h-full ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full sm:translate-x-0 sm:w-20'
                     } flex flex-col`}
             >
                 <div className="h-16 flex items-center justify-between px-4 bg-black">
@@ -79,14 +87,22 @@ const AdminLayout = ({ children }) => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col overflow-hidden relative">
+            <main className="flex-1 flex flex-col overflow-hidden relative w-full">
                 {/* Header */}
-                <header className="h-16 bg-white shadow-sm flex items-center justify-between px-8">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        {menuItems.find(m => location.pathname.startsWith(m.path))?.label || 'Overview'}
-                    </h2>
-                    <div className="flex items-center space-x-4">
-                        <div className="text-right">
+                <header className="h-16 bg-white shadow-sm flex items-center justify-between px-4 sm:px-8">
+                    <div className="flex items-center">
+                        <button
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="mr-4 sm:hidden text-gray-600 hover:text-gray-900"
+                        >
+                            <FaBars className="text-xl" />
+                        </button>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 line-clamp-1">
+                            {menuItems.find(m => location.pathname.startsWith(m.path))?.label || 'Overview'}
+                        </h2>
+                    </div>
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                        <div className="text-right hidden sm:block">
                             <p className="text-sm font-bold text-gray-800">Super Admin</p>
                             <span className="text-xs text-green-500 font-bold uppercase tracking-wider">● Online</span>
                         </div>
@@ -97,7 +113,7 @@ const AdminLayout = ({ children }) => {
                 </header>
 
                 {/* Content Scrollable Area */}
-                <div className="flex-1 overflow-y-auto p-8">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8">
                     {children}
                 </div>
             </main>

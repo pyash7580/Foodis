@@ -78,8 +78,8 @@ const EarningsReport = () => {
                 </div>
             </aside>
 
-            <main className="flex-grow p-8">
-                <header className="flex justify-between items-center mb-10">
+            <main className="flex-grow w-full min-w-0 p-4 md:p-8 pb-28 md:pb-8">
+                <header className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-10">
                     <div>
                         <h1 className="text-3xl font-black text-gray-900">Earnings & Reports</h1>
                         <p className="text-gray-500 mt-1">Detailed breakdown of your revenue and payouts.</p>
@@ -92,18 +92,18 @@ const EarningsReport = () => {
                     </button>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Today</p>
-                        <p className="text-3xl font-black text-gray-900">₹{summary?.today?.toLocaleString()}</p>
+                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-8 md:mb-10">
+                    <div className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl shadow-sm border border-gray-50 flex flex-col justify-center">
+                        <p className="text-gray-400 text-[8px] md:text-xs font-bold uppercase tracking-widest mb-1 truncate">Today</p>
+                        <p className="text-lg md:text-3xl font-black text-gray-900 truncate">₹{summary?.today?.toLocaleString()}</p>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Last 7 Days</p>
-                        <p className="text-3xl font-black text-gray-900">₹{summary?.week?.toLocaleString()}</p>
+                    <div className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl shadow-sm border border-gray-50 flex flex-col justify-center">
+                        <p className="text-gray-400 text-[8px] md:text-xs font-bold uppercase tracking-widest mb-1 truncate">7 Days</p>
+                        <p className="text-lg md:text-3xl font-black text-gray-900 truncate">₹{summary?.week?.toLocaleString()}</p>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Last 30 Days</p>
-                        <p className="text-3xl font-black text-gray-900">₹{summary?.month?.toLocaleString()}</p>
+                    <div className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl shadow-sm border border-gray-50 flex flex-col justify-center">
+                        <p className="text-gray-400 text-[8px] md:text-xs font-bold uppercase tracking-widest mb-1 truncate">30 Days</p>
+                        <p className="text-lg md:text-3xl font-black text-gray-900 truncate">₹{summary?.month?.toLocaleString()}</p>
                     </div>
                 </div>
 
@@ -131,33 +131,55 @@ const EarningsReport = () => {
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-50 overflow-hidden">
-                    <div className="p-8 border-b border-gray-50">
+                    <div className="p-5 md:p-8 border-b border-gray-50">
                         <h2 className="text-xl font-black text-gray-900">Transaction History</h2>
                     </div>
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                                <th className="px-8 py-4">Date</th>
-                                <th className="px-8 py-4">Order ID</th>
-                                <th className="px-8 py-4 text-right">Order Total</th>
-                                <th className="px-8 py-4 text-right text-red-400">Commission</th>
-                                <th className="px-8 py-4 text-right">Net Payout</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 text-sm font-medium text-gray-700">
-                            {earnings.map(record => (
-                                <tr key={record.id} className="hover:bg-gray-50/50 transition">
-                                    <td className="px-8 py-6">{new Date(record.date).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                    <td className="px-8 py-6 font-bold">#{record.order_id}</td>
-                                    <td className="px-8 py-6 text-right">₹{record.order_total}</td>
-                                    <td className="px-8 py-6 text-right text-red-500">-₹{record.commission}</td>
-                                    <td className="px-8 py-6 text-right font-black text-gray-900">₹{record.net_amount}</td>
+                    <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left min-w-[600px]">
+                            <thead>
+                                <tr className="bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                                    <th className="px-5 md:px-8 py-4">Date</th>
+                                    <th className="px-5 md:px-8 py-4">Order ID</th>
+                                    <th className="px-5 md:px-8 py-4 text-right">Order Total</th>
+                                    <th className="px-5 md:px-8 py-4 text-right text-red-400">Commission</th>
+                                    <th className="px-5 md:px-8 py-4 text-right">Net Payout</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 text-sm font-medium text-gray-700">
+                                {earnings.map(record => (
+                                    <tr key={record.id} className="hover:bg-gray-50/50 transition">
+                                        <td className="px-5 md:px-8 py-4 md:py-6 whitespace-nowrap">{new Date(record.date).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                        <td className="px-5 md:px-8 py-4 md:py-6 font-bold whitespace-nowrap">#{record.order_id}</td>
+                                        <td className="px-5 md:px-8 py-4 md:py-6 text-right whitespace-nowrap">₹{record.order_total}</td>
+                                        <td className="px-5 md:px-8 py-4 md:py-6 text-right text-red-500 whitespace-nowrap">-₹{record.commission}</td>
+                                        <td className="px-5 md:px-8 py-4 md:py-6 text-right font-black text-gray-900 whitespace-nowrap">₹{record.net_amount}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </main>
+
+            {/* Mobile Bottom Navigation */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center p-3 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-6 md:pb-3">
+                <Link to="/restaurant/dashboard" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">📊</span>
+                    <span className="text-[10px] font-bold">Dashboard</span>
+                </Link>
+                <Link to="/restaurant/menu" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">🍔</span>
+                    <span className="text-[10px] font-bold">Menu</span>
+                </Link>
+                <Link to="/restaurant/earnings" className={`flex flex-col items-center p-2 rounded-xl text-red-600`}>
+                    <span className="text-xl mb-1">💰</span>
+                    <span className="text-[10px] font-bold">Earnings</span>
+                </Link>
+                <Link to="/restaurant/profile" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">🏢</span>
+                    <span className="text-[10px] font-bold">Profile</span>
+                </Link>
+            </div>
         </div>
     );
 };

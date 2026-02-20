@@ -14,7 +14,7 @@ def order_status_notification(sender, instance, created, **kwargs):
     
     # 1. Notify the User (Client) Always
     async_to_sync(channel_layer.group_send)(
-        f'notifications_{instance.user.phone}',
+        f'notifications_{instance.user.id}',
         {
             'type': 'notification_message',
             'message': {
@@ -46,9 +46,10 @@ def order_status_notification(sender, instance, created, **kwargs):
     
     # 3. Notify Specifically Assigned Rider
     if instance.rider:
+        rider_id = instance.rider.id
         if instance.status == 'ASSIGNED':
             async_to_sync(channel_layer.group_send)(
-                f'notifications_{instance.rider.user.phone if hasattr(instance.rider, "user") else instance.rider.phone}',
+                f'notifications_{rider_id}',
                 {
                     'type': 'notification_message',
                     'message': {
@@ -61,7 +62,7 @@ def order_status_notification(sender, instance, created, **kwargs):
             )
         elif instance.status == 'CANCELLED':
             async_to_sync(channel_layer.group_send)(
-                f'notifications_{instance.rider.user.phone if hasattr(instance.rider, "user") else instance.rider.phone}',
+                f'notifications_{rider_id}',
                 {
                     'type': 'notification_message',
                     'message': {

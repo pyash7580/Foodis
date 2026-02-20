@@ -2,8 +2,9 @@
 import random
 import os
 
-FILE_PATH = r'd:\Foodis\RIDER_DETAILS.txt'
-TEMP_PATH = r'd:\Foodis\RIDER_DETAILS_NEW.txt'
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FILE_PATH = os.path.join(BASE_DIR, 'RIDER_DETAILS.txt')
+TEMP_PATH = os.path.join(BASE_DIR, 'RIDER_DETAILS_NEW.txt')
 
 def generate_license(state="GJ"):
     return f"{state}{random.randint(1, 38):02d}{random.randint(10000000000, 99999999999)}"

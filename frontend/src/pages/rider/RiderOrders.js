@@ -101,7 +101,7 @@ const RiderOrders = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex p-1.5 bg-white/5 rounded-[2rem] border border-white/5 w-fit">
+            <div className="flex overflow-x-auto p-1.5 bg-white/5 rounded-[2rem] border border-white/5 w-full md:w-fit max-w-full scrollbar-hide">
                 {['available', 'active', 'history'].map(tab => (
                     <button
                         key={tab}

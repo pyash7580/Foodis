@@ -157,7 +157,7 @@ const AdminOrderDetails = ({ orderId, onClose }) => {
                 <div className="p-6 border-t bg-gray-50 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3 bg-gray-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition shadow-lg"
+                        className="w-full sm:w-auto px-8 py-3 bg-gray-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition shadow-lg text-center"
                     >
                         Close View
                     </button>

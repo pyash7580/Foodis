@@ -34,9 +34,9 @@ const RiderMissions = () => {
             </div>
 
             {/* Quick Stats Overview */}
-            <div className="grid grid-cols-3 gap-6">
-                <div className="glass-morphism-dark p-6 rounded-[2rem] border border-white/5 flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+            <div className="flex overflow-x-auto pb-4 gap-4 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:pb-0 scrollbar-hide">
+                <div className="glass-morphism-dark p-6 rounded-[2rem] border border-white/5 flex items-center space-x-4 min-w-[200px] flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl flex-shrink-0 bg-orange-500/10 flex items-center justify-center text-orange-500">
                         <FaFire className="text-xl" />
                     </div>
                     <div>
@@ -44,8 +44,8 @@ const RiderMissions = () => {
                         <p className="text-lg font-black text-white">5 Days</p>
                     </div>
                 </div>
-                <div className="glass-morphism-dark p-6 rounded-[2rem] border border-white/5 flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <div className="glass-morphism-dark p-6 rounded-[2rem] border border-white/5 flex items-center space-x-4 min-w-[200px] flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl flex-shrink-0 bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                         <FaRupeeSign className="text-xl" />
                     </div>
                     <div>
@@ -53,8 +53,8 @@ const RiderMissions = () => {
                         <p className="text-lg font-black text-white">₹450</p>
                     </div>
                 </div>
-                <div className="glass-morphism-dark p-6 rounded-[2rem] border border-white/5 flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                <div className="glass-morphism-dark p-6 rounded-[2rem] border border-white/5 flex items-center space-x-4 min-w-[200px] flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl flex-shrink-0 bg-blue-500/10 flex items-center justify-center text-blue-500">
                         <FaChartLine className="text-xl" />
                     </div>
                     <div>
@@ -79,7 +79,7 @@ const RiderMissions = () => {
                         <p className="text-gray-500 text-sm mt-1">Check back tomorrow for new challenges.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         {incentives.map((progress, idx) => (
                             <motion.div
                                 key={progress.id}

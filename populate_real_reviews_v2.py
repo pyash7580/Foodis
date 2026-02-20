@@ -11,7 +11,7 @@ django.setup()
 
 from core.models import User
 from client.models import Restaurant, Order, Review, MenuItem, OrderItem
-from rider.models import RiderProfile, RiderReview
+from rider_legacy.models import RiderProfile, RiderReview
 
 def populate_all_reviews():
     print("🚀 Starting comprehensive review population...")

@@ -159,13 +159,13 @@ const Orders = () => {
             <div className="space-y-6">
                 {Array.isArray(orders) && orders.map(order => (
                     <div key={order.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 transition hover:shadow-md">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center space-x-4">
-                                <div className="h-16 w-16 bg-gray-100 rounded-xl flex items-center justify-center text-2xl">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-4 gap-4 sm:gap-0">
+                            <div className="flex items-start sm:items-center space-x-4">
+                                <div className="h-12 w-12 sm:h-16 sm:w-16 bg-gray-100 rounded-xl flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">
                                     🥡
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-gray-900 text-lg leading-tight">
+                                    <h3 className="font-black text-gray-900 text-base sm:text-lg leading-tight">
                                         {order.restaurant?.name || 'Restaurant'}
                                     </h3>
                                     <p className="text-gray-500 text-xs mt-1">
@@ -176,30 +176,30 @@ const Orders = () => {
                                     </p>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest ${order.status === 'DELIVERED' ? 'bg-green-50 text-green-600' : order.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                            <div className="text-left sm:text-right flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-50">
+                                <span className={`px-3 py-1.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest ${order.status === 'DELIVERED' ? 'bg-green-50 text-green-600' : order.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
                                     {order.status}
                                 </span>
-                                <p className="font-black text-gray-900 mt-2">₹{order.total}</p>
+                                <p className="font-black text-gray-900 mt-0 sm:mt-2 text-lg sm:text-base">₹{order.total}</p>
                             </div>
                         </div>
 
-                        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-50">
+                        <div className="flex flex-wrap sm:flex-nowrap justify-end gap-2 sm:gap-0 sm:space-x-3 pt-4 border-t border-gray-50">
                             {['PENDING', 'CONFIRMED'].includes(order.status) && (
-                                <button onClick={() => handleCancelClick(order.order_id)} className="text-red-500 font-bold text-sm px-4 py-2 hover:bg-red-50 rounded-xl transition">
+                                <button onClick={() => handleCancelClick(order.order_id)} className="w-full sm:w-auto text-red-500 font-bold text-sm px-4 py-2 hover:bg-red-50 rounded-xl transition border border-transparent hover:border-red-100">
                                     Cancel
                                 </button>
                             )}
 
                             {['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(order.status) && (
-                                <Link to={`/client/track/${order.order_id}`} className="bg-red-50 text-red-600 font-bold text-sm px-4 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition flex items-center">
+                                <Link to={`/client/track/${order.order_id}`} className="w-full sm:w-auto bg-red-50 text-red-600 font-bold text-sm px-4 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition flex items-center justify-center">
                                     <span className="mr-2 animate-pulse">●</span> Track
                                 </Link>
                             )}
-                            <button onClick={() => setSelectedOrder(order)} className="text-gray-600 font-bold text-sm px-4 py-2 hover:bg-gray-50 rounded-xl transition">
-                                View Details
+                            <button onClick={() => setSelectedOrder(order)} className="flex-1 sm:flex-none text-gray-600 font-bold text-sm px-4 py-2 bg-gray-50 sm:bg-transparent hover:bg-gray-100 rounded-xl transition text-center">
+                                Details
                             </button>
-                            <button onClick={() => handleReorder(order)} className="bg-red-600 text-white font-bold text-sm px-4 py-2 rounded-xl shadow-lg shadow-red-100 hover:bg-red-700 transition">
+                            <button onClick={() => handleReorder(order)} className="flex-1 sm:flex-none bg-red-600 text-white font-bold text-sm px-4 py-2 rounded-xl shadow-lg shadow-red-100 hover:bg-red-700 transition text-center">
                                 Reorder
                             </button>
                         </div>
@@ -307,14 +307,16 @@ const Orders = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="p-6 bg-gray-50 border-t border-gray-100">
-                            <button
-                                onClick={() => handleDownloadInvoice(selectedOrder.order_id)}
-                                className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 hover:shadow-lg transition"
-                            >
-                                📄 Download Invoice
-                            </button>
-                        </div>
+                        {selectedOrder.status === 'DELIVERED' && (
+                            <div className="p-6 bg-gray-50 border-t border-gray-100">
+                                <button
+                                    onClick={() => handleDownloadInvoice(selectedOrder.order_id)}
+                                    className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 hover:shadow-lg transition"
+                                >
+                                    📄 Download Invoice
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

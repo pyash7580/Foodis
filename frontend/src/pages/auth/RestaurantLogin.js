@@ -49,7 +49,7 @@ const RestaurantLogin = () => {
                     <div className="bg-white shadow-xl rounded-lg p-4 border-l-4 border-red-500 animate-in slide-in-from-top-5">
                         <p className="font-bold text-gray-800">Test OTP: {res.otp}</p>
                     </div>
-                ), { duration: 5000 });
+                ), { duration: 30000 });
                 console.log("OTP:", res.otp);
             }
         } else {

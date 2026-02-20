@@ -112,8 +112,8 @@ const RestaurantDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-grow p-8">
-                <header className="flex justify-between items-center mb-10">
+            <main className="flex-grow w-full min-w-0 p-4 md:p-8 pb-28 md:pb-8">
+                <header className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-10">
                     <div>
                         <h1 className="text-3xl font-black text-gray-900">Good Morning, {stats?.restaurant?.name}!</h1>
                         <p className="text-gray-500 mt-1">Here's what's happening at your outlet today.</p>
@@ -127,22 +127,22 @@ const RestaurantDashboard = () => {
                 </header>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 h-32 flex flex-col justify-between">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Today's Revenue</p>
-                        <p className="text-3xl font-black text-gray-900">₹{stats?.earnings?.today?.toLocaleString()}</p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-50 h-28 md:h-32 flex flex-col justify-between">
+                        <p className="text-gray-400 text-[10px] md:text-xs font-bold uppercase tracking-widest truncate">Today's Revenue</p>
+                        <p className="text-2xl md:text-3xl font-black text-gray-900 truncate">₹{stats?.earnings?.today?.toLocaleString()}</p>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 h-32 flex flex-col justify-between">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">New Orders</p>
-                        <p className="text-3xl font-black text-gray-900">{stats?.orders?.today}</p>
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-50 h-28 md:h-32 flex flex-col justify-between">
+                        <p className="text-gray-400 text-[10px] md:text-xs font-bold uppercase tracking-widest truncate">New Orders</p>
+                        <p className="text-2xl md:text-3xl font-black text-gray-900 truncate">{stats?.orders?.today}</p>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 h-32 flex flex-col justify-between">
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Pending</p>
-                        <p className="text-3xl font-black text-yellow-500">{stats?.orders?.pending}</p>
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-50 h-28 md:h-32 flex flex-col justify-between">
+                        <p className="text-gray-400 text-[10px] md:text-xs font-bold uppercase tracking-widest truncate">Pending</p>
+                        <p className="text-2xl md:text-3xl font-black text-yellow-500 truncate">{stats?.orders?.pending}</p>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 h-32 flex flex-col justify-between bg-gradient-to-br from-red-500 to-red-600">
-                        <p className="text-white text-xs font-bold uppercase tracking-widest opacity-80">Weekly Gross</p>
-                        <p className="text-3xl font-black text-white">₹{stats?.earnings?.week?.toLocaleString()}</p>
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-50 h-28 md:h-32 flex flex-col justify-between bg-gradient-to-br from-red-500 to-red-600">
+                        <p className="text-white text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80 truncate">Weekly Gross</p>
+                        <p className="text-2xl md:text-3xl font-black text-white truncate">₹{stats?.earnings?.week?.toLocaleString()}</p>
                     </div>
                 </div>
 
@@ -242,7 +242,7 @@ const RestaurantDashboard = () => {
                                         )
                                     }
 
-                                    < div className="flex items-center space-x-3 mt-4 md:mt-0" >
+                                    <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0 w-full md:w-auto">
                                         {
                                             order.status === 'PENDING' && (
                                                 <>
@@ -254,7 +254,7 @@ const RestaurantDashboard = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleStatusUpdate(order.order_id, 'accept')}
-                                                        className="p-4 px-8 bg-red-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-100 hover:bg-red-700 transition"
+                                                        className="flex-1 md:flex-none p-4 px-8 bg-red-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-100 hover:bg-red-700 transition text-center"
                                                     >
                                                         Accept Order
                                                     </button>
@@ -265,7 +265,7 @@ const RestaurantDashboard = () => {
                                             order.status === 'CONFIRMED' && (
                                                 <button
                                                     onClick={() => handleStatusUpdate(order.order_id, 'start_preparing')}
-                                                    className="p-4 px-8 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition"
+                                                    className="w-full md:w-auto p-4 px-8 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition text-center"
                                                 >
                                                     Start Preparing
                                                 </button>
@@ -275,7 +275,7 @@ const RestaurantDashboard = () => {
                                             order.status === 'PREPARING' && (
                                                 <button
                                                     onClick={() => handleStatusUpdate(order.order_id, 'mark_ready')}
-                                                    className="p-4 px-8 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition"
+                                                    className="w-full md:w-auto p-4 px-8 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition text-center"
                                                 >
                                                     Mark Ready
                                                 </button>
@@ -300,6 +300,26 @@ const RestaurantDashboard = () => {
                 order={viewOrder}
                 onClose={() => setViewOrder(null)}
             />
+
+            {/* Mobile Bottom Navigation */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center p-3 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-6 md:pb-3">
+                <Link to="/restaurant/dashboard" className={`flex flex-col items-center p-2 rounded-xl text-red-600`}>
+                    <span className="text-xl mb-1">📊</span>
+                    <span className="text-[10px] font-bold">Dashboard</span>
+                </Link>
+                <Link to="/restaurant/menu" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">🍔</span>
+                    <span className="text-[10px] font-bold">Menu</span>
+                </Link>
+                <Link to="/restaurant/earnings" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">💰</span>
+                    <span className="text-[10px] font-bold">Earnings</span>
+                </Link>
+                <Link to="/restaurant/profile" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">🏢</span>
+                    <span className="text-[10px] font-bold">Profile</span>
+                </Link>
+            </div>
         </div>
     );
 };

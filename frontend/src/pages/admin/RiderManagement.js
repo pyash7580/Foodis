@@ -38,7 +38,7 @@ const RiderManagement = () => {
         try {
             const token = localStorage.getItem('token_admin');
             const res = await axios.get(`${API_BASE_URL}/api/admin/riders/`, {
-                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER', 'X-Role': 'ADMIN' }
+                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
             });
             // Handle pagination if present
             const data = res.data.results ? res.data.results : res.data;
@@ -64,7 +64,7 @@ const RiderManagement = () => {
         try {
             const token = localStorage.getItem('token_admin');
             await axios.post(`${API_BASE_URL}/api/admin/riders/${riderId}/${action}/`, {}, {
-                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER', 'X-Role': 'ADMIN' }
+                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
             });
             toast.success(`Rider ${action}d successfully`);
             fetchRiders(); // Refresh list
@@ -502,21 +502,21 @@ const RiderManagement = () => {
                             </div>
 
                             {/* Submit Button */}
-                            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:space-x-3 pt-4 border-t border-gray-200">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setShowAddModal(false);
                                         resetForm();
                                     }}
-                                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                                    className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-center"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className={`px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-bold ${submitting ? 'opacity-50 cursor-not-allowed' : ''
+                                    className={`w-full sm:w-auto px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-bold text-center ${submitting ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
                                 >
                                     {submitting ? 'Creating...' : 'Create Rider'}

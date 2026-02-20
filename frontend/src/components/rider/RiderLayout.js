@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
-import { FaHome, FaWallet, FaUser, FaMotorcycle, FaSignOutAlt, FaPowerOff, FaTrophy, FaBell, FaBox } from 'react-icons/fa';
+import { FaHome, FaWallet, FaUser, FaMotorcycle, FaSignOutAlt, FaPowerOff, FaTrophy, FaBell, FaBox, FaBars, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRider } from '../../contexts/RiderContext';
 
@@ -9,6 +9,7 @@ const RiderLayout = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const { isOnline, profile, toggleOnline } = useRider();
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
     const handleLogout = () => {
         logout();
@@ -24,8 +25,26 @@ const RiderLayout = () => {
     ];
 
     return (
-        <div className="layout">
-            <aside className="sidebar flex flex-col items-stretch">
+        <div className="layout relative">
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-40 sm:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            <aside
+                className={`sidebar flex flex-col items-stretch absolute sm:relative z-50 h-full transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'
+                    }`}
+            >
+                {/* Mobile Close Button */}
+                <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="sm:hidden absolute top-4 right-4 text-gray-400 hover:text-white"
+                >
+                    <FaTimes className="text-xl" />
+                </button>
                 {/* Branding Section */}
                 <div className="p-8 border-b border-white/5">
                     <div className="flex items-center space-x-4 mb-4">
@@ -89,9 +108,15 @@ const RiderLayout = () => {
             </aside>
             <main className="content flex flex-col">
                 {/* Global Header */}
-                <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-[#0f172a]/50 backdrop-blur-md sticky top-0 z-10 w-full">
-                    <div>
-                        <h2 className="text-lg font-black text-white tracking-widest uppercase opacity-80">Rider Dashboard</h2>
+                <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 sm:px-8 bg-[#0f172a]/50 backdrop-blur-md sticky top-0 z-10 w-full">
+                    <div className="flex items-center">
+                        <button
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="mr-4 sm:hidden text-gray-400 hover:text-white"
+                        >
+                            <FaBars className="text-xl" />
+                        </button>
+                        <h2 className="text-lg font-black text-white tracking-widest uppercase opacity-80 line-clamp-1">Rider Dashboard</h2>
                     </div>
 
                     <div className="flex items-center space-x-6">
@@ -114,7 +139,7 @@ const RiderLayout = () => {
                     </div>
                 </header>
 
-                <div className="flex-1 p-8">
+                <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
                     <Outlet />
                 </div>
             </main>

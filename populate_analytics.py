@@ -12,7 +12,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodis.settings')
 django.setup()
 
 from client.models import Order, User, Restaurant, Wallet, WalletTransaction
-from rider.models import RiderProfile
+from rider_legacy.models import RiderProfile
 from restaurant.models import RestaurantEarnings
 
 def populate_analytics():

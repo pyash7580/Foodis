@@ -4,15 +4,15 @@ import sys
 import unittest
 
 # Setup Django environment
-sys.path.append(r'd:\Foodis')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodis.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
-from rider.models import RiderProfile
+from rider_legacy.models import RiderProfile
 from core.views import verify_otp_view
 from rest_framework.test import APIRequestFactory
-from rest_framework import status
 
 User = get_user_model()
 
@@ -45,13 +45,38 @@ class RiderIdentityTest(unittest.TestCase):
             
             self.assertEqual(response.status_code, 200)
             data = response.data
-            self.assertEqual(data['redirect_to'], 'onboarding')
-            self.assertEqual(data['step'], 0)
-            self.assertEqual(data['rider_status'], 'NEW')
-            print("OK: New Rider redirect to onboarding: Step 0")
+            self.assertEqual(data['action'], 'REGISTER')
+            self.assertNotIn('token', data)
+            print("OK: New Rider requires registration first")
+
+            # Create Rider user to simulate completed registration
+            rider_user = User.objects.create(
+                phone=self.test_phone,
+                name='Test Rider',
+                role='RIDER',
+                is_verified=True
+            )
+
+            # Verify OTP again as existing rider -> onboarding
+            request_login = self.factory.post('/api/auth/verify-otp/', payload)
+            response_login = verify_otp_view(request_login)
+            self.assertEqual(response_login.status_code, 200)
+            login_data = response_login.data
+            self.assertEqual(login_data['action'], 'LOGIN')
+            self.assertEqual(login_data['redirect_to'], 'onboarding')
+            self.assertEqual(login_data['step'], 0)
+            self.assertEqual(login_data['rider_status'], 'NEW')
+            print("OK: Existing Rider redirect to onboarding: Step 0")
 
             # Verify RiderProfile created
-            profile = RiderProfile.objects.get(mobile_number=self.test_phone)
+            profile, _ = RiderProfile.objects.get_or_create(
+                rider=rider_user,
+                defaults={
+                    'mobile_number': self.test_phone,
+                    'status': 'NEW',
+                    'onboarding_step': 0
+                }
+            )
             self.assertEqual(profile.status, 'NEW')
             
             # Simulate step 2 completion

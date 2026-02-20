@@ -39,7 +39,7 @@ def get_recommendations(query=None, user=None):
                     menu_item = MenuItem.objects.get(id=item_data['menu_item'])
                     image_url = str(menu_item.image) if menu_item.image else None
                     if image_url and not image_url.startswith('http'):
-                        image_url = f"http://127.0.0.1:8000/media/{image_url}"
+                        image_url = f"/media/{image_url}"
                         
                     recommendations.append({
                         'type': 'menu_item',
@@ -66,7 +66,7 @@ def get_recommendations(query=None, user=None):
                 for restaurant in similar_restaurants:
                     image_url = str(restaurant.image) if restaurant.image else None
                     if image_url and not image_url.startswith('http'):
-                        image_url = f"http://127.0.0.1:8000/media/{image_url}"
+                        image_url = f"/media/{image_url}"
 
                     recommendations.append({
                         'type': 'restaurant',
@@ -90,7 +90,7 @@ def get_recommendations(query=None, user=None):
         for item in menu_items:
             image_url = str(item.image) if item.image else None
             if image_url and not image_url.startswith('http'):
-                image_url = f"http://127.0.0.1:8000/media/{image_url}"
+                image_url = f"/media/{image_url}"
                 
             recommendations.append({
                 'type': 'menu_item',
@@ -132,7 +132,7 @@ def get_trending_items():
             menu_item = MenuItem.objects.get(id=item_data['menu_item'])
             image_url = str(menu_item.image) if menu_item.image else None
             if image_url and not image_url.startswith('http'):
-                image_url = f"http://127.0.0.1:8000/media/{image_url}"
+                image_url = f"/media/{image_url}"
                 
             trending.append({
                 'type': 'menu_item',

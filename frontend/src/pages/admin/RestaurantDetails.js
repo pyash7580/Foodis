@@ -13,7 +13,7 @@ const RestaurantDetails = ({ restaurantId, onClose }) => {
             try {
                 const token = localStorage.getItem('token_admin');
                 const res = await axios.get(`${API_BASE_URL}/api/admin/restaurants/${restaurantId}/`, {
-                    headers: { Authorization: `Bearer ${token}`, 'X-Role': 'RESTAURANT', 'X-Role': 'ADMIN' }
+                    headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
                 });
                 setRestaurant(res.data);
             } catch (error) {
