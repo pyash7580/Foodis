@@ -14,123 +14,37 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
-
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=lambda v: [s.strip() for s in v.split(',')])
-
-
-# Application definition
-
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'corsheaders',
-    'django_filters',
-    'core',
-    'client',
-    'restaurant',
-    'rider_legacy',
-    'rider',
-    'admin_panel',
-    'ai_engine',
-    'rest_framework_simplejwt',
-]
-
-# Optional apps - add if installed
-try:
-    import daphne
-    INSTALLED_APPS.insert(0, 'daphne')
-except ImportError:
-    pass
-
-try:
-    import channels
-    INSTALLED_APPS.append('channels')
-except ImportError:
-    pass
-
-try:
-    import django_celery_beat
-    INSTALLED_APPS.append('django_celery_beat')
-except ImportError:
-    pass
-
-try:
-    import django_celery_results
-    INSTALLED_APPS.append('django_celery_results')
-except ImportError:
-    pass
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.middleware.RoleAwareMiddleware',
-]
-
-ROOT_URLCONF = 'foodis.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'rider' / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'foodis.wsgi.application'
-
-# ASGI application (only if channels is installed)
-try:
-    import channels
-    ASGI_APPLICATION = 'foodis.asgi.application'
-except ImportError:
-    pass
+# Production Deployment Settings
+# Format requested for Render + Neon
+SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='foodis-backend.onrender.com', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
 # Database
-# Use SQLite for development if PostgreSQL is not available
-USE_POSTGRES = config('USE_POSTGRES', default=False, cast=bool)
+# Neon PostgreSQL Configuration
+USE_POSTGRES = config('USE_POSTGRES', default=True, cast=bool)
 
 if USE_POSTGRES:
     import dj_database_url
-    # Use DATABASE_URL if available, otherwise construct from components
     DATABASE_URL = config('DATABASE_URL', default='')
     if DATABASE_URL:
+        # Neon requires SSL, which is encoded in the DATABASE_URL ?sslmode=require
         DATABASES = {
-            'default': dj_database_url.config(default=DATABASE_URL)
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
         }
     else:
+        # Fallback to manual components if DATABASE_URL is missing
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
-                'NAME': config('DB_NAME', default='foodis_db'),
-                'USER': config('DB_USER', default='postgres'),
-                'PASSWORD': config('DB_PASSWORD', default='postgres'),
-                'HOST': config('DB_HOST', default='localhost'),
+                'NAME': config('DB_NAME', default='neondb'),
+                'USER': config('DB_USER', default='neondb_owner'),
+                'PASSWORD': config('DB_PASSWORD', default='neon_password'),
+                'HOST': config('DB_HOST', default='ep-rough-butterfly-aipo5jgg-pooler.c-4.us-east-1.aws.neon.tech'),
                 'PORT': config('DB_PORT', default='5432'),
             }
         }
