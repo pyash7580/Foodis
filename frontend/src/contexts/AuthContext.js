@@ -1,0 +1,249 @@
+
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
+
+const AuthContext = createContext();
+
+export const useAuth = () => useContext(AuthContext);
+
+const getStorageKey = (pathname) => {
+    const path = pathname || window.location.pathname;
+    if (path.startsWith('/restaurant')) return 'token_restaurant';
+    if (path.startsWith('/rider')) return 'token_rider';
+    if (path.startsWith('/admin')) return 'token_admin';
+    return 'token_client';
+};
+
+export const AuthProvider = ({ children }) => {
+    const location = useLocation();
+    const [user, setUser] = useState(null);
+    // Initialize using current path
+    const [token, setToken] = useState(localStorage.getItem(getStorageKey(location.pathname)));
+    const [loading, setLoading] = useState(true);
+
+    // Switch token when Realm changes (e.g. /client -> /restaurant)
+    useEffect(() => {
+        const expectedKey = getStorageKey(location.pathname);
+        const storedToken = localStorage.getItem(expectedKey);
+
+        // Only update if the token in state doesn't match what's expected for this route
+        // This handles the case where user navigates from Client -> Restaurant
+        if (token !== storedToken) {
+            console.log(`Switching Auth Realm: ${expectedKey}`);
+            setToken(storedToken);
+            if (storedToken) {
+                const role = expectedKey.replace('token_', '').toUpperCase();
+                axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                axios.defaults.headers.common['X-Role'] = role;
+            } else {
+                delete axios.defaults.headers.common['Authorization'];
+                delete axios.defaults.headers.common['X-Role'];
+                setUser(null); // Clear user if no token for this realm
+            }
+        }
+    }, [location.pathname]);
+
+    // GLOBAL AXIOS INTERCEPTOR for 401s
+    useEffect(() => {
+        const interceptor = axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response && error.response.status === 401) {
+                    console.warn("Unauthorized (401) detected. Clearing session.");
+                    const key = getStorageKey(location.pathname);
+                    localStorage.removeItem(key);
+                    setToken(null); // This triggers the logic to remove axios headers
+                    setUser(null);
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
+    }, [location.pathname]);
+
+    // Configure Axios defaults (keep existing check)
+    // We strictly sync axios headers with state `token`
+    useEffect(() => {
+        if (token) {
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const key = getStorageKey(location.pathname);
+            const role = key.replace('token_', '').toUpperCase();
+            axios.defaults.headers.common['X-Role'] = role;
+        } else {
+            delete axios.defaults.headers.common['Authorization'];
+            delete axios.defaults.headers.common['X-Role'];
+        }
+    }, [token, location.pathname]);
+
+
+    useEffect(() => {
+        const loadUser = async () => {
+            if (token) {
+                try {
+                    const response = await axios.get(`${API_BASE_URL}/api/auth/profile/`);
+                    setUser(response.data);
+                } catch (error) {
+                    console.error("Failed to load user", error);
+                    // 401 handled by interceptor now, but good to keep safe fallback
+                }
+            } else {
+                setUser(null);
+            }
+            setLoading(false);
+        };
+        loadUser();
+    }, [token]);
+
+    const login = async (email, password) => {
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/login/`, { email, password });
+            const { token, user } = res.data;
+            const key = getStorageKey(location.pathname);
+            localStorage.setItem(key, token);
+            setToken(token);
+            setUser(user);
+            const role = key.replace('token_', '').toUpperCase();
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            axios.defaults.headers.common['X-Role'] = role;
+            return { success: true };
+        } catch (error) {
+            console.error("Login error", error);
+            return {
+                success: false,
+                error: error.response?.data?.error || "Login failed"
+            };
+        }
+    };
+
+    const sendOtp = async (contact, type = 'phone') => {
+        try {
+            const payload = (type === 'phone' || type === 'mobile') ? { phone: contact } : { email: contact };
+            const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp/`, payload);
+            return { success: true, otp: res.data.otp };
+        } catch (error) {
+            console.error("OTP Error:", error);
+            let updateMsg = "Failed to send OTP";
+            if (error.response) {
+                // If backend sent detailed JSON error
+                if (error.response.data && typeof error.response.data === 'object') {
+                    // Collect all values if it's an object (e.g., validation errors)
+                    const messages = Object.values(error.response.data).flat();
+                    if (messages.length > 0) updateMsg = messages.join(', ');
+                }
+                // Fallback to specific status text
+                else if (error.response.statusText) {
+                    updateMsg = `${error.response.status}: ${error.response.statusText}`;
+                }
+            }
+            return { success: false, error: updateMsg };
+        }
+    };
+
+    const verifyOtp = async (contact, otp, type = 'phone', name = '', role = 'CLIENT') => {
+        try {
+            const payload = (type === 'phone' || type === 'mobile')
+                ? { phone: contact, otp_code: otp, name, role }
+                : { email: contact, otp_code: otp, name, role };
+
+            const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp/`, payload);
+
+            // Only login if action is LOGIN (user already exists)
+            if (res.data.action === 'LOGIN' && res.data.token) {
+                const { token, user } = res.data;
+                const key = getStorageKey(location.pathname);
+
+                // Atomic cleanup before setting new user
+                // Atomic cleanup removed to allow multi-role session
+                // ['token_restaurant', 'token_rider', 'token_admin', 'token_client'].forEach(k => localStorage.removeItem(k));
+
+                localStorage.setItem(key, token);
+                const roleHeader = key.replace('token_', '').toUpperCase();
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                axios.defaults.headers.common['X-Role'] = roleHeader;
+                setToken(token);
+                setUser(user);
+            }
+
+            return { success: true, ...res.data };
+        } catch (error) {
+            console.error("OTP Verification Error:", error);
+            return { success: false, error: error.response?.data?.error || "Invalid OTP" };
+        }
+    };
+
+    const register = async (regData) => {
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/register/`, regData);
+            const { token, user } = res.data;
+
+            const key = getStorageKey(location.pathname);
+
+            localStorage.setItem(key, token);
+            const roleHeader = key.replace('token_', '').toUpperCase();
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            axios.defaults.headers.common['X-Role'] = roleHeader;
+            setToken(token);
+            setUser(user);
+            return { success: true, ...res.data };
+        } catch (error) {
+            console.error("Registration Error:", error);
+            return {
+                success: false,
+                error: error.response?.data?.error || "Registration failed"
+            };
+        }
+    };
+
+    const logout = async () => {
+        const realm = location.pathname.startsWith('/restaurant') ? 'restaurant' :
+            location.pathname.startsWith('/rider') ? 'rider' :
+                location.pathname.startsWith('/admin') ? 'admin' : 'client';
+
+        // Optional: Call backend logout to clear session cookies/token on server
+        try {
+            if (token) {
+                await axios.post(`${API_BASE_URL}/api/auth/logout/`);
+            }
+        } catch (e) {
+            console.warn("Backend logout failed or session already expired", e);
+        }
+
+        // remove ONLY the token for the current realm
+        const key = getStorageKey(location.pathname);
+        localStorage.removeItem(key);
+
+        setToken(null);
+        setUser(null);
+        delete axios.defaults.headers.common['Authorization'];
+        delete axios.defaults.headers.common['X-Role'];
+
+        // Force a hard reload to clear all in-memory React state and caches
+        window.location.href = realm === 'client' ? '/login' : `/${realm}/login`;
+    };
+
+    const value = {
+        user,
+        setUser,
+        token,
+        loading,
+        login,
+        logout,
+        sendOtp,
+        verifyOtp,
+        register,
+        isAuthenticated: !!user
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
+};
+
+export default AuthContext;

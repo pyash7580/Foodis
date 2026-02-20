@@ -1,0 +1,43 @@
+{% extends 'rider_panel/layouts/base.html' %}
+
+{% block title %}Verify OTP - Foodis{% endblock %}
+
+{% block content %}
+<main style="display: flex; flex-direction: column; justify-content: center; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem;">Verify</h1>
+        <p style="color: var(--text-muted);">Enter code sent to {{ phone }}</p>
+    </div>
+
+    <div class="card">
+        {% if messages %}
+        {% for message in messages %}
+        <div
+            style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background-color: rgba(0, 200, 83, 0.1); color: var(--success); font-size: 0.9rem; border: 1px solid var(--success);">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Enter
+                6-digit OTP</label>
+            <input type="number" name="otp" placeholder="123456" required autofocus maxlength="6">
+            <button type="submit" class="btn btn-primary">Verify & Login</button>
+        </form>
+
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+                Didn't receive code? <a href="#"
+                    style="color: var(--primary); text-decoration: none; font-weight: 500;">Resend</a>
+            </p>
+        </div>
+    </div>
+
+    <a href="{% url 'rider_panel:login' %}"
+        style="text-align: center; color: var(--text-muted); margin-top: 2rem; text-decoration: none; font-size: 0.9rem;">
+        Change Mobile Number
+    </a>
+</main>
+{% endblock %}
