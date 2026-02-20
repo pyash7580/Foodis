@@ -1,14 +1,17 @@
 const getBaseUrl = () => {
     if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
-    // Fallback to current origin if in production, or 8000 for standard dev
-    return window.location.origin.includes('localhost') ? 'http://127.0.0.1:8000' : window.location.origin;
+    // If on localhost, use local backend. Otherwise, use the Render backend.
+    return window.location.origin.includes('localhost')
+        ? 'http://127.0.0.1:8000'
+        : 'https://foodis-jpvq.onrender.com';
 };
 
 const getWsUrl = () => {
     if (process.env.REACT_APP_WS_URL) return process.env.REACT_APP_WS_URL;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.origin.includes('localhost') ? '127.0.0.1:8000' : window.location.host;
-    return `${protocol}//${host}/ws`;
+    // If on localhost, use local WS. Otherwise, use the Render WS.
+    return window.location.origin.includes('localhost')
+        ? 'ws://127.0.0.1:8000/ws'
+        : 'wss://foodis-jpvq.onrender.com/ws';
 };
 
 export const API_BASE_URL = getBaseUrl();
