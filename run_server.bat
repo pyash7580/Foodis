@@ -1,0 +1,3 @@
+@echo off
+echo Launching Foodis Server in external windows...
+powershell -ExecutionPolicy Bypass -File "%~dp0run_server.ps1"

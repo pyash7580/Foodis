@@ -1,0 +1,171 @@
+{% extends 'rider_panel/layouts/base.html' %}
+
+{% block title %}Dashboard - Foodis Rider{% endblock %}
+
+{% block extra_css %}
+.metrics-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1.5rem;
+margin-bottom: 2rem;
+}
+
+.metric-card {
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+}
+
+.metric-label {
+font-size: 0.875rem;
+color: var(--text-muted);
+font-weight: 500;
+}
+
+.metric-value {
+font-size: 1.5rem;
+font-weight: 700;
+color: var(--text-light);
+}
+
+.offline-overlay {
+background: rgba(22, 22, 22, 0.8);
+backdrop-filter: blur(8px);
+border-radius: 16px;
+padding: 4rem 2rem;
+text-align: center;
+border: 1px dashed var(--border-color);
+margin-top: 2rem;
+}
+
+.status-toggle {
+background: var(--card-dark);
+padding: 4px;
+border-radius: 12px;
+display: flex;
+gap: 4px;
+border: 1px solid var(--border-color);
+}
+
+.toggle-option {
+padding: 8px 20px;
+border-radius: 8px;
+font-size: 0.85rem;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
+color: var(--text-muted);
+}
+
+.toggle-option.active {
+background: var(--primary);
+color: white;
+}
+
+.order-panel {
+margin-top: 2rem;
+}
+
+.section-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 1.5rem;
+}
+{% endblock %}
+
+{% block status_toggle %}
+<div class="status-toggle">
+    <div class="toggle-option active">OFFLINE</div>
+    <div class="toggle-option">ONLINE</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 2.5rem;">
+    <h1 style="font-size: 1.75rem; font-weight: 700;">Welcome back, {{ request.user.username }}!</h1>
+    <p style="color: var(--text-muted);">Here's what's happening today.</p>
+</div>
+
+<div class="metrics-grid">
+    <div class="card metric-card">
+        <span class="metric-label">Today's Orders</span>
+        <span class="metric-value">0</span>
+    </div>
+    <div class="card metric-card">
+        <span class="metric-label">Today's Earnings</span>
+        <span class="metric-value">₹0.00</span>
+    </div>
+    <div class="card metric-card">
+        <span class="metric-label">Wallet Balance</span>
+        <span class="metric-value">₹450.00</span>
+    </div>
+    <div class="card metric-card">
+        <span class="metric-label">Total Rating</span>
+        <div style="display: flex; align-items: baseline; gap: 4px;">
+            <span class="metric-value">4.8</span>
+            <span style="font-size: 0.9rem; color: var(--text-muted);">/ 5.0</span>
+        </div>
+    </div>
+</div>
+
+<div class="offline-overlay">
+    <div
+        style="width: 80px; height: 80px; background: rgba(255,48,8,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            <line x1="12" y1="2" x2="12" y2="12"></line>
+        </svg>
+    </div>
+    <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">You are currently Offline</h2>
+    <p style="color: var(--text-muted); max-width: 400px; margin: 0 auto 2rem;">Go online to start receiving new
+        delivery requests and tracking your live earnings.</p>
+    <button class="btn btn-primary" style="min-width: 180px;">GO ONLINE</button>
+</div>
+
+<div class="order-panel" style="display: none;">
+    <div class="section-header">
+        <h3 style="font-size: 1.25rem; font-weight: 600;">Active Requests</h3>
+        <span class="badge badge-warning">Waiting for orders...</span>
+    </div>
+    <!-- Order cards would go here -->
+    <div class="card" style="text-align: center; padding: 3rem; border: 1px dashed var(--border-color);">
+        <p style="color: var(--text-muted);">No active orders at the moment.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Minimal JS for UI state demo
+    const toggleOptions = document.querySelectorAll('.toggle-option');
+    const offlineOverlay = document.querySelector('.offline-overlay');
+    const orderPanel = document.querySelector('.order-panel');
+    const goOnlineBtn = document.querySelector('.btn-primary');
+
+    function setOnline(isOnline) {
+        if (isOnline) {
+            toggleOptions[0].classList.remove('active');
+            toggleOptions[1].classList.add('active');
+            offlineOverlay.style.display = 'none';
+            orderPanel.style.display = 'block';
+        } else {
+            toggleOptions[0].classList.add('active');
+            toggleOptions[1].classList.remove('active');
+            offlineOverlay.style.display = 'block';
+            orderPanel.style.display = 'none';
+        }
+    }
+
+    toggleOptions.forEach((opt, idx) => {
+        opt.addEventListener('click', () => {
+            setOnline(idx === 1);
+        });
+    });
+
+    goOnlineBtn.addEventListener('click', () => {
+        setOnline(true);
+    });
+</script>
+{% endblock %}

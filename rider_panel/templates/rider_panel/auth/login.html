@@ -1,0 +1,37 @@
+{% extends 'rider_panel/layouts/base.html' %}
+
+{% block title %}Rider Login - Foodis{% endblock %}
+
+{% block content %}
+<main style="display: flex; flex-direction: column; justify-content: center; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h1 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem;">Foodis</h1>
+        <p style="color: var(--text-muted);">Delivery Partner Portal</p>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Login / Register</h2>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div
+            style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background-color: rgba(255, 48, 8, 0.1); color: var(--primary); font-size: 0.9rem; border: 1px solid var(--primary);">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Mobile
+                Number</label>
+            <input type="tel" name="phone" placeholder="e.g. +919999999999" required autofocus>
+            <button type="submit" class="btn btn-primary">Send OTP</button>
+        </form>
+    </div>
+
+    <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 2rem;">
+        By continuing, you agree to our Terms of Service and Privacy Policy.
+    </p>
+</main>
+{% endblock %}

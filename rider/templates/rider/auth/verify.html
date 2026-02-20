@@ -1,0 +1,34 @@
+{% extends 'rider/base.html' %}
+
+{% block title %}Verify OTP{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
+    <h1 style="color: var(--primary); font-size: 32px; font-weight: 800; margin-bottom: 8px;">Verify</h1>
+    <p style="color: var(--muted); font-size: 16px;">6-digit code sent to <b>{{ phone }}</b></p>
+</div>
+
+<div class="verify-card">
+    <form method="POST">
+        {% csrf_token %}
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px;">Enter OTP</label>
+            <input type="number" name="otp" class="form-control" placeholder="123456" required autofocus maxlength="6">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Verify & Login</button>
+    </form>
+
+    <div style="margin-top: 24px; text-align: center;">
+        <p style="font-size: 14px; color: var(--muted);">
+            Didn't receive code? <br>
+            <a href="#" style="color: var(--primary); font-weight: 600; text-decoration: none;">Resend OTP</a>
+        </p>
+    </div>
+</div>
+
+<div style="margin-top: 40px; text-align: center;">
+    <a href="{% url 'rider:login' %}" style="color: var(--text); font-size: 14px; text-decoration: none;">← Change
+        Mobile Number</a>
+</div>
+{% endblock %}

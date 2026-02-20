@@ -1,0 +1,401 @@
+{% extends 'rider/base.html' %}
+
+{% block title %}Rider Dashboard | FOODIS{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div>
+        <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Hi, <span id="rider-name">{{
+                rider.full_name }}</span></h2>
+        <p style="margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 500;">
+            <span id="rider-phone">{{ rider.phone }}</span> • <span id="rider-city" style="color: var(--primary);">{{
+                rider.city }}</span>
+        </p>
+    </div>
+    <div style="text-align: right;">
+        <select id="rider-status-toggle"
+            style="background: #f8f9fa; border: 1px solid #ddd; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; border-radius: 50px;">
+            <option value="ONLINE" {% if rider.status=='ONLINE' %}selected{% endif %}>🟢 ONLINE</option>
+            <option value="BUSY" {% if rider.status=='BUSY' %}selected{% endif %}>🟡 BUSY</option>
+            <option value="OFFLINE" {% if rider.status=='OFFLINE' %}selected{% endif %}>🔴 OFFLINE</option>
+        </select>
+    </div>
+</div>
+
+<!-- Wallet Card -->
+<a href="{% url 'rider:earnings' %}" style="text-decoration: none; display: block; margin-bottom: 24px;">
+    <div
+        style="background: #111111; color: white; padding: 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+        <div>
+            <p
+                style="margin: 0; font-size: 12px; opacity: 0.7; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                Wallet Balance</p>
+            <h3 style="margin: 8px 0 0; font-size: 32px; font-weight: 800;">₹<span id="wallet-balance">{{
+                    rider.wallet_balance }}</span></h3>
+        </div>
+        <div
+            style="background: rgba(255,255,255,0.1); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            →
+        </div>
+    </div>
+</a>
+
+<!-- Mission Control Hub -->
+<div id="mission-hub">
+    <!-- Active Mission Tracking -->
+    <div id="active-mission-container"></div>
+
+    <!-- Available Requests -->
+    <div id="available-requests-container" style="display: none; margin-top: 32px;">
+        <h3
+            style="font-size: 14px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+            Nearby Missions</h3>
+        <div id="available-list"></div>
+    </div>
+
+    <!-- Idle State -->
+    <div id="idle-state" style="display: none; text-align: center; padding: 80px 24px;">
+        <div style="font-size: 64px; margin-bottom: 20px; animation: bounce 2s infinite;">🛵</div>
+        <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #333;">Searching for orders...</h3>
+        <p style="color: #666; font-size: 14px; margin: 12px 0 0; line-height: 1.5; font-weight: 500;">Stay in
+            high-density areas to receive mission requests instantly.</p>
+    </div>
+</div>
+
+<div style="margin-top: 40px; padding-bottom: 30px; text-align: center;">
+    <a href="{% url 'rider:logout' %}"
+        style="color: #999; font-size: 13px; font-weight: 600; text-decoration: none; letter-spacing: 0.5px;">LOGOUT
+        FROM PLATFORM</a>
+</div>
+
+<style>
+    .stepper {
+        display: flex;
+        justify-content: space-between;
+        margin: 30px 0;
+        position: relative;
+    }
+
+    .stepper::before {
+        content: '';
+        position: absolute;
+        top: 11px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: #eee;
+        z-index: 1;
+    }
+
+    .step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        flex: 1;
+    }
+
+    .step-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #eee;
+        margin: 0 auto 8px;
+        border: 3px solid white;
+        transition: all 0.3s ease;
+    }
+
+    .step.active .step-dot {
+        background: var(--primary);
+        transform: scale(1.2);
+        box-shadow: 0 0 10px rgba(255, 48, 8, 0.3);
+    }
+
+    .step.completed .step-dot {
+        background: #10b981;
+    }
+
+    .step-label {
+        font-size: 9px;
+        font-weight: 800;
+        color: #aaa;
+        text-transform: uppercase;
+    }
+
+    .step.active .step-label {
+        color: var(--primary);
+    }
+
+    .step.completed .step-label {
+        color: #10b981;
+    }
+
+    .action-card {
+        background: white;
+        border: 2px solid #eee;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .action-card.active {
+        border-color: var(--primary);
+    }
+
+    .otp-input-group {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        margin-bottom: 20px;
+    }
+
+    .otp-input {
+        border: none;
+        padding: 15px;
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 4px;
+        text-align: center;
+        width: 100%;
+        outline: none;
+        background: #fdfdfd;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+            transform: translateY(0);
+        }
+
+        40% {
+            transform: translateY(-15px);
+        }
+
+        60% {
+            transform: translateY(-7px);
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .available-card {
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: slideUp 0.4s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+</style>
+
+<script>
+    let socket;
+    const RIDER_PHONE = "{{ rider.phone }}";
+
+    // Auth & API Utils
+    async function apiFetch(url, method = 'GET', body = null) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        };
+        const config = { method, headers };
+        if (body) config.body = JSON.stringify(body);
+
+        try {
+            const response = await fetch(url, config);
+            return await response.json();
+        } catch (e) {
+            console.error('API Error:', e);
+            return { error: 'Connection failed' };
+        }
+    }
+
+    // Status Management
+    document.getElementById('rider-status-toggle').addEventListener('change', async (e) => {
+        const newStatus = e.target.value;
+        const result = await apiFetch('{% url "rider:api_status" %}', 'PATCH', { status: newStatus });
+        if (result.status) {
+            refreshState();
+        }
+    });
+
+    // Mission Control Core
+    async function refreshState() {
+        const data = await apiFetch('{% url "rider:polling_api" %}');
+        renderUI(data);
+    }
+
+    function renderUI(data) {
+        const activeContainer = document.getElementById('active-mission-container');
+        const availableHub = document.getElementById('available-requests-container');
+        const idleState = document.getElementById('idle-state');
+        const walletLabel = document.getElementById('wallet-balance');
+
+        walletLabel.innerText = data.wallet_balance.toFixed(2);
+
+        if (data.active_assignment) {
+            idleState.style.display = 'none';
+            availableHub.style.display = 'none';
+            renderActiveMission(data.active_assignment);
+        } else {
+            activeContainer.innerHTML = '';
+            if (data.available_pings && data.available_pings.length > 0) {
+                idleState.style.display = 'none';
+                availableHub.style.display = 'block';
+                renderAvailableMissions(data.available_pings);
+            } else {
+                availableHub.style.display = 'none';
+                idleState.style.display = 'block';
+            }
+        }
+    }
+
+    function renderActiveMission(assignment) {
+        const container = document.getElementById('active-mission-container');
+        const s = assignment.status;
+
+        let actionUI = '';
+        if (s === 'ACCEPTED') {
+            actionUI = `
+                <div class="otp-input-group">
+                    <input type="text" id="otp-field" placeholder="000000" class="otp-input" maxlength="6">
+                </div>
+                <button onclick="handleLifecycle('pickup', ${assignment.id})" class="btn btn-primary" style="margin:0;">VERIFY PICKUP</button>
+            `;
+        } else if (s === 'PICKED_UP') {
+            actionUI = `<button onclick="handleLifecycle('start_delivery', ${assignment.id})" class="btn btn-primary" style="margin:0;">START NAVIGATION</button>`;
+        } else if (s === 'ON_THE_WAY') {
+            actionUI = `
+                <div class="otp-input-group">
+                    <input type="text" id="otp-field" placeholder="000000" class="otp-input" maxlength="6">
+                </div>
+                <button onclick="handleLifecycle('complete', ${assignment.id})" class="btn btn-primary" style="background: #10b981; margin:0;">COMPLETE DELIVERY</button>
+            `;
+        }
+
+        const isCompleted = (current, target) => {
+            const flow = ['ACCEPTED', 'PICKED_UP', 'ON_THE_WAY', 'DELIVERED'];
+            return flow.indexOf(current) >= flow.indexOf(target);
+        };
+        const isActive = (current, target) => current === target;
+
+        container.innerHTML = `
+            <div class="action-card active">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div>
+                        <h3 style="margin:0; font-weight: 800; font-size: 22px;">#${assignment.order_display_id}</h3>
+                        <p style="margin:4px 0 0; color: #ff3008; font-weight: 700; font-size: 13px;">IN PROGRESS</p>
+                    </div>
+                    <div style="background: #fff4f2; color: #ff3008; border: 1px solid #ffebea; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800;">MISSION</div>
+                </div>
+                
+                <div class="stepper">
+                    <div class="step ${isCompleted(s, 'ACCEPTED') ? 'completed' : ''} ${isActive(s, 'ACCEPTED') ? 'active' : ''}">
+                        <div class="step-dot"></div><div class="step-label">Accept</div>
+                    </div>
+                    <div class="step ${isCompleted(s, 'PICKED_UP') ? 'completed' : ''} ${isActive(s, 'PICKED_UP') ? 'active' : ''}">
+                        <div class="step-dot"></div><div class="step-label">Pickup</div>
+                    </div>
+                    <div class="step ${isCompleted(s, 'ON_THE_WAY') ? 'completed' : ''} ${isActive(s, 'ON_THE_WAY') ? 'active' : ''}">
+                        <div class="step-dot"></div><div class="step-label">Navigation</div>
+                    </div>
+                    <div class="step ${isCompleted(s, 'DELIVERED') ? 'completed' : ''} ${isActive(s, 'DELIVERED') ? 'active' : ''}">
+                        <div class="step-dot"></div><div class="step-label">Delivery</div>
+                    </div>
+                </div>
+
+                <div style="background: #fdfdfd; border: 1px solid #f0f0f0; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <span style="font-size: 20px;">🏪</span>
+                        <div>
+                            <p style="margin:0; font-size: 11px; color: #888; font-weight: 700;">RESTAURANT</p>
+                            <p style="margin:2px 0 0; font-weight: 700; font-size: 15px;">${assignment.restaurant_name}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; border-top: 1px solid #f8f8f8; padding-top: 12px;">
+                        <span style="font-size: 20px;">🏠</span>
+                        <div>
+                            <p style="margin:0; font-size: 11px; color: #888; font-weight: 700;">CUSTOMER</p>
+                            <p style="margin:2px 0 0; font-weight: 500; font-size: 14px; line-height: 1.4;">${assignment.delivery_address}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lifecycle-actions">${actionUI}</div>
+            </div>
+        `;
+    }
+
+    async function handleLifecycle(action, id) {
+        const otp = document.getElementById('otp-field')?.value;
+        const urlMap = {
+            'pickup': `/rider/api/orders/${id}/pickup/`,
+            'start_delivery': `/rider/api/orders/${id}/start-delivery/`,
+            'complete': `/rider/api/orders/${id}/complete/`
+        };
+
+        const result = await apiFetch(urlMap[action], 'POST', { otp });
+        if (result.success) {
+            refreshState();
+        } else {
+            alert(result.message || 'Action failed: ' + result.code);
+        }
+    }
+
+    function renderAvailableMissions(pings) {
+        const list = document.getElementById('available-list');
+        list.innerHTML = pings.map(p => `
+            <div class="available-card">
+                <div>
+                    <p style="margin: 0; font-size: 16px; font-weight: 800;">#${p.order_id}</p>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #666; font-weight: 600;">🏪 ${p.restaurant_name}</p>
+                </div>
+                <button onclick="acceptMission(${p.id})" class="btn btn-primary" style="margin: 0; padding: 10px 20px; font-size: 12px; width: auto; font-weight: 800; border-radius: 12px;">ACCEPT</button>
+            </div>
+        `).join('');
+    }
+
+    async function acceptMission(dbId) {
+        const result = await apiFetch(`/rider/api/orders/${dbId}/accept/`, 'POST');
+        if (result.success) {
+            refreshState();
+        } else {
+            alert(result.message);
+        }
+    }
+
+    function connectWS() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        socket = new WebSocket(`${protocol}//${window.location.host}/ws/notifications/${RIDER_PHONE}/`);
+        socket.onmessage = () => refreshState();
+        socket.onclose = () => setTimeout(connectWS, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        connectWS();
+        refreshState();
+        setInterval(refreshState, 30000);
+    });
+</script>
+{% endblock %}
