@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='foodis-backend.onrender.com', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='foodis-jpvq.onrender.com,foodis-backend.onrender.com,localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
 # Database
 # Neon PostgreSQL Configuration
@@ -43,7 +43,7 @@ if USE_POSTGRES:
                 'ENGINE': 'django.db.backends.postgresql',
                 'NAME': config('DB_NAME', default='neondb'),
                 'USER': config('DB_USER', default='neondb_owner'),
-                'PASSWORD': config('DB_PASSWORD', default='neon_password'),
+                'PASSWORD': config('DB_PASSWORD', default='npg_fJ9dPjhb7NwT'),
                 'HOST': config('DB_HOST', default='ep-rough-butterfly-aipo5jgg-pooler.c-4.us-east-1.aws.neon.tech'),
                 'PORT': config('DB_PORT', default='5432'),
             }
