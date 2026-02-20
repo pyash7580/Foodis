@@ -20,6 +20,94 @@ SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='foodis-jpvq.onrender.com,foodis-backend.onrender.com,localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+    'django_filters',
+    'core',
+    'client',
+    'restaurant',
+    'rider_legacy',
+    'rider',
+    'admin_panel',
+    'ai_engine',
+    'rest_framework_simplejwt',
+]
+
+# Optional apps - add if installed
+try:
+    import daphne
+    INSTALLED_APPS.insert(0, 'daphne')
+except ImportError:
+    pass
+
+try:
+    import channels
+    INSTALLED_APPS.append('channels')
+except ImportError:
+    pass
+
+try:
+    import django_celery_beat
+    INSTALLED_APPS.append('django_celery_beat')
+except ImportError:
+    pass
+
+try:
+    import django_celery_results
+    INSTALLED_APPS.append('django_celery_results')
+except ImportError:
+    pass
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.RoleAwareMiddleware',
+]
+
+ROOT_URLCONF = 'foodis.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'rider' / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'foodis.wsgi.application'
+
+# ASGI application (only if channels is installed)
+try:
+    import channels
+    ASGI_APPLICATION = 'foodis.asgi.application'
+except ImportError:
+    pass
+
 # Database
 # Neon PostgreSQL Configuration
 USE_POSTGRES = config('USE_POSTGRES', default=True, cast=bool)
