@@ -158,7 +158,7 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+    CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://foodis-pi.vercel.app', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
 # Redis Configuration
 # Default to None to avoid accidental local connections in production
@@ -280,7 +280,7 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://foodis-pi.vercel.app,http://localhost:3000,http://127.0.0.1:3000', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 CORS_ALLOW_CREDENTIALS = True
 
 from corsheaders.defaults import default_headers
