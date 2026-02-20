@@ -7,8 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodis.settings')
 django.setup()
 
-from django.contrib.auth import get_user_model
-from rider.models import RiderProfile
+from rider_legacy.models import RiderProfile
 
 def update_passwords():
     print("Starting password update from RIDER_DETAILS.txt...")
@@ -38,9 +37,9 @@ def update_passwords():
         
         try:
             rider_profile = RiderProfile.objects.get(rider__email=email)
-            rider_profile.password_plain = password
-            rider_profile.save()
-            # print(f"Updated password for {email} -> {password}")
+            rider_user = rider_profile.rider
+            rider_user.set_password(password)
+            rider_user.save(update_fields=['password'])
             updated_count += 1
         except RiderProfile.DoesNotExist:
             print(f"Rider not found for email: {email}")

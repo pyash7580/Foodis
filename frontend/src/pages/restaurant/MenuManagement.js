@@ -140,8 +140,8 @@ const MenuManagement = () => {
                 </div>
             </aside>
 
-            <main className="flex-grow p-8">
-                <header className="flex justify-between items-center mb-10">
+            <main className="flex-grow w-full min-w-0 p-4 md:p-8 pb-28 md:pb-8">
+                <header className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-10">
                     <div>
                         <h1 className="text-3xl font-black text-gray-900">Menu Management</h1>
                         <p className="text-gray-500 mt-1">Add, edit and manage your dishes.</p>
@@ -212,8 +212,8 @@ const MenuManagement = () => {
                                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-900 text-2xl">✕</button>
                             </div>
                             <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="col-span-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="col-span-1 md:col-span-2">
                                         <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Dish Name</label>
                                         <input
                                             required
@@ -248,7 +248,7 @@ const MenuManagement = () => {
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="col-span-1 md:col-span-2">
                                         <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Description</label>
                                         <textarea
                                             rows="2"
@@ -290,6 +290,26 @@ const MenuManagement = () => {
                     </div>
                 )}
             </main>
+
+            {/* Mobile Bottom Navigation */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center p-3 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-6 md:pb-3">
+                <Link to="/restaurant/dashboard" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">📊</span>
+                    <span className="text-[10px] font-bold">Dashboard</span>
+                </Link>
+                <Link to="/restaurant/menu" className={`flex flex-col items-center p-2 rounded-xl text-red-600`}>
+                    <span className="text-xl mb-1">🍔</span>
+                    <span className="text-[10px] font-bold">Menu</span>
+                </Link>
+                <Link to="/restaurant/earnings" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">💰</span>
+                    <span className="text-[10px] font-bold">Earnings</span>
+                </Link>
+                <Link to="/restaurant/profile" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">🏢</span>
+                    <span className="text-[10px] font-bold">Profile</span>
+                </Link>
+            </div>
         </div>
     );
 };

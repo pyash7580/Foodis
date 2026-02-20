@@ -10,6 +10,7 @@ const Navbar = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMoreOpen, setIsMoreOpen] = useState(false);
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -21,8 +22,22 @@ const Navbar = () => {
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex items-center">
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="mr-3 sm:hidden text-gray-600 hover:text-red-600 focus:outline-none"
+                            onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {isMobileNavOpen ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                ) : (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                )}
+                            </svg>
+                        </button>
+
                         <Link to="/client" className="flex-shrink-0 flex items-center">
-                            <h1 className="text-3xl font-extrabold text-red-600 italic">Foodis</h1>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-red-600 italic">Foodis</h1>
                         </Link>
                         <div className="hidden sm:ml-8 sm:flex sm:space-x-1">
                             {[
@@ -154,6 +169,29 @@ const Navbar = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Navigation Menu */}
+            {isMobileNavOpen && (
+                <div className="sm:hidden bg-white shadow-xl border-t border-gray-100 absolute w-full left-0 top-16 z-40">
+                    <div className="px-4 pt-2 pb-4 space-y-1">
+                        {[
+                            { name: 'Home', path: '/client' },
+                            { name: 'My Orders', path: '/client/orders' },
+                            { name: 'Favourites', path: '/client/favourites' },
+                            { name: 'Help & Support', path: '/client/help' }
+                        ].map((link) => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                onClick={() => setIsMobileNavOpen(false)}
+                                className="block px-3 py-3 rounded-xl text-base font-bold text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                                {link.name}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
         </nav>
     );
 };

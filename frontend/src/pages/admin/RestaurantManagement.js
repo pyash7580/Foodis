@@ -51,7 +51,7 @@ const RestaurantManagement = () => {
         try {
             const token = localStorage.getItem('token_admin');
             const res = await axios.get(`${API_BASE_URL}/api/admin/restaurants/`, {
-                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'RESTAURANT', 'X-Role': 'ADMIN' }
+                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
             });
             // Handle pagination if present
             const data = res.data.results ? res.data.results : res.data;
@@ -77,7 +77,7 @@ const RestaurantManagement = () => {
         try {
             const token = localStorage.getItem('token_admin');
             await axios.post(`${API_BASE_URL}/api/admin/restaurants/${restaurantId}/${action}/`, {}, {
-                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'RESTAURANT', 'X-Role': 'ADMIN' }
+                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
             });
             toast.success(`Restaurant ${action}d successfully`);
             fetchRestaurants(); // Refresh list
@@ -245,13 +245,13 @@ const RestaurantManagement = () => {
                     />
                 </div>
 
-                <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center space-x-2 flex-grow sm:flex-grow-0">
                         <FaFilter className="text-gray-400" />
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="p-3 border border-gray-200 rounded-lg focus:outline-none"
+                            className="p-3 border border-gray-200 rounded-lg focus:outline-none w-full sm:w-auto"
                         >
                             <option value="PENDING">Approval</option>
                             <option value="APPROVED">Approved</option>
@@ -261,7 +261,7 @@ const RestaurantManagement = () => {
 
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center space-x-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold"
+                        className="flex items-center justify-center space-x-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold w-full sm:w-auto"
                     >
                         <FaPlus />
                         <span>Add New Restaurant</span>
@@ -673,18 +673,18 @@ const RestaurantManagement = () => {
                             </div>
 
                             {/* Submit Buttons */}
-                            <div className="flex justify-end space-x-3 pt-4 border-t">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:space-x-3 pt-4 border-t">
                                 <button
                                     type="button"
                                     onClick={() => { setShowAddModal(false); resetForm(); }}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold"
+                                    className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full sm:w-auto px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {submitting ? 'Creating...' : 'Create Restaurant'}
                                 </button>

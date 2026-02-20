@@ -13,7 +13,7 @@ django.setup()
 from core.models import User
 from client.models import Restaurant, MenuItem, Order, OrderItem, Review, Category
 from restaurant.models import RestaurantEarnings
-from rider.models import RiderProfile, RiderEarnings, RiderReview
+from rider_legacy.models import RiderProfile, RiderEarnings, RiderReview
 
 def populate_real_reviews():
     # 1. Get the main users

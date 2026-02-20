@@ -28,18 +28,18 @@ const RiderProfileDesktop = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card p-10 rounded-[2.5rem] relative overflow-hidden group border border-white/10"
             >
-                <div className="flex items-center space-x-8 relative z-10">
-                    <div className="w-32 h-32 rounded-[2rem] bg-gradient-to-br from-[#FF3008] to-[#FF6B00] flex items-center justify-center shadow-2xl relative">
+                <div className="flex flex-col md:flex-row items-center md:space-x-8 relative z-10 text-center md:text-left">
+                    <div className="w-32 h-32 rounded-[2rem] bg-gradient-to-br from-[#FF3008] to-[#FF6B00] flex items-center justify-center shadow-2xl relative mb-6 md:mb-0">
                         <FaUser className="text-white text-5xl" />
                         <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#0F172A] rounded-xl border border-white/10 flex items-center justify-center">
                             <FaStar className="text-yellow-400 text-lg" />
                         </div>
                     </div>
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1 w-full">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 space-y-4 md:space-y-0">
                             <div>
-                                <h1 className="text-5xl font-black text-white tracking-tighter mb-2">{profile?.rider_name || 'Rider Partner'}</h1>
-                                <div className="flex items-center space-x-4">
+                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-2">{profile?.rider_name || 'Rider Partner'}</h1>
+                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                                     <span className={`px-5 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest border ${profile?.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-orange-500/20 text-orange-400 border-orange-500/20'}`}>
                                         Account {profile?.status}
                                     </span>
@@ -49,7 +49,7 @@ const RiderProfileDesktop = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-center md:text-right pt-4 md:pt-0 border-t border-white/10 md:border-t-0 mt-4 md:mt-0">
                                 <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mb-1">Partner ID</p>
                                 <p className="font-black text-white text-lg tracking-widest">#{profile?.id?.toString().padStart(6, '0')}</p>
                             </div>

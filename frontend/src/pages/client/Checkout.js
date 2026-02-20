@@ -383,8 +383,8 @@ const Checkout = () => {
                         {isAddingAddress ? (
                             <form onSubmit={handleAddAddress} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mb-8 space-y-4">
                                 <h3 className="font-black text-gray-900 mb-2">New Address Details</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm font-bold text-gray-400 uppercase tracking-widest pl-2 mt-8 mb-2">
-                                    <div className="col-span-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-bold text-gray-400 uppercase tracking-widest sm:pl-2 mt-6 sm:mt-8 mb-2">
+                                    <div className="sm:col-span-2">
                                         <label className="block mb-1 text-[10px]">Label (e.g. Home, Work)</label>
                                         <input
                                             type="text"
@@ -394,7 +394,7 @@ const Checkout = () => {
                                             onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
                                         />
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <label className="block mb-1 text-[10px]">Address Line 1</label>
                                         <input
                                             type="text"
@@ -404,7 +404,7 @@ const Checkout = () => {
                                             onChange={(e) => setNewAddress({ ...newAddress, address_line1: e.target.value })}
                                         />
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <label className="block mb-1 text-[10px]">City</label>
                                         <input
                                             type="text"
@@ -435,7 +435,7 @@ const Checkout = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex space-x-3 mt-6">
+                                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 mt-6">
                                     <button
                                         type="button"
                                         onClick={() => setIsAddingAddress(false)}
@@ -465,9 +465,12 @@ const Checkout = () => {
                                             className={`p-5 rounded-3xl border-2 cursor-pointer transition-all ${selectedAddress?.id === addr.id ? 'border-red-600 bg-red-50' : 'border-white bg-white hover:border-gray-200'}`}
                                         >
                                             <div className="flex items-start">
-                                                <span className="text-2xl mr-4">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
+                                                <span className="text-2xl mr-4 hidden sm:block">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
                                                 <div className="flex-1">
-                                                    <p className="font-black text-gray-900 text-lg uppercase tracking-tight">{addr.label}</p>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-xl sm:hidden">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
+                                                        <p className="font-black text-gray-900 text-lg uppercase tracking-tight m-0 leading-none">{addr.label}</p>
+                                                    </div>
                                                     <p className="text-sm text-gray-500 font-medium leading-snug mt-1">
                                                         {addr.address_line1}, {addr.city}, {addr.state} - {addr.pincode}
                                                     </p>
@@ -597,8 +600,8 @@ const Checkout = () => {
                                         onClick={() => setPaymentMethod('CARD')}
                                         className={`p-5 rounded-3xl border-2 cursor-pointer transition-all ${paymentMethod === 'CARD' ? 'border-red-600 bg-red-50' : 'border-white bg-white hover:border-gray-200'}`}
                                     >
-                                        <div className="flex items-center">
-                                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center mr-4">
+                                        <div className="flex items-start sm:items-center">
+                                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
                                                 <span className="text-2xl">💳</span>
                                             </div>
                                             <div className="flex-1">
@@ -681,7 +684,7 @@ const Checkout = () => {
                                                             onClick={(e) => e.stopPropagation()}
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div>
                                                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Valid Thru</label>
                                                             <input

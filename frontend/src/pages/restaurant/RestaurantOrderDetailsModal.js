@@ -60,9 +60,8 @@ const RestaurantOrderDetailsModal = ({ order, onClose }) => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                             {/* Left Column: Order Items */}
                             <div className="md:col-span-2 space-y-8">
-                                {/* OTP Display (If applicable) */}
                                 {order.pickup_otp && (
-                                    <div className="bg-gradient-to-r from-red-500 to-orange-500 p-6 rounded-3xl text-white shadow-lg shadow-red-200 flex justify-between items-center">
+                                    <div className="bg-gradient-to-r from-red-500 to-orange-500 p-6 rounded-3xl text-white shadow-lg shadow-red-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div>
                                             <p className="font-bold text-white/80 text-xs uppercase tracking-widest mb-1">Rider Verification Code</p>
                                             <h3 className="text-4xl font-black tracking-widest bg-white/20 inline-block px-4 py-1 rounded-xl backdrop-blur-md border border-white/20">

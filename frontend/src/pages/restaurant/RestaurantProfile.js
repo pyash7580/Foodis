@@ -89,15 +89,15 @@ const RestaurantProfile = () => {
                 </div>
             </aside>
 
-            <main className="flex-grow p-8">
-                <header className="flex justify-between items-center mb-10">
+            <main className="flex-grow w-full min-w-0 p-4 md:p-8 pb-28 md:pb-8">
+                <header className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 mb-10">
                     <div>
                         <h1 className="text-3xl font-black text-gray-900">Restaurant Profile</h1>
                         <p className="text-gray-500 mt-1">Manage your restaurant details and settings.</p>
                     </div>
                     <button
                         onClick={() => setIsEditing(!isEditing)}
-                        className={`px-6 py-3 rounded-2xl font-bold flex items-center space-x-2 transition ${isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-600 text-white shadow-lg shadow-red-100'}`}
+                        className={`w-full md:w-auto px-6 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 transition ${isEditing ? 'bg-gray-200 text-gray-700' : 'bg-red-600 text-white shadow-lg shadow-red-100'}`}
                     >
                         <span>{isEditing ? '❌ Cancel' : '✏️ Edit Profile'}</span>
                     </button>
@@ -182,7 +182,7 @@ const RestaurantProfile = () => {
 
                         {isEditing && (
                             <div className="pt-6 border-t border-gray-100 flex justify-end">
-                                <button type="submit" className="bg-red-600 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-xl shadow-red-100 hover:bg-red-700 transition transform hover:scale-[1.02]">
+                                <button type="submit" className="w-full md:w-auto bg-red-600 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-xl shadow-red-100 hover:bg-red-700 transition transform hover:scale-[1.02] text-center">
                                     Save Changes
                                 </button>
                             </div>
@@ -190,6 +190,26 @@ const RestaurantProfile = () => {
                     </form>
                 </div>
             </main>
+
+            {/* Mobile Bottom Navigation */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center p-3 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-6 md:pb-3">
+                <Link to="/restaurant/dashboard" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">📊</span>
+                    <span className="text-[10px] font-bold">Dashboard</span>
+                </Link>
+                <Link to="/restaurant/menu" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">🍔</span>
+                    <span className="text-[10px] font-bold">Menu</span>
+                </Link>
+                <Link to="/restaurant/earnings" className={`flex flex-col items-center p-2 rounded-xl text-gray-400`}>
+                    <span className="text-xl mb-1">💰</span>
+                    <span className="text-[10px] font-bold">Earnings</span>
+                </Link>
+                <Link to="/restaurant/profile" className={`flex flex-col items-center p-2 rounded-xl text-red-600`}>
+                    <span className="text-xl mb-1">🏢</span>
+                    <span className="text-[10px] font-bold">Profile</span>
+                </Link>
+            </div>
         </div>
     );
 };

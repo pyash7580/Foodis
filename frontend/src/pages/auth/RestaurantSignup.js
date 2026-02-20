@@ -50,7 +50,7 @@ const RestaurantSignup = () => {
                     <div className="bg-white shadow-lg rounded-lg p-4 border-l-4 border-red-500">
                         <p className="font-bold">Test OTP: {res.otp}</p>
                     </div>
-                ));
+                ), { duration: 30000 });
             }
         } else {
             setError(res.error);
@@ -313,12 +313,12 @@ const RestaurantSignup = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between items-center pt-6 border-t border-gray-100">
-                                    <p className="text-sm text-gray-500 max-w-xs">By clicking register, you agree to our Partner Terms & Conditions.</p>
+                                <div className="flex flex-col-reverse sm:flex-row justify-between items-center sm:items-center gap-4 pt-6 border-t border-gray-100">
+                                    <p className="text-sm text-gray-500 text-center sm:text-left max-w-xs">By clicking register, you agree to our Partner Terms & Conditions.</p>
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="px-10 py-4 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition shadow-lg disabled:opacity-50"
+                                        className="w-full sm:w-auto px-10 py-4 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition shadow-lg disabled:opacity-50 text-center"
                                     >
                                         {loading ? 'Submitting...' : 'Register Restaurant'}
                                     </button>

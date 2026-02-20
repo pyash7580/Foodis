@@ -132,11 +132,7 @@ def verify_otp_view(request):
     import traceback
     
     # 📝 FORCE LOG EVERYTHING
-    try:
-        with open(r'd:\Foodis\otp_debug.log', 'a') as f:
-            f.write(f"\n--- [{timezone.now()}] VERIFY OTP REQUEST ---\n")
-            f.write(f"DATA: {request.data}\n")
-    except: pass
+    log_debug(f"\n--- [{timezone.now()}] VERIFY OTP REQUEST ---\nDATA: {request.data}")
 
     try:
         serializer = OTPVerifySerializer(data=request.data)
@@ -463,7 +459,7 @@ def seed_riders_view(request):
     from rider_legacy.models import RiderProfile, RiderBank
     from rider.models import Rider as TemplateRider
     
-    file_path = r'd:\Foodis\RIDER_DETAILS.txt'
+    file_path = os.path.join(settings.BASE_DIR, 'RIDER_DETAILS.txt')
     if not os.path.exists(file_path):
         return Response({'error': 'File not found'}, status=404)
         

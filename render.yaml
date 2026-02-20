@@ -1,0 +1,86 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: foodis-backend
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --no-input
+      python manage.py migrate
+    startCommand: daphne -b 0.0.0.0 -p $PORT foodis.asgi:application
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: USE_POSTGRES
+        value: "True"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: foodis-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: foodis-cache
+          property: connectionString
+      - fromGroup: foodis-globals
+
+  # Celery Worker
+  - type: worker
+    name: foodis-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A foodis worker --loglevel=info
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: USE_POSTGRES
+        value: "True"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: foodis-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: foodis-cache
+          property: connectionString
+      - fromGroup: foodis-globals
+
+  # Frontend Static Site (Serving the React build)
+  - type: web
+    name: foodis-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://foodis-backend.onrender.com # Change to your actual backend URL
+
+databases:
+  - name: foodis-db
+    plan: free
+
+# Redis for Channels and Celery
+services:
+  - type: redis
+    name: foodis-cache
+    plan: free
+    ipAllowList: [] # Only allow internal access
+
+envVarGroups:
+  - name: foodis-globals
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: foodis-backend.onrender.com,foodis-frontend.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://foodis-backend.onrender.com,https://foodis-frontend.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://foodis-frontend.onrender.com
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false

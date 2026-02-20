@@ -116,16 +116,24 @@ except ImportError:
 USE_POSTGRES = config('USE_POSTGRES', default=False, cast=bool)
 
 if USE_POSTGRES:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DB_NAME', default='foodis_db'),
-            'USER': config('DB_USER', default='postgres'),
-            'PASSWORD': config('DB_PASSWORD', default='postgres'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
+    import dj_database_url
+    # Use DATABASE_URL if available, otherwise construct from components
+    DATABASE_URL = config('DATABASE_URL', default='')
+    if DATABASE_URL:
+        DATABASES = {
+            'default': dj_database_url.config(default=DATABASE_URL)
         }
-    }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': config('DB_NAME', default='foodis_db'),
+                'USER': config('DB_USER', default='postgres'),
+                'PASSWORD': config('DB_PASSWORD', default='postgres'),
+                'HOST': config('DB_HOST', default='localhost'),
+                'PORT': config('DB_PORT', default='5432'),
+            }
+        }
 else:
     DATABASES = {
         'default': {
@@ -134,34 +142,59 @@ else:
         }
     }
 
+# Production Security Hardening
+if not DEBUG:
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+
 # Redis Configuration
 REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 
-# Cache configuration - try Redis, fallback to local memory
-# Use DatabaseCache for maximum reliability and persistence
+# Cache configuration
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
         'LOCATION': 'django_cache_table',
     }
 }
-    # if False:  # Disable Redis cache for now
-    #     import redis
-    #     CACHES = {
-    #         'default': {
-    #             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-    #             'LOCATION': REDIS_URL,
-    #         }
-    #     }
+
+# Use Redis for cache in production if available
+if not DEBUG and REDIS_URL:
+    try:
+        import redis
+        CACHES['default'] = {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    except ImportError:
+        pass
 
 # Channel Layers (only if channels is installed)
 try:
     import channels
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+    if not DEBUG and REDIS_URL:
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    "hosts": [REDIS_URL],
+                },
+            },
+        }
+    else:
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels.layers.InMemoryChannelLayer',
+            },
+        }
 except ImportError:
     CHANNEL_LAYERS = {}
 
@@ -190,7 +223,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = []
+if (BASE_DIR / 'static').exists():
+    STATICFILES_DIRS.append(BASE_DIR / 'static')
+
+# WhiteNoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -234,20 +272,10 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8001",
-    "http://127.0.0.1:8001",
-]
-CORS_ORIGIN_ALLOW_ALL = True
-
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 CORS_ALLOW_CREDENTIALS = True
 
 from corsheaders.defaults import default_headers
-
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-role',
     'x-device-id',
@@ -260,8 +288,7 @@ GOOGLE_MAPS_API_KEY = config('GOOGLE_MAPS_API_KEY', default='')
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
 RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
 
-# Celery Configuration (only if celery is installed)
-# Celery Configuration (only if celery is installed)
+# Celery Configuration
 try:
     import celery
     CELERY_BROKER_URL = REDIS_URL
@@ -270,22 +297,15 @@ try:
         CELERY_RESULT_BACKEND = 'django-db'
     except ImportError:
         CELERY_RESULT_BACKEND = REDIS_URL
+    
     CELERY_ACCEPT_CONTENT = ['json']
     CELERY_TASK_SERIALIZER = 'json'
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_TIMEZONE = TIME_ZONE
     
-    # Force synchronous execution to avoid Redis dependency locally
-    CELERY_TASK_ALWAYS_EAGER = True
+    # In production, use real Celery. In development/debug, can remain eager.
+    CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=DEBUG, cast=bool)
     CELERY_TASK_EAGER_PROPAGATES = True
-    
-    # Optional: Logic to use Redis if available (commented out for stability)
-    # try:
-    #     import redis
-    #     # Check if we can actually connect to Redis?
-    #     # For now, default to EAGER to fix "Connection refused" error
-    # except ImportError:
-    #     pass
 except ImportError:
     pass
 
@@ -302,7 +322,6 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
 # Email Configuration
-# Use SMTP for real emails, but can switch to console for testing via .env
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
@@ -317,4 +336,3 @@ COMMISSION_PERCENTAGE = 15  # percentage
 
 # AI Engine Settings
 AI_ENGINE_ENABLED = config('AI_ENGINE_ENABLED', default=True, cast=bool)
-

@@ -32,7 +32,7 @@ const RiderLogin = () => {
             setStep('otp');
             setResendTimer(30);
             if (res.otp) {
-                toast.success(`OTP: ${res.otp}`, { duration: 5000, icon: '🔑' });
+                toast.success(`OTP: ${res.otp}`, { duration: 30000, icon: '🔑' });
             }
         } else {
             toast.error(res.error || "Failed to send OTP");

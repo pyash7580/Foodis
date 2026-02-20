@@ -289,7 +289,7 @@ const RiderDashboard = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {/* Stat 1 */}
                         <div className="glass-morphism-dark p-3 rounded-2xl border border-white/5 text-center backdrop-blur-xl">
                             <p className="text-[18px] font-black text-white">{riderStats?.today_deliveries || 0}</p>

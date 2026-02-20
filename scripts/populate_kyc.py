@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodis.settings')
 django.setup()
 
-from rider.models import RiderProfile
+from rider_legacy.models import RiderProfile
 
 def populate_kyc_data():
     print("Populating missing KYC data for riders...")

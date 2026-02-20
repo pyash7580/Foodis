@@ -76,11 +76,11 @@ const RestaurantDetails = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 max-w-[1600px] mx-auto px-4 pb-8 flex items-end">
-                    <img src={logoImage} alt={restaurant.name} className="h-32 w-32 rounded-2xl border-4 border-white shadow-2xl mr-6 object-cover bg-white" />
+                <div className="absolute bottom-0 left-0 right-0 max-w-[1600px] mx-auto px-4 pb-8 flex flex-col sm:flex-row sm:items-end">
+                    <img src={logoImage} alt={restaurant.name} className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl border-4 border-white shadow-2xl mb-4 sm:mb-0 sm:mr-6 object-cover bg-white" />
                     <div className="text-white flex-1 mb-2">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-5xl font-black">{restaurant.name}</h1>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                            <h1 className="text-3xl sm:text-5xl font-black leading-tight">{restaurant.name}</h1>
                             <span className="bg-green-600 px-2 py-1 rounded-lg text-sm font-bold shadow-lg flex items-center gap-1">
                                 {restaurant.rating} ★
                             </span>
@@ -108,7 +108,7 @@ const RestaurantDetails = () => {
                     <h2 className="text-3xl font-black text-gray-900">Menu Highlights</h2>
 
                     {/* VEG/NON-VEG Filter Buttons */}
-                    <div className="flex items-center gap-3 bg-white border-2 border-gray-200 rounded-2xl p-1.5 shadow-sm">
+                    <div className="flex items-center flex-wrap gap-2 sm:gap-3 bg-white border-2 border-gray-200 rounded-2xl p-1.5 shadow-sm mt-4 sm:mt-0">
                         <button
                             onClick={() => setDietFilter('ALL')}
                             className={`px-6 py-2.5 rounded-xl font-bold transition-all duration-300 ${dietFilter === 'ALL'
@@ -156,9 +156,9 @@ const RestaurantDetails = () => {
                                     key={item.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex justify-between items-center group hover:shadow-xl transition-all duration-300"
+                                    className="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center items-start group hover:shadow-xl transition-all duration-300 gap-4 sm:gap-0"
                                 >
-                                    <div className="flex-1">
+                                    <div className="flex-1 w-full">
                                         <div className="flex items-center mb-2">
                                             <span className={`h-4 w-4 rounded-sm border-2 mr-3 flex items-center justify-center text-[8px] ${item.veg_type === 'VEG' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>
                                                 ●
@@ -180,8 +180,8 @@ const RestaurantDetails = () => {
                                         <p className="font-black text-2xl text-gray-900">₹{item.price}</p>
                                     </div>
 
-                                    <div className="relative ml-6">
-                                        <div className="h-28 w-28 rounded-2xl overflow-hidden shadow-lg border-2 border-gray-100">
+                                    <div className="relative w-full sm:w-auto flex justify-center sm:justify-end sm:ml-6 flex-shrink-0">
+                                        <div className="h-40 w-full sm:h-28 sm:w-28 rounded-2xl overflow-hidden shadow-lg border-2 border-gray-100 relative">
                                             {item.image || item.image_url ? (
                                                 <img src={item.image || item.image_url} alt={item.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                             ) : (
@@ -189,7 +189,7 @@ const RestaurantDetails = () => {
                                             )}
                                         </div>
 
-                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-24">
+                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-28 sm:w-24">
                                             {quantity > 0 ? (
                                                 <div className="flex items-center justify-between bg-white border-2 border-red-100 rounded-xl overflow-hidden shadow-xl">
                                                     <button

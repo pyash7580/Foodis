@@ -73,7 +73,7 @@ const Login = () => {
                             </button>
                         </div>
                     </div>
-                ), { duration: 6000 });
+                ), { duration: 30000 });
             }
         } else {
             setError(res.error);
