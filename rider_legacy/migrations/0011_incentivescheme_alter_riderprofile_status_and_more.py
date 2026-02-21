@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('earned_at', models.DateTimeField(blank=True, null=True)),
                 ('date', models.DateField(auto_now_add=True)),
                 ('rider_legacy', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='incentive_progress', to=settings.AUTH_USER_MODEL)),
-                ('scheme', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='rider.incentivescheme')),
+                ('scheme', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='rider_legacy.incentivescheme')),
             ],
             options={
                 'db_table': 'rider_incentive_progress',
