@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { FaTimes, FaStore, FaMapMarkerAlt, FaEnvelope, FaPhone, FaStar, FaClock, FaKey } from 'react-icons/fa';
+import { FaTimes, FaStore, FaMapMarkerAlt, FaEnvelope, FaStar, FaKey } from 'react-icons/fa';
+
 
 const RestaurantDetails = ({ restaurantId, onClose }) => {
     const [restaurant, setRestaurant] = useState(null);

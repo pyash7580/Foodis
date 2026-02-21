@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { motion } from 'framer-motion';
-import { FaMotorcycle, FaBox, FaRupeeSign, FaStar, FaMapMarkerAlt, FaWallet, FaPowerOff } from 'react-icons/fa';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+
+// import { motion } from 'framer-motion';
+import { FaMotorcycle, FaBox, FaRupeeSign, FaStar, FaWallet } from 'react-icons/fa';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { API_BASE_URL, WS_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
-import { useAuth } from '../../contexts/AuthContext';
 import { useRider } from '../../contexts/RiderContext';
-import OrderRequestModal from './OrderRequestModal';
 import DashboardStatCard from '../../components/rider/DashboardStatCard';
 
 // Fix Leaflet marker icons
@@ -29,8 +27,17 @@ const RiderDashboardDesktop = () => {
     const navigate = useNavigate();
     const { profile, isOnline, stats } = useRider();
     const [location, setLocation] = useState({ lat: 23.6000, lng: 72.9500 });
-    const [lastLocUpdate, setLastLocUpdate] = useState(Date.now());
+    const lastLocUpdate = useRef(Date.now());
     const watchId = useRef(null);
+
+    const updateLocationBackend = useCallback(async (lat, lng) => {
+        if (!profile) return;
+        try {
+            await axios.post(`${API_BASE_URL}/api/rider/profile/${profile.id}/update_location/`, {
+                latitude: lat, longitude: lng
+            }, { headers: { Authorization: `Bearer ${localStorage.getItem('token_rider')}`, 'X-Role': 'RIDER' } });
+        } catch (err) { console.error("Loc update failed", err); }
+    }, [profile]);
 
     // 1. Location Tracking (Only when Online)
     useEffect(() => {
@@ -40,9 +47,9 @@ const RiderDashboardDesktop = () => {
                     const { latitude, longitude } = pos.coords;
                     setLocation({ lat: latitude, lng: longitude });
                     const now = Date.now();
-                    if (now - lastLocUpdate > 10000) {
+                    if (now - lastLocUpdate.current > 10000) {
                         updateLocationBackend(latitude, longitude);
-                        setLastLocUpdate(now);
+                        lastLocUpdate.current = now;
                     }
                 },
                 (err) => console.error("Geo Error", err),
@@ -52,16 +59,7 @@ const RiderDashboardDesktop = () => {
             if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
         }
         return () => { if (watchId.current) navigator.geolocation.clearWatch(watchId.current); };
-    }, [isOnline, lastLocUpdate]);
-
-    const updateLocationBackend = async (lat, lng) => {
-        if (!profile) return;
-        try {
-            await axios.post(`${API_BASE_URL}/api/rider/profile/${profile.id}/update_location/`, {
-                latitude: lat, longitude: lng
-            }, { headers: { Authorization: `Bearer ${localStorage.getItem('token_rider')}`, 'X-Role': 'RIDER' } });
-        } catch (err) { console.error("Loc update failed", err); }
-    };
+    }, [isOnline, updateLocationBackend]);
 
     return (
         <div className="flex flex-col space-y-8 animate-in fade-in duration-500">

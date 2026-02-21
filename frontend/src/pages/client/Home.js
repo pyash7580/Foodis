@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
 import RestaurantCard from '../../components/RestaurantCard';
 import DishCard from '../../components/DishCard';
 import LocationDetector from '../../components/LocationDetector';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { API_BASE_URL } from '../../config';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -46,95 +46,76 @@ const Home = () => {
         { name: 'Dessert', icon: '🍰' },
     ];
 
-    useEffect(() => {
-        const fetchRestaurants = async () => {
-            // Build URL with city filter if selected
-            let url = `${API_BASE_URL}/api/client/restaurants/`;
-            if (selectedCity) {
-                url += `?city=${encodeURIComponent(selectedCity)}`;
-            }
+    const fetchRestaurants = useCallback(async () => {
+        // Build URL with city filter if selected
+        let url = `${API_BASE_URL}/api/client/restaurants/`;
+        if (selectedCity) {
+            url += `?city=${encodeURIComponent(selectedCity)}`;
+        }
 
+        try {
+            setLoading(true);
+            const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
+            const response = await axios.get(url, config);
+            const data = response.data.results || response.data;
+            setRestaurants(data);
+            setFilteredRestaurants(data);
+            setError(null);
+            setLoading(false);
+        } catch (err) {
+            console.error("Failed to fetch restaurants:", err);
+            if (!err.response || err.response.status !== 401) {
+                setError("Failed to load restaurants. Please try again later.");
+            }
+            setLoading(false);
+        }
+    }, [selectedCity, token]);
+
+    useEffect(() => {
+        fetchRestaurants();
+    }, [fetchRestaurants]);
+
+    const searchDishes = useCallback(async () => {
+        if (searchMode === 'dish') {
+            setIsSearching(true);
             try {
-                setLoading(true);
-                // Axios interceptor in AuthContext will handle 401s by clearing token
-                // We just need to ensure we re-run this when token changes
+                const url = searchQuery.length > 0
+                    ? `${API_BASE_URL}/api/client/menu-items/?search=${searchQuery}`
+                    : `${API_BASE_URL}/api/client/menu-items/`;
+
                 const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
                 const response = await axios.get(url, config);
                 const data = response.data.results || response.data;
-                setRestaurants(data);
-                setFilteredRestaurants(data);
-                setError(null); // Clear error on success
-                setLoading(false);
+                const uniqueDishes = Array.from(new Map(data.map(item => [item.id, item])).values());
+                setDishResults(uniqueDishes);
             } catch (err) {
-                console.error("Failed to fetch restaurants:", err);
-                // If it's a 401, the interceptor handles it, but we might still land here.
-                // If we are already unauthenticated, it's a real error.
-                if (!err.response || err.response.status !== 401) {
-                    setError("Failed to load restaurants. Please try again later.");
-                }
-                setLoading(false);
+                console.error("Dish search error", err);
+            } finally {
+                setIsSearching(false);
             }
-        };
+        }
+    }, [searchQuery, searchMode, token]);
 
-        fetchRestaurants();
-    }, [selectedCity, token]);
-
-    // Dish Search Effect
     useEffect(() => {
-        const searchDishes = async () => {
-            if (searchMode === 'dish') {
-                setIsSearching(true);
-                try {
-                    // If query is empty, fetch all (or trending/random set). 
-                    // Using standard search endpoint with empty query usually returns list.
-                    const url = searchQuery.length > 0
-                        ? `${API_BASE_URL}/api/client/menu-items/?search=${searchQuery}`
-                        : `${API_BASE_URL}/api/client/menu-items/`; // Default list if empty
-
-                    const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
-                    const response = await axios.get(url, config);
-                    const data = response.data.results || response.data;
-
-                    // Filter duplicates based on ID just in case
-                    const uniqueDishes = Array.from(new Map(data.map(item => [item.id, item])).values());
-
-                    setDishResults(uniqueDishes);
-                } catch (err) {
-                    console.error("Dish search error", err);
-                } finally {
-                    setIsSearching(false);
-                }
-            }
-        };
-
         const timeoutId = setTimeout(() => {
             if (searchMode === 'dish') searchDishes();
-        }, 500); // Debounce
-
+        }, 500);
         return () => clearTimeout(timeoutId);
-    }, [searchQuery, searchMode]);
+    }, [searchQuery, searchMode, searchDishes]);
 
-
-    // Restaurant Filter and Sort Logic
     useEffect(() => {
         if (searchMode !== 'restaurant') return;
 
         let result = [...restaurants];
-
-        // Search
         if (searchQuery) {
             result = result.filter(r =>
                 r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (r.cuisine && r.cuisine.toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
-
-        // Filters
         if (activeFilter !== 'All') {
             result = result.filter(r => r.cuisine && r.cuisine.toLowerCase().includes(activeFilter.toLowerCase()));
         }
-
-        // Sorting
         if (sortBy === 'rating') {
             result.sort((a, b) => b.rating - a.rating);
         } else if (sortBy === 'cost_low') {
@@ -142,15 +123,12 @@ const Home = () => {
         } else if (sortBy === 'cost_high') {
             result.sort((a, b) => b.delivery_fee - a.delivery_fee);
         }
-
         setFilteredRestaurants(result);
     }, [restaurants, searchQuery, activeFilter, sortBy, searchMode]);
 
     return (
         <div className="min-h-screen bg-white">
             <Navbar />
-
-            {/* Hero Section with Location and Search */}
             <div className="bg-white sticky top-0 z-40 border-b border-gray-100 shadow-sm">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -159,7 +137,6 @@ const Home = () => {
                                 setSelectedCity(location.city);
                             }
                         }} />
-
                         <div className="flex-1 max-w-3xl w-full">
                             <div className="flex items-center gap-2 mb-2">
                                 <button
@@ -175,7 +152,6 @@ const Home = () => {
                                     Dishes
                                 </button>
                             </div>
-
                             <div className="relative group">
                                 <input
                                     type="text"
@@ -190,8 +166,6 @@ const Home = () => {
                             </div>
                         </div>
                     </div>
-
-                    {/* Quick Filters / Categories */}
                     <div className="flex items-center gap-4 mt-4 overflow-x-auto pb-2 no-scrollbar">
                         {categories.map(cat => (
                             <motion.button
@@ -202,7 +176,6 @@ const Home = () => {
                                     if (searchMode === 'restaurant') {
                                         setActiveFilter(activeFilter === cat.name ? 'All' : cat.name);
                                     } else {
-                                        // Dish Mode: Set search query directly
                                         setSearchQuery(cat.name);
                                     }
                                 }}
@@ -218,8 +191,6 @@ const Home = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Main Content */}
             <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 <div className="flex items-center justify-between mb-8">
                     <h2 className="text-3xl font-black text-gray-900">
@@ -228,7 +199,6 @@ const Home = () => {
                             : (searchQuery ? `Dish Results for "${searchQuery}"` : 'Search for your favorite dishes')
                         }
                     </h2>
-
                     {searchMode === 'restaurant' && (
                         <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
                             <button
@@ -246,7 +216,6 @@ const Home = () => {
                         </div>
                     )}
                 </div>
-
                 {loading && searchMode === 'restaurant' ? (
                     <div className="flex flex-col items-center justify-center h-64 gap-4">
                         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600"></div>
@@ -266,7 +235,6 @@ const Home = () => {
                     </div>
                 ) : (
                     <>
-                        {/* RESTAURANT GRID */}
                         {searchMode === 'restaurant' && (
                             filteredRestaurants.length === 0 ? (
                                 <div className="text-center py-20">
@@ -287,8 +255,6 @@ const Home = () => {
                                 </motion.div>
                             )
                         )}
-
-                        {/* DISH GRID */}
                         {searchMode === 'dish' && (
                             dishResults.length === 0 && !isSearching ? (
                                 <div className="text-center py-20">

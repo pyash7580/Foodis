@@ -1,12 +1,11 @@
 import React from 'react';
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
-import { FaHome, FaWallet, FaUser, FaMotorcycle, FaSignOutAlt, FaPowerOff, FaTrophy, FaBell, FaClipboardList } from 'react-icons/fa';
+import { NavLink, Outlet } from 'react-router-dom';
+import { FaHome, FaWallet, FaUser, FaMotorcycle, FaSignOutAlt, FaPowerOff, FaTrophy, FaClipboardList } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRider } from '../../contexts/RiderContext';
 
 const RiderLayout = ({ children }) => {
-    const navigate = useNavigate();
     const { logout } = useAuth();
     const { isOnline, profile, toggleOnline, activeOrder } = useRider();
 

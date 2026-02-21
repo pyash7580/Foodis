@@ -42,8 +42,8 @@ const Checkout = () => {
     // Selection State
     const [paymentMethod, setPaymentMethod] = useState('UPI');
     const [useWallet, setUseWallet] = useState(false);
-    const [couponCode, setCouponCode] = useState('');
-    const [discount, setDiscount] = useState(0);
+    const [couponCode] = useState('');
+    const [discount] = useState(0);
 
     // Card Details state
     const [cardDetails, setCardDetails] = useState({

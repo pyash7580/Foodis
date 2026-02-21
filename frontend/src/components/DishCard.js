@@ -34,23 +34,8 @@ const DishCard = ({ item }) => {
         }
     };
 
-    // Construct restaurant object for cart context since search result might have flattened it
-    const restaurantObj = {
-        id: item.restaurant, // Depending on serializer, this might be ID or object. Let's assume ID from serializer update.
-        // But addToCart needs full object sometimes? Let's check CartContext. 
-        // Actually addToCart usually expects restaurant object with at least id, name, delivery_fee etc.
-        // Our serializer sends: restaurant (ID), restaurant_name, restaurant_slug, restaurant_city.
-        // We'll create a minimal valid object.
-        name: item.restaurant_name,
-        slug: item.restaurant_slug,
-        city: item.restaurant_city,
-        delivery_fee: 0, // Fallback if not provided. Search results usually don't have this.
-        min_order_amount: 0,
-        // If we strictly need more data, we might need a fetch or update serializer further. 
-        // For now, let's assume CartContext handles minimal checks or we'll rely on backend validation.
-    };
-
     // Note: If addToCart checks restaurant.id matching cart.restaurant.id, we are good if we pass {id: item.restaurant}.
+
 
     return (
         <motion.div

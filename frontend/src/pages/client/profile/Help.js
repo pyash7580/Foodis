@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../config';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -47,7 +47,7 @@ const Help = () => {
         }
     ];
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         if (!token) return;
         setLoading(true);
         try {
@@ -65,7 +65,7 @@ const Help = () => {
             toast.error("Failed to fetch orders for help");
         }
         setLoading(false);
-    };
+    }, [token]);
 
     const handleCategoryClick = (id) => {
         if (id === 'chat') {

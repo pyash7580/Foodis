@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -94,24 +94,7 @@ const AddressManagement = () => {
 
     const LABELS = ['Home', 'Work', 'Other'];
 
-    useEffect(() => {
-        if (token) {
-            fetchAddresses();
-        }
-        getCurrentLocation();
-    }, [token]);
-
-    const getCurrentLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const { latitude, longitude } = pos.coords;
-                setMapCenter({ lat: latitude, lng: longitude });
-                if (!markerPosition) setMarkerPosition({ lat: latitude, lng: longitude });
-            });
-        }
-    };
-
-    const reverseGeocode = async (lat, lng) => {
+    const reverseGeocode = useCallback(async (lat, lng) => {
         try {
             const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
                 headers: { 'User-Agent': 'FoodisApp/1.0' }
@@ -131,9 +114,9 @@ const AddressManagement = () => {
         } catch (error) {
             console.error("Geocoding failed", error);
         }
-    };
+    }, []);
 
-    const fetchAddresses = async () => {
+    const fetchAddresses = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/auth/addresses/`, {
                 headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
@@ -151,7 +134,24 @@ const AddressManagement = () => {
             toast.error("Failed to load addresses");
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    const getCurrentLocation = useCallback(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const { latitude, longitude } = pos.coords;
+                setMapCenter({ lat: latitude, lng: longitude });
+                if (!markerPosition) setMarkerPosition({ lat: latitude, lng: longitude });
+            });
+        }
+    }, [markerPosition]);
+
+    useEffect(() => {
+        if (token) {
+            fetchAddresses();
+        }
+        getCurrentLocation();
+    }, [token, fetchAddresses, getCurrentLocation]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

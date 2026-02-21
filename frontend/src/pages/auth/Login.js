@@ -245,9 +245,13 @@ const Login = () => {
 
                                     <div className="flex items-center justify-between">
                                         <div className="text-sm">
-                                            <a href="#" className="font-medium text-red-600 hover:text-red-500">
+                                            <button
+                                                type="button"
+                                                onClick={() => toast.error("Please contact support to reset password")}
+                                                className="font-medium text-red-600 hover:text-red-500"
+                                            >
                                                 Forgot password?
-                                            </a>
+                                            </button>
                                         </div>
                                     </div>
 

@@ -1,32 +1,25 @@
 import { API_BASE_URL } from '../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
 import RestaurantOrderDetailsModal from './RestaurantOrderDetailsModal';
 
 const RestaurantDashboard = () => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
+    const { logout } = useAuth();
     const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('PENDING');
     const [viewOrder, setViewOrder] = useState(null);
 
-    useEffect(() => {
-        fetchDashboardData();
-        const interval = setInterval(fetchDashboardData, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         try {
             const timestamp = new Date().getTime();
             const [ordersRes, summaryRes] = await Promise.all([
@@ -42,7 +35,13 @@ const RestaurantDashboard = () => {
             console.error("Dashboard fetch error", error);
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchDashboardData();
+        const interval = setInterval(fetchDashboardData, 30000);
+        return () => clearInterval(interval);
+    }, [fetchDashboardData]);
 
     const handleStatusUpdate = async (orderId, action) => {
         try {

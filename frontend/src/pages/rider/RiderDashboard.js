@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaMotorcycle, FaMapMarkerAlt, FaPowerOff, FaSync, FaBox, FaRupeeSign, FaStar, FaHome, FaClipboardList, FaWallet, FaUser, FaBell, FaTrophy, FaChevronRight } from 'react-icons/fa';
+import { FaMotorcycle, FaPowerOff, FaBell, FaTrophy, FaChevronRight } from 'react-icons/fa';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { API_BASE_URL, WS_BASE_URL } from '../../config';
@@ -27,25 +27,79 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const RiderDashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { profile, isOnline, activeOrder, stats: riderStats, toggleOnline, fetchRiderData: refreshContext } = useRider();
+    const { profile, isOnline, activeOrder, setActiveOrder, stats: riderStats, toggleOnline, fetchRiderData: refreshContext } = useRider();
     const [newOrder, setNewOrder] = useState(null); // Incoming request
     const [location, setLocation] = useState({ lat: 23.6000, lng: 72.9500 }); // Default Himmatnagar
-    const [lastLocUpdate, setLastLocUpdate] = useState(Date.now());
-    const [notifications, setNotifications] = useState([]);
+    const lastLocUpdate = useRef(Date.now());
+    const [, setNotifications] = useState([]); // Keep state for side effect if needed? No, just remove.
     const [unreadCount, setUnreadCount] = useState(0);
+
     const [incentiveProgress, setIncentiveProgress] = useState([]);
 
     // WebSocket
     const ws = useRef(null);
     const watchId = useRef(null);
 
-    const token = localStorage.getItem('token_rider');
-    const headers = { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' };
+    const headers = useMemo(() => {
+        const token = localStorage.getItem('token_rider');
+        return { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' };
+    }, []);
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/rider/notifications/`, { headers });
+            setNotifications(res.data);
+            setUnreadCount(res.data.filter(n => !n.is_read).length);
+        } catch (err) { console.error(err); }
+    }, [headers]);
+
+    const fetchIncentives = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/rider/incentives/progress/`, { headers });
+            setIncentiveProgress(res.data);
+        } catch (err) { console.error(err); }
+    }, [headers]);
+
+    const fetchDashboardData = useCallback(async () => {
+        try {
+            await refreshContext();
+            // Fetch extra data
+            fetchNotifications();
+            fetchIncentives();
+        } catch (err) {
+            if (err.response && err.response.status === 401) navigate('/rider/login');
+            console.error(err);
+        }
+    }, [refreshContext, navigate, fetchNotifications, fetchIncentives]);
+
+    const updateLocationBackend = useCallback(async (lat, lng) => {
+        if (!profile) return;
+        try {
+            await axios.post(`${API_BASE_URL}/api/rider/profile/${profile.id}/update_location/`, {
+                latitude: lat,
+                longitude: lng
+            }, { headers });
+            console.log("Location Synced 📍");
+        } catch (err) { console.error("Loc update failed", err); }
+    }, [profile, headers]);
+
+    const checkForOrders = useCallback(async () => {
+        try {
+            const timestamp = new Date().getTime();
+            const res = await axios.get(`${API_BASE_URL}/api/rider/orders/available/?_t=${timestamp}`, { headers });
+            if (res.data && res.data.length > 0) {
+                const nearest = res.data[0];
+                const orderData = nearest.order ? nearest.order : nearest;
+                const dist = nearest.distance || 0;
+                setNewOrder({ ...orderData, distance: dist });
+            }
+        } catch (err) { }
+    }, [headers]);
 
     // 1. Initial Data Fetch
     useEffect(() => {
         fetchDashboardData();
-    }, []);
+    }, [fetchDashboardData]);
 
     // 2. WebSocket Connection (For Order Alerts)
     useEffect(() => {
@@ -78,7 +132,7 @@ const RiderDashboard = () => {
                 if (ws.current) ws.current.close();
             };
         }
-    }, [user]);
+    }, [user, fetchDashboardData]);
 
     // 3. Location Tracking (Only when Online)
     useEffect(() => {
@@ -92,12 +146,13 @@ const RiderDashboard = () => {
 
                         // Throttle backend updates (e.g., once every 10 seconds)
                         const now = Date.now();
-                        if (now - lastLocUpdate > 10000) {
+                        if (now - lastLocUpdate.current > 10000) {
                             updateLocationBackend(latitude, longitude);
-                            setLastLocUpdate(now);
+                            lastLocUpdate.current = now;
                         }
                     },
                     (err) => console.error("Geo Error", err),
+
                     { enableHighAccuracy: true, maximumAge: 0 }
                 );
             }
@@ -108,7 +163,7 @@ const RiderDashboard = () => {
         return () => {
             if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
         };
-    }, [isOnline, lastLocUpdate]);
+    }, [isOnline, updateLocationBackend]);
 
     // 4. Polling Fallback (For reliable order fetching if WS fails or for pool)
     useEffect(() => {
@@ -119,61 +174,14 @@ const RiderDashboard = () => {
         }, 10000); // 10s polling
 
         return () => clearInterval(interval);
-    }, [isOnline, activeOrder]);
-
-    const updateLocationBackend = async (lat, lng) => {
-        if (!profile) return;
-        try {
-            await axios.post(`${API_BASE_URL}/api/rider/profile/${profile.id}/update_location/`, {
-                latitude: lat,
-                longitude: lng
-            }, { headers });
-            console.log("Location Synced 📍");
-        } catch (err) { console.error("Loc update failed", err); }
-    };
-
-    const fetchDashboardData = async () => {
-        try {
-            await refreshContext();
-            // Fetch extra data
-            fetchNotifications();
-            fetchIncentives();
-        } catch (err) {
-            if (err.response && err.response.status === 401) navigate('/rider/login');
-            console.error(err);
-        }
-    };
-
-    const fetchNotifications = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/api/rider/notifications/`, { headers });
-            setNotifications(res.data);
-            setUnreadCount(res.data.filter(n => !n.is_read).length);
-        } catch (err) { console.error(err); }
-    };
-
-    const fetchIncentives = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/api/rider/incentives/progress/`, { headers });
-            setIncentiveProgress(res.data);
-        } catch (err) { console.error(err); }
-    };
+    }, [isOnline, activeOrder, checkForOrders]);
 
 
-    const checkForOrders = async () => {
-        try {
-            const timestamp = new Date().getTime();
-            const res = await axios.get(`${API_BASE_URL}/api/rider/orders/available/?_t=${timestamp}`, { headers });
-            if (res.data && res.data.length > 0) {
-                const nearest = res.data[0];
-                const orderData = nearest.order ? nearest.order : nearest;
-                const dist = nearest.distance || 0;
-                setNewOrder({ ...orderData, distance: dist });
-            }
-        } catch (err) { }
-    };
 
-    const handleAcceptOrder = async (orderId) => {
+
+
+
+    const handleAcceptOrder = useCallback(async (orderId) => {
         try {
             const res = await axios.post(`${API_BASE_URL}/api/rider/orders/${orderId}/accept/`, {}, { headers });
             setActiveOrder(res.data);
@@ -184,11 +192,11 @@ const RiderDashboard = () => {
             toast.error("Failed to accept order. It might be taken.");
             setNewOrder(null);
         }
-    };
+    }, [headers, setActiveOrder, navigate]);
 
-    const handleRejectOrder = () => {
+    const handleRejectOrder = useCallback(() => {
         setNewOrder(null);
-    };
+    }, []);
 
     return (
         <div className="h-screen w-full relative bg-[#0F172A] text-white font-jakarta overflow-hidden">

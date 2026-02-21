@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
 import toast from 'react-hot-toast';
-import { FaSearch, FaFilter, FaShoppingBag, FaEye, FaCheckCircle, FaTimesCircle, FaBan, FaTruck, FaClock } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaShoppingBag, FaEye } from 'react-icons/fa';
+
 import AdminOrderDetails from './AdminOrderDetails';
 import { format } from 'date-fns';
 

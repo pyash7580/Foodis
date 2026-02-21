@@ -11,7 +11,9 @@ const AdminLogin = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth(); // We can reuse login from context but need to be careful about state key
+    useAuth(); // We can reuse login from context but need to be careful about state key
+
+
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {

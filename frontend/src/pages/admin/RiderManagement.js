@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
 import toast from 'react-hot-toast';
-import { FaSearch, FaFilter, FaMotorcycle, FaBicycle, FaEye, FaCheckCircle, FaBan, FaTimesCircle, FaStar, FaIdCard, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaMotorcycle, FaEye, FaCheckCircle, FaBan, FaTimesCircle, FaStar, FaPlus, FaTimes } from 'react-icons/fa';
 import RiderDetails from './RiderDetails';
 
 const RiderManagement = () => {

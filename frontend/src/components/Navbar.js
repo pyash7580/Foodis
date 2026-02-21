@@ -9,8 +9,8 @@ const Navbar = () => {
     const { getCartCount } = useCart();
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isMoreOpen, setIsMoreOpen] = useState(false);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
 
     const handleLogout = () => {
         logout();
@@ -82,7 +82,8 @@ const Navbar = () => {
                             <div className="relative ml-3">
                                 <div>
                                     <button
-                                        onClick={() => { setIsMenuOpen(!isMenuOpen); setIsMoreOpen(false); }}
+                                        onClick={() => { setIsMenuOpen(!isMenuOpen); }}
+
                                         className="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition duration-150 ease-in-out"
                                     >
                                         <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold border border-red-200">

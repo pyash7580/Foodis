@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -12,13 +12,7 @@ const ProfileHome = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '' });
 
-    useEffect(() => {
-        if (token) {
-            fetchProfileData();
-        }
-    }, [token]);
-
-    const fetchProfileData = async () => {
+    const fetchProfileData = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/auth/profile/`, {
                 headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
@@ -37,7 +31,13 @@ const ProfileHome = () => {
             console.error("Profile fetch error", error);
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        if (token) {
+            fetchProfileData();
+        }
+    }, [token, fetchProfileData]);
 
     const handleUpdateProfile = async (e) => {
         e.preventDefault();

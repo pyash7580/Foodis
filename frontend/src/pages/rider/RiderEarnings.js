@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { FaRupeeSign, FaCalendarAlt, FaClock, FaChartLine, FaChevronLeft, FaHistory, FaArrowUp, FaArrowDown, FaMotorcycle } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FaChartLine, FaChevronLeft, FaHistory, FaArrowDown, FaMotorcycle } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 const RiderEarnings = () => {
@@ -17,14 +17,12 @@ const RiderEarnings = () => {
     const [dailyOrders, setDailyOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const token = localStorage.getItem('token_rider');
-    const headers = { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' };
-
-    useEffect(() => {
-        fetchEarnings();
+    const headers = useMemo(() => {
+        const token = localStorage.getItem('token_rider');
+        return { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' };
     }, []);
 
-    const fetchEarnings = async () => {
+    const fetchEarnings = useCallback(async () => {
         try {
             const timestamp = new Date().getTime();
             const [summaryRes, dailyRes] = await Promise.all([
@@ -38,7 +36,11 @@ const RiderEarnings = () => {
             console.error("Earnings fetch error", err);
             setLoading(false);
         }
-    };
+    }, [headers]);
+
+    useEffect(() => {
+        fetchEarnings();
+    }, [fetchEarnings]);
 
     if (loading) return <div className="p-10 text-center font-bold text-gray-400">Loading Earnings...</div>;
 

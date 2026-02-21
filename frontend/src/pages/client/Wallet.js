@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import ProfileLayout from '../../components/ProfileLayout';
 import { motion } from 'framer-motion';
@@ -13,7 +13,7 @@ const Wallet = () => {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchWallet = async () => {
+    const fetchWallet = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/client/wallet/balance/`, {
                 headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
@@ -24,13 +24,13 @@ const Wallet = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
 
     useEffect(() => {
         if (token) {
             fetchWallet();
         }
-    }, [token]);
+    }, [token, fetchWallet]);
 
     if (loading) return <ProfileLayout><div className="animate-pulse h-64 bg-gray-200 rounded-3xl" /></ProfileLayout>;
 

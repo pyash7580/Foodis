@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBell, FaChevronLeft, FaCheckDouble, FaTrash, FaBox, FaRupeeSign, FaInfoCircle, FaTrophy } from 'react-icons/fa';
@@ -12,13 +12,9 @@ const NotificationCenter = () => {
     const [loading, setLoading] = useState(true);
 
     const token = localStorage.getItem('token_rider');
-    const headers = { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' };
+    const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' }), [token]);
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
-
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/rider/notifications/`, { headers });
             // Handle paginated response
@@ -29,7 +25,11 @@ const NotificationCenter = () => {
             console.error(err);
             setLoading(false);
         }
-    };
+    }, [headers]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
 
     const markAllRead = async () => {
         try {
