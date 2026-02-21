@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { API_BASE_URL, WS_BASE_URL } from '../config';
+import { API_BASE_URL } from '../config';
 import { toast } from 'react-hot-toast';
 
 const RiderContext = createContext();
@@ -19,14 +19,16 @@ export const RiderProvider = ({ children }) => {
         wallet_balance: '0.00'
     });
     const [loading, setLoading] = useState(true);
-    const token = localStorage.getItem('token_rider');
-    const headers = {
-        Authorization: `Bearer ${token}`,
-        'X-Role': 'RIDER'
-    };
-    const ws = useRef(null);
+    const headers = useMemo(() => {
+        const token = localStorage.getItem('token_rider');
+        return {
+            Authorization: `Bearer ${token}`,
+            'X-Role': 'RIDER'
+        };
+    }, []);
 
-    const fetchRiderData = async () => {
+
+    const fetchRiderData = useCallback(async () => {
         const currentToken = localStorage.getItem('token_rider');
         if (!currentToken) return;
 
@@ -57,9 +59,9 @@ export const RiderProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const toggleOnline = async () => {
+    const toggleOnline = useCallback(async () => {
         if (!profile) return;
         try {
             const res = await axios.post(`${API_BASE_URL}/api/rider/profile/${profile.id}/toggle_online/`, {}, { headers });
@@ -69,25 +71,29 @@ export const RiderProvider = ({ children }) => {
         } catch (err) {
             toast.error("Failed to toggle status");
         }
-    };
+    }, [profile, headers, fetchRiderData]);
 
     useEffect(() => {
         fetchRiderData();
-    }, [token]);
+    }, [fetchRiderData]);
+
+    const value = useMemo(() => ({
+        profile,
+        isOnline,
+        stats,
+        activeOrder,
+        setActiveOrder,
+        loading,
+        toggleOnline,
+        fetchRiderData,
+        headers
+    }), [profile, isOnline, stats, activeOrder, loading, toggleOnline, fetchRiderData, headers]);
 
     return (
-        <RiderContext.Provider value={{
-            profile,
-            isOnline,
-            stats,
-            activeOrder,
-            setActiveOrder,
-            loading,
-            toggleOnline,
-            fetchRiderData,
-            headers
-        }}>
+        <RiderContext.Provider value={value}>
             {children}
         </RiderContext.Provider>
     );
 };
+
+export default RiderContext;

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { FaTimes, FaShoppingBag, FaMapMarkerAlt, FaReceipt, FaTruck, FaClock, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaTimes, FaShoppingBag, FaMapMarkerAlt, FaTruck, FaClock, FaTimesCircle } from 'react-icons/fa';
+
 import { format } from 'date-fns';
 
 const AdminOrderDetails = ({ orderId, onClose }) => {

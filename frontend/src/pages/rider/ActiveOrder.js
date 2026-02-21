@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL, WS_BASE_URL } from '../../config';
@@ -53,6 +53,16 @@ const ActiveOrder = () => {
     // Rider GPS location (mocked default, but should ideally come from rider context or navigator)
     const [riderLocation, setRiderLocation] = useState({ lat: 23.6000, lng: 72.9500 });
 
+    const fetchOrderDetails = useCallback(async () => {
+        try {
+            const timestamp = new Date().getTime();
+            const res = await axios.get(`${API_BASE_URL}/api/rider/orders/${id}/?_t=${timestamp}`, { headers });
+            setOrder(res.data);
+        } catch (err) {
+            console.error("Failed to load order details", err);
+        }
+    }, [id, headers]);
+
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -86,17 +96,7 @@ const ActiveOrder = () => {
             clearInterval(interval);
             ws.close();
         };
-    }, [id]);
-
-    const fetchOrderDetails = async () => {
-        try {
-            const timestamp = new Date().getTime();
-            const res = await axios.get(`${API_BASE_URL}/api/rider/orders/${id}/?_t=${timestamp}`, { headers });
-            setOrder(res.data);
-        } catch (err) {
-            console.error("Failed to load order details", err);
-        }
-    };
+    }, [id, fetchOrderDetails]);
 
     const arrivedAtRestaurant = async () => {
         try {

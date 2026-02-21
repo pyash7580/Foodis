@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -244,7 +244,13 @@ const RestaurantLogin = () => {
                                             onChange={(e) => setPassword(e.target.value)}
                                         />
                                         <div className="text-right mt-2">
-                                            <a href="#" className="text-xs font-bold text-red-600 hover:text-red-700">Forgot Password?</a>
+                                            <button
+                                                type="button"
+                                                onClick={() => toast.error("Please contact admin to reset password")}
+                                                className="text-xs font-bold text-red-600 hover:text-red-700"
+                                            >
+                                                Forgot Password?
+                                            </button>
                                         </div>
                                     </div>
 

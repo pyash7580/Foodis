@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const LocationDetector = ({ onLocationDetected }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -7,7 +7,7 @@ const LocationDetector = ({ onLocationDetected }) => {
     const [location, setLocation] = useState('Detecting location...');
     const [error, setError] = useState('');
 
-    const detectLocation = () => {
+    const detectLocation = useCallback(() => {
         setIsLoading(true);
         setIsOpen(false);
         setLocation('Detecting...');
@@ -38,12 +38,11 @@ const LocationDetector = ({ onLocationDetected }) => {
             },
             { timeout: 10000 }
         );
-    };
+    }, [onLocationDetected]);
 
     useEffect(() => {
         detectLocation();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [detectLocation]);
 
     return (
         <div className="relative">

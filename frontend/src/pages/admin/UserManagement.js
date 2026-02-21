@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
 import toast from 'react-hot-toast';
-import { FaSearch, FaBan, FaCheckCircle, FaEye, FaMapMarkerAlt, FaFilter } from 'react-icons/fa';
-import { format } from 'date-fns';
+import { FaSearch, FaBan, FaCheckCircle, FaEye, FaMapMarkerAlt } from 'react-icons/fa';
 import UserDetails from './UserDetails';
 
 const UserManagement = () => {
@@ -16,11 +15,7 @@ const UserManagement = () => {
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [filterRole]);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         setLoading(true);
         setErrorMsg(null);
         try {
@@ -48,7 +43,11 @@ const UserManagement = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filterRole]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const handleBlockUnblock = async (userId, currentStatus) => {
         const action = currentStatus ? 'block_user' : 'unblock_user';

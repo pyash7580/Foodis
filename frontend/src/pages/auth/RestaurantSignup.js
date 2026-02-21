@@ -13,7 +13,7 @@ const RestaurantSignup = () => {
 
     // User Auth States
     const [mobile, setMobile] = useState('');
-    const [email, setEmail] = useState('');
+    const [email] = useState('');
     const [name, setName] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);

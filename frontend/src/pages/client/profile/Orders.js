@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../../config';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -8,19 +8,14 @@ import { useCart } from '../../../contexts/CartContext';
 
 const Orders = () => {
     const { token } = useAuth();
-    const { addToCart, cartItems, restaurant: cartRestaurant, clearCart } = useCart();
+    const { addToCart, restaurant: cartRestaurant, clearCart } = useCart();
+
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
-    useEffect(() => {
-        if (token) {
-            fetchOrders();
-        }
-    }, [token]);
-
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/client/orders/`, {
                 headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
@@ -38,7 +33,13 @@ const Orders = () => {
             console.error("Orders fetch error", error);
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        if (token) {
+            fetchOrders();
+        }
+    }, [token, fetchOrders]);
 
     const handleReorder = (order) => {
         if (!order.items || order.items.length === 0) {

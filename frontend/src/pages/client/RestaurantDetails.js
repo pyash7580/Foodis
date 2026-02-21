@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -20,7 +20,7 @@ const RestaurantDetails = () => {
     // Cart Context
     const { addToCart, cartItems, getCartCount, getCartTotal, updateQuantity } = useCart();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
             const restRes = await axios.get(`${API_BASE_URL}/api/client/restaurants/${id}/`, config);
@@ -32,11 +32,11 @@ const RestaurantDetails = () => {
             console.error("Error fetching details", err);
             setLoading(false);
         }
-    };
+    }, [id, token]);
 
     useEffect(() => {
         fetchData();
-    }, [id]);
+    }, [fetchData]);
 
     const toggleFavItem = async (itemId) => {
         if (!token) {

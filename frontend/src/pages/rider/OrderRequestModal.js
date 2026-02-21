@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaStore, FaMapMarkerAlt, FaRupeeSign, FaClock } from 'react-icons/fa';
+import { FaStore } from 'react-icons/fa';
 
 const OrderRequestModal = ({ order, onAccept, onReject }) => {
     const [timer, setTimer] = useState(30);
@@ -18,7 +18,7 @@ const OrderRequestModal = ({ order, onAccept, onReject }) => {
             });
         }, 1000);
         return () => clearInterval(interval);
-    }, [order?.id]);
+    }, [order?.id, onReject]);
 
     if (!order) return null;
 

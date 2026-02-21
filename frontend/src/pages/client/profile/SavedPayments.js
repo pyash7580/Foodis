@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -18,13 +18,7 @@ const SavedPayments = () => {
         cvv: ''
     });
 
-    useEffect(() => {
-        if (token) {
-            fetchPayments();
-        }
-    }, [token]);
-
-    const fetchPayments = async () => {
+    const fetchPayments = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/client/saved-payments/`, {
                 headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
@@ -37,7 +31,13 @@ const SavedPayments = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        if (token) {
+            fetchPayments();
+        }
+    }, [token, fetchPayments]);
 
     const detectBrand = (number) => {
         if (number.startsWith('4')) return 'Visa';

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { FaTimes, FaMotorcycle, FaBicycle, FaUser, FaEnvelope, FaPhone, FaStar, FaKey, FaIdCard } from 'react-icons/fa';
+import { FaTimes, FaMotorcycle, FaBicycle, FaUser, FaEnvelope, FaStar, FaKey, FaIdCard } from 'react-icons/fa';
+
 
 const RiderDetails = ({ riderId, onClose }) => {
     const [rider, setRider] = useState(null);

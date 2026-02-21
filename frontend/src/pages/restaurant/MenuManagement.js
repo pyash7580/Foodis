@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -23,11 +23,7 @@ const MenuManagement = () => {
         image: null
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [menuRes, catRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/api/restaurant/menu-items/`),
@@ -46,7 +42,11 @@ const MenuManagement = () => {
             toast.error("Failed to load menu data");
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleToggleAvailability = async (id) => {
         try {

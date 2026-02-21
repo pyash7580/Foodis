@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import toast from 'react-hot-toast';
+
 import {
-    FaWallet, FaHistory, FaFilter, FaSearch, FaArrowUp, FaArrowDown,
-    FaUtensils, FaUser, FaCheckCircle, FaExclamationCircle, FaUndo
+    FaWallet, FaSearch, FaArrowUp, FaArrowDown
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 
@@ -16,11 +15,9 @@ const FinanceManagement = () => {
     const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' or 'earnings'
     const [searchTerm, setSearchTerm] = useState('');
 
-    useEffect(() => {
-        fetchData();
-    }, [activeTab]);
 
-    const fetchData = async () => {
+
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token_admin');
@@ -34,13 +31,14 @@ const FinanceManagement = () => {
             } else {
                 setEarnings(Array.isArray(data) ? data : []);
             }
-        } catch (error) {
-            console.error(`Failed to fetch ${activeTab}`, error);
-            toast.error(`Failed to load ${activeTab}`);
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeTab]);
+
+    useEffect(() => {
+        fetchData();
+    }, [activeTab, fetchData]);
 
     const filteredData = (activeTab === 'transactions' ? transactions : earnings).filter(item => {
         const searchInput = searchTerm.toLowerCase();

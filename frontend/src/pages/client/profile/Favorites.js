@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -14,13 +14,7 @@ const Favorites = () => {
     const [favDishes, setFavDishes] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (token) {
-            fetchFavorites();
-        }
-    }, [token]);
-
-    const fetchFavorites = async () => {
+    const fetchFavorites = useCallback(async () => {
         try {
             const [restRes, dishRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/api/client/favourite-restaurants/`, {
@@ -53,7 +47,13 @@ const Favorites = () => {
             console.error(error);
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        if (token) {
+            fetchFavorites();
+        }
+    }, [token, fetchFavorites]);
 
     const removeRestaurant = async (id) => {
         try {

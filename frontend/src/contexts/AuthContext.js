@@ -1,7 +1,7 @@
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
 const AuthContext = createContext();
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
                 setUser(null); // Clear user if no token for this realm
             }
         }
-    }, [location.pathname]);
+    }, [location.pathname, token]);
 
     // GLOBAL AXIOS INTERCEPTOR for 401s
     useEffect(() => {
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
         loadUser();
     }, [token]);
 
-    const login = async (email, password) => {
+    const login = useCallback(async (email, password) => {
         try {
             const res = await axios.post(`${API_BASE_URL}/api/auth/login/`, { email, password });
             const { token, user } = res.data;
@@ -118,9 +118,9 @@ export const AuthProvider = ({ children }) => {
                 error: error.response?.data?.error || "Login failed"
             };
         }
-    };
+    }, [location.pathname]);
 
-    const sendOtp = async (contact, type = 'phone') => {
+    const sendOtp = useCallback(async (contact, type = 'phone') => {
         try {
             const payload = (type === 'phone' || type === 'mobile') ? { phone: contact } : { email: contact };
             const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp/`, payload);
@@ -129,22 +129,19 @@ export const AuthProvider = ({ children }) => {
             console.error("OTP Error:", error);
             let updateMsg = "Failed to send OTP";
             if (error.response) {
-                // If backend sent detailed JSON error
                 if (error.response.data && typeof error.response.data === 'object') {
-                    // Collect all values if it's an object (e.g., validation errors)
                     const messages = Object.values(error.response.data).flat();
                     if (messages.length > 0) updateMsg = messages.join(', ');
                 }
-                // Fallback to specific status text
                 else if (error.response.statusText) {
                     updateMsg = `${error.response.status}: ${error.response.statusText}`;
                 }
             }
             return { success: false, error: updateMsg };
         }
-    };
+    }, []);
 
-    const verifyOtp = async (contact, otp, type = 'phone', name = '', role = 'CLIENT') => {
+    const verifyOtp = useCallback(async (contact, otp, type = 'phone', name = '', role = 'CLIENT') => {
         try {
             const payload = (type === 'phone' || type === 'mobile')
                 ? { phone: contact, otp_code: otp, name, role }
@@ -152,14 +149,9 @@ export const AuthProvider = ({ children }) => {
 
             const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp/`, payload);
 
-            // Only login if action is LOGIN (user already exists)
             if (res.data.action === 'LOGIN' && res.data.token) {
                 const { token, user } = res.data;
                 const key = getStorageKey(location.pathname);
-
-                // Atomic cleanup before setting new user
-                // Atomic cleanup removed to allow multi-role session
-                // ['token_restaurant', 'token_rider', 'token_admin', 'token_client'].forEach(k => localStorage.removeItem(k));
 
                 localStorage.setItem(key, token);
                 const roleHeader = key.replace('token_', '').toUpperCase();
@@ -174,9 +166,9 @@ export const AuthProvider = ({ children }) => {
             console.error("OTP Verification Error:", error);
             return { success: false, error: error.response?.data?.error || "Invalid OTP" };
         }
-    };
+    }, [location.pathname]);
 
-    const register = async (regData) => {
+    const register = useCallback(async (regData) => {
         try {
             const res = await axios.post(`${API_BASE_URL}/api/auth/register/`, regData);
             const { token, user } = res.data;
@@ -197,14 +189,13 @@ export const AuthProvider = ({ children }) => {
                 error: error.response?.data?.error || "Registration failed"
             };
         }
-    };
+    }, [location.pathname]);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         const realm = location.pathname.startsWith('/restaurant') ? 'restaurant' :
             location.pathname.startsWith('/rider') ? 'rider' :
                 location.pathname.startsWith('/admin') ? 'admin' : 'client';
 
-        // Optional: Call backend logout to clear session cookies/token on server
         try {
             if (token) {
                 await axios.post(`${API_BASE_URL}/api/auth/logout/`);
@@ -213,7 +204,6 @@ export const AuthProvider = ({ children }) => {
             console.warn("Backend logout failed or session already expired", e);
         }
 
-        // remove ONLY the token for the current realm
         const key = getStorageKey(location.pathname);
         localStorage.removeItem(key);
 
@@ -222,11 +212,10 @@ export const AuthProvider = ({ children }) => {
         delete axios.defaults.headers.common['Authorization'];
         delete axios.defaults.headers.common['X-Role'];
 
-        // Force a hard reload to clear all in-memory React state and caches
         window.location.href = realm === 'client' ? '/login' : `/${realm}/login`;
-    };
+    }, [location.pathname, token]);
 
-    const value = {
+    const value = useMemo(() => ({
         user,
         setUser,
         token,
@@ -237,7 +226,7 @@ export const AuthProvider = ({ children }) => {
         verifyOtp,
         register,
         isAuthenticated: !!user
-    };
+    }), [user, token, loading, login, logout, sendOtp, verifyOtp, register]);
 
     return (
         <AuthContext.Provider value={value}>

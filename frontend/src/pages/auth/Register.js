@@ -11,7 +11,7 @@ const Register = () => {
     const { register } = useAuth();
 
     // Get phone from navigation state (passed from Login.js)
-    const [phone, setPhone] = useState(location.state?.phone || '');
+    const [phone] = useState(location.state?.phone || '');
     const [email, setEmail] = useState(location.state?.email || '');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);

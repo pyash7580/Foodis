@@ -1,9 +1,8 @@
 import { API_BASE_URL } from '../../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../../contexts/AuthContext';
-import toast from 'react-hot-toast';
 
 const WalletDetails = () => {
     const { token } = useAuth();
@@ -11,13 +10,7 @@ const WalletDetails = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (token) {
-            fetchWalletData();
-        }
-    }, [token]);
-
-    const fetchWalletData = async () => {
+    const fetchWalletData = useCallback(async () => {
         try {
             // Fetch wallet balance
             const walletRes = await axios.get(`${API_BASE_URL}/api/client/wallet/balance/`, {
@@ -36,7 +29,13 @@ const WalletDetails = () => {
             // toast.error("Failed to load wallet data");
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        if (token) {
+            fetchWalletData();
+        }
+    }, [token, fetchWalletData]);
 
     if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Loading Wallet...</div>;
 

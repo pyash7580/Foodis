@@ -27,7 +27,7 @@ const UserDetails = ({ userId, onClose }) => {
             }
         };
         fetchDetails();
-    }, [userId]);
+    }, [userId, onClose]);
 
     if (loading) return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">

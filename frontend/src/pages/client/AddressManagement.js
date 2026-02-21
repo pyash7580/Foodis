@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import ProfileLayout from '../../components/ProfileLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,7 +27,7 @@ const AddressManagement = () => {
         longitude: 0
     });
 
-    const fetchAddresses = async () => {
+    const fetchAddresses = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/client/addresses/`, {
                 headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
@@ -47,11 +47,11 @@ const AddressManagement = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
 
     useEffect(() => {
         fetchAddresses();
-    }, []);
+    }, [fetchAddresses]);
 
     const handleOpenModal = (address = null) => {
         if (address) {

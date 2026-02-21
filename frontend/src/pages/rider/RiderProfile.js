@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { FaUser, FaPhone, FaMotorcycle, FaMapMarkerAlt, FaSignOutAlt, FaIdCard, FaWallet, FaStar } from 'react-icons/fa';
+import { FaUser, FaMotorcycle, FaMapMarkerAlt, FaSignOutAlt, FaIdCard, FaWallet, FaStar } from 'react-icons/fa';
+
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';

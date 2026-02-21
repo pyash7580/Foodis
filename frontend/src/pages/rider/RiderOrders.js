@@ -45,7 +45,7 @@ const RiderOrders = () => {
     // Initial Fetch
     useEffect(() => {
         fetchOrders();
-    }, [fetchOrders, activeTab, isOnline]);
+    }, [fetchOrders]);
 
     // WebSocket for Available Orders
     useEffect(() => {
@@ -71,7 +71,7 @@ const RiderOrders = () => {
         }
     }, [isOnline, activeTab, user, fetchOrders]);
 
-    const handleAccept = async (orderId) => {
+    const handleAccept = useCallback(async (orderId) => {
         try {
             await axios.post(`${API_BASE_URL}/api/rider/orders/${orderId}/accept/`, {}, { headers });
             toast.success("Order Accepted!");
@@ -80,9 +80,9 @@ const RiderOrders = () => {
             toast.error("Failed to accept. It might be taken.");
             fetchOrders();
         }
-    };
+    }, [headers, fetchOrders]);
 
-    const handleReject = async (orderId) => {
+    const handleReject = useCallback(async (orderId) => {
         try {
             await axios.post(`${API_BASE_URL}/api/rider/orders/${orderId}/reject/`, {}, { headers });
             setAvailableOrders(prev => prev.filter(o => (o.order?.id || o.id) !== orderId));
@@ -90,7 +90,7 @@ const RiderOrders = () => {
         } catch (err) {
             console.error(err);
         }
-    };
+    }, [headers]);
 
     return (
         <div className="flex flex-col space-y-8 animate-in fade-in duration-500">
@@ -145,7 +145,7 @@ const RiderOrders = () => {
     );
 };
 
-const AvailableOrdersList = ({ orders, onAccept, onReject, isOnline }) => {
+const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }) => {
     if (!isOnline) {
         return (
             <div className="text-center py-20 px-6 opacity-50">
@@ -230,9 +230,9 @@ const AvailableOrdersList = ({ orders, onAccept, onReject, isOnline }) => {
             })}
         </div>
     );
-};
+});
 
-const ActiveOrderView = ({ order, navigate }) => {
+const ActiveOrderView = React.memo(({ order, navigate }) => {
     const { headers } = useRider(); // We need headers here for actions
     const [otp, setOtp] = useState('');
     const [localLoading, setLocalLoading] = useState(false);
@@ -244,7 +244,7 @@ const ActiveOrderView = ({ order, navigate }) => {
     }, [order]);
 
     // Refresh handler
-    const fetchOrderDetails = async () => {
+    const fetchOrderDetails = useCallback(async () => {
         try {
             const timestamp = new Date().getTime();
             const res = await axios.get(`${API_BASE_URL}/api/rider/orders/${currentOrder.id}/?_t=${timestamp}`, { headers });
@@ -252,7 +252,7 @@ const ActiveOrderView = ({ order, navigate }) => {
         } catch (err) {
             console.error("Failed to refresh order", err);
         }
-    };
+    }, [currentOrder.id, headers]);
 
     if (!currentOrder) {
         return (
@@ -443,9 +443,9 @@ const ActiveOrderView = ({ order, navigate }) => {
             </button>
         </motion.div>
     );
-};
+});
 
-const OrderHistoryList = ({ orders }) => {
+const OrderHistoryList = React.memo(({ orders }) => {
     if (orders.length === 0) {
         return (
             <div className="text-center py-20 px-6 opacity-50">
@@ -475,6 +475,6 @@ const OrderHistoryList = ({ orders }) => {
             ))}
         </div>
     );
-};
+});
 
 export default RiderOrders;
