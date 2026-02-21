@@ -25,6 +25,7 @@ const Home = () => {
     const [activeFilter, setActiveFilter] = useState('All');
     const [sortBy, setSortBy] = useState('rating'); // rating, cost_low, cost_high
     const [selectedCity, setSelectedCity] = useState(''); // Track selected city for filtering
+    const [userLocation, setUserLocation] = useState(null); // Track coordinates for live location
 
     // Animation Variants
     const containerVariants = {
@@ -47,33 +48,39 @@ const Home = () => {
     ];
 
     const fetchRestaurants = useCallback(async () => {
-        // Build URL with city filter if selected
-        let url = `${API_BASE_URL}/api/client/restaurants/`;
-        if (selectedCity) {
-            url += `?city=${encodeURIComponent(selectedCity)}`;
-        }
-
         try {
             setLoading(true);
+            let url = `${API_BASE_URL}/api/client/restaurants/`;
+            const params = new URLSearchParams();
+            if (selectedCity) params.append('city', selectedCity);
+            if (params.toString()) url += `?${params.toString()}`;
+
             const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
-            const response = await axios.get(url, config);
-            const data = response.data.results || response.data;
-            setRestaurants(data);
-            setFilteredRestaurants(data);
+            const res = await axios.get(url, config);
+            const data = res.data.results || res.data;
+
+            const restaurantsList = Array.isArray(data) ? data : [];
+            setRestaurants(restaurantsList);
+            setFilteredRestaurants(restaurantsList);
             setError(null);
-            setLoading(false);
         } catch (err) {
-            console.error("Failed to fetch restaurants:", err);
+            console.error('Failed to fetch restaurants:', err);
+            setRestaurants([]);
+            setFilteredRestaurants([]);
             if (!err.response || err.response.status !== 401) {
-                setError("Failed to load restaurants. Please try again later.");
+                setError("Failed to load restaurants.");
             }
+        } finally {
             setLoading(false);
         }
     }, [selectedCity, token]);
 
     useEffect(() => {
-        fetchRestaurants();
-    }, [fetchRestaurants]);
+        // Only fetch restaurants after location is detected
+        if (selectedCity || userLocation) {
+            fetchRestaurants();
+        }
+    }, [fetchRestaurants, selectedCity, userLocation]);
 
     const searchDishes = useCallback(async () => {
         if (searchMode === 'dish') {
@@ -133,8 +140,14 @@ const Home = () => {
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <LocationDetector onLocationDetected={(location) => {
-                            if (location && location.city) {
-                                setSelectedCity(location.city);
+                            if (location) {
+                                if (location.city) {
+                                    setSelectedCity(location.city);
+                                    setUserLocation(null);
+                                } else if (location.latitude && location.longitude) {
+                                    setUserLocation({ latitude: location.latitude, longitude: location.longitude });
+                                    setSelectedCity('');
+                                }
                             }
                         }} />
                         <div className="flex-1 max-w-3xl w-full">

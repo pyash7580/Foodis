@@ -18,7 +18,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='foodis-jpvq.onrender.com,foodis-backend.onrender.com,localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+ALLOWED_HOSTS = [
+    'foodis-up4t.onrender.com',
+    'localhost',
+    '127.0.0.1',
+]
 
 # Application definition
 
@@ -69,10 +73,10 @@ except ImportError:
     pass
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -158,7 +162,10 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://foodis-pi.vercel.app,https://foodis-up4t.onrender.com,http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+    CSRF_TRUSTED_ORIGINS = [
+        'https://foodis-coral.vercel.app',
+        'https://foodis-up4t.onrender.com',
+    ]
 
 # Redis Configuration
 # Default to None to avoid accidental local connections in production
@@ -167,8 +174,10 @@ REDIS_URL = config('REDIS_URL', default=None)
 # Cache configuration
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'django_cache_table',
+        # Local-memory cache avoids hard dependency on the DB cache table.
+        # Production will still switch to Redis below when REDIS_URL is configured.
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'foodis-default-cache',
     }
 }
 
@@ -239,7 +248,7 @@ if (BASE_DIR / 'static').exists():
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -258,7 +267,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
+    'PAGE_SIZE': 20,  # Reduced from 100 for faster initial load and lower bandwidth
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
@@ -280,14 +289,16 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://foodis-pi.vercel.app,https://foodis-up4t.onrender.com,http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = [
+    'https://foodis-coral.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
 CORS_ALLOW_CREDENTIALS = True
-
-from corsheaders.defaults import default_headers
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    'x-role',
-    'x-device-id',
+CORS_ALLOW_METHODS = ['DELETE','GET','OPTIONS','PATCH','POST','PUT']
+CORS_ALLOW_HEADERS = [
+    'accept','accept-encoding','authorization','content-type',
+    'dnt','origin','user-agent','x-csrftoken','x-requested-with','x-role'
 ]
 
 # Google Maps API

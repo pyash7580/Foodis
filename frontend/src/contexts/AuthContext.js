@@ -99,10 +99,20 @@ export const AuthProvider = ({ children }) => {
         loadUser();
     }, [token]);
 
-    const login = useCallback(async (email, password) => {
+    const login = useCallback(async (email, password, expectedRole = null) => {
         try {
             const res = await axios.post(`${API_BASE_URL}/api/auth/login/`, { email, password });
             const { token, user } = res.data;
+
+            if (expectedRole && user?.role !== expectedRole) {
+                return {
+                    success: false,
+                    error: `This account is registered as ${user?.role || 'UNKNOWN'}. Please use the correct login page.`,
+                    code: 'ROLE_MISMATCH',
+                    registered_role: user?.role || null,
+                };
+            }
+
             const key = getStorageKey(location.pathname);
             localStorage.setItem(key, token);
             setToken(token);
@@ -115,7 +125,8 @@ export const AuthProvider = ({ children }) => {
             console.error("Login error", error);
             return {
                 success: false,
-                error: error.response?.data?.error || "Login failed"
+                error: error.response?.data?.message || error.response?.data?.error || "Login failed",
+                code: error.response?.data?.error || null,
             };
         }
     }, [location.pathname]);
@@ -124,7 +135,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const payload = (type === 'phone' || type === 'mobile') ? { phone: contact } : { email: contact };
             const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp/`, payload);
-            return { success: true, otp: res.data.otp };
+            return { success: true, otp: res.data.otp, message: res.data.message };
         } catch (error) {
             console.error("OTP Error:", error);
             let updateMsg = "Failed to send OTP";
@@ -137,7 +148,11 @@ export const AuthProvider = ({ children }) => {
                     updateMsg = `${error.response.status}: ${error.response.statusText}`;
                 }
             }
-            return { success: false, error: updateMsg };
+            return {
+                success: false,
+                error: error.response?.data?.message || updateMsg,
+                code: error.response?.data?.error || null,
+            };
         }
     }, []);
 
@@ -164,7 +179,12 @@ export const AuthProvider = ({ children }) => {
             return { success: true, ...res.data };
         } catch (error) {
             console.error("OTP Verification Error:", error);
-            return { success: false, error: error.response?.data?.error || "Invalid OTP" };
+            return {
+                success: false,
+                error: error.response?.data?.error || "Invalid OTP",
+                message: error.response?.data?.message || "Invalid OTP",
+                code: error.response?.data?.error || null,
+            };
         }
     }, [location.pathname]);
 

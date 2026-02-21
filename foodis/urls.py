@@ -22,7 +22,11 @@ urlpatterns = [
     path('rider/', include('rider.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Serve media files (images, uploads) in both development and production
+# This is necessary for restaurant images to display on Render and other production servers
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+# Serve static files (CSS, JavaScript) only in development
+# In production, WhiteNoise (via STATICFILES_STORAGE) and/or Render serve these
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

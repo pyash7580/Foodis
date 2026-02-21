@@ -65,18 +65,23 @@ const RestaurantLogin = () => {
         const res = await verifyOtp(mobile, otp, 'mobile', '', 'RESTAURANT');
 
         if (res.success) {
+            if (res.action === 'REGISTER') {
+                toast.error("Restaurant account not found. Please contact admin to register your restaurant.", { duration: 5000 });
+                setLoading(false);
+                return;
+            }
             toast.success("Logged in successfully");
             // Navigation handled by status check logic in ProtectedRoute or AuthContext
             // For now, force navigation to root restaurant route which serves as the controller
             navigate('/restaurant/');
         } else {
-            if (res.error === "User not registered" || res.code === "NOT_REGISTERED") {
+            if (res.code === "ROLE_MISMATCH" || res.error === "ROLE_MISMATCH") {
+                toast.error(res.message || "This number is registered with a different role. Please use the correct login page.", { duration: 5000 });
+            } else if (res.error === "User not registered" || res.code === "NOT_REGISTERED") {
                 toast.error("Restaurant not registered! Please contact admin to add your restaurant.", { duration: 4000 });
                 // DISABLED: No public restaurant signup - only admin can add restaurants
-            } else if (res.error === "ROLE_MISMATCH") {
-                toast.error(res.message || "This number is registered with a different role. Please use the correct login page.", { duration: 5000 });
             } else {
-                toast.error(res.error || "Invalid OTP");
+                toast.error(res.message || res.error || "Invalid OTP");
             }
         }
         setLoading(false);
@@ -85,7 +90,7 @@ const RestaurantLogin = () => {
     const handleEmailLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const res = await login(email, password); // Login usually checks basic auth
+        const res = await login(email, password, 'RESTAURANT');
 
         if (res.success) {
             // We need to double check role here if login doesn't return user obj immediately to validate role
@@ -93,7 +98,7 @@ const RestaurantLogin = () => {
             toast.success("Welcome back!");
             navigate('/restaurant/');
         } else {
-            toast.error(res.error || "Invalid credentials");
+            toast.error(res.message || res.error || "Invalid credentials");
         }
         setLoading(false);
     };

@@ -104,9 +104,12 @@ def send_otp(phone):
         purpose='LOGIN'
     )
     
-    # Store in cache for redundancy
+    # Store in cache for redundancy (non-blocking).
     cache_key = f'otp_{phone}'
-    cache.set(cache_key, otp_code, timeout=expiry_minutes * 60)
+    try:
+        cache.set(cache_key, otp_code, timeout=expiry_minutes * 60)
+    except Exception as cache_err:
+        logger.warning(f"OTP cache set skipped for {phone}: {cache_err}")
     
     # Send OTP via SMS
     send_otp_sms(phone, otp_code)
@@ -170,9 +173,12 @@ def send_email_otp(email):
     """Send OTP to email address"""
     otp_code = generate_otp()
     
-    # Store OTP in cache with 5 minute expiry
+    # Store OTP in cache with 5 minute expiry (non-blocking).
     cache_key = f'otp_email_{email}'
-    cache.set(cache_key, otp_code, timeout=300)
+    try:
+        cache.set(cache_key, otp_code, timeout=300)
+    except Exception as cache_err:
+        logger.warning(f"Email OTP cache set skipped for {email}: {cache_err}")
     
     # Send OTP via Email
     try:
@@ -208,10 +214,17 @@ def send_email_otp(email):
 def verify_email_otp(email, otp_code):
     """Verify email OTP code"""
     cache_key = f'otp_email_{email}'
-    stored_otp = cache.get(cache_key)
+    try:
+        stored_otp = cache.get(cache_key)
+    except Exception as cache_err:
+        logger.warning(f"Email OTP cache get failed for {email}: {cache_err}")
+        stored_otp = None
     
     if stored_otp and stored_otp == otp_code:
-        cache.delete(cache_key)
+        try:
+            cache.delete(cache_key)
+        except Exception as cache_err:
+            logger.warning(f"Email OTP cache delete skipped for {email}: {cache_err}")
         return True
     
     return False

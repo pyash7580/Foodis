@@ -20,6 +20,28 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
+
+def normalize_phone(phone):
+    """Normalize phone to last 10 digits for consistent auth lookups."""
+    if not phone:
+        return ""
+    digits = ''.join(filter(str.isdigit, str(phone)))
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
+def find_user_by_phone(phone):
+    """Find user using multiple phone formats (+91, 91, plain 10-digit)."""
+    normalized = normalize_phone(phone)
+    if not normalized:
+        return None
+
+    candidates = [normalized, f"+91{normalized}", f"91{normalized}"]
+    user = User.objects.filter(phone__in=candidates).first()
+    if user:
+        return user
+
+    return User.objects.filter(phone__endswith=normalized).first()
+
 def log_debug(message):
     """Consolidated debug logging to file"""
     try:
@@ -88,16 +110,33 @@ def send_otp_view(request):
             email = serializer.validated_data.get('email')
             
             otp_code = None
+            flow = "REGISTER"
+            is_registered = False
+
             if phone:
+                clean_phone_num = normalize_phone(phone)
+                user = find_user_by_phone(clean_phone_num)
+                is_registered = user is not None
+                if user:
+                    flow = "LOGIN"
+                    
                 logger.debug(f"Calling send_otp for phone: {phone}")
                 otp_code = send_otp(phone)
             elif email:
+                user = User.objects.filter(email=email).first()
+                is_registered = user is not None
+                if user:
+                    flow = "LOGIN"
+                    
                 logger.debug(f"Calling send_email_otp for email: {email}")
                 otp_code = send_email_otp(email)
             
             return Response({
                 'message': 'OTP sent successfully',
-                'otp': otp_code  # Remove in production
+                'otp': otp_code,  # Remove in production
+                'flow': flow,
+                'is_registered': is_registered,
+                'is_new_user': not is_registered
             }, status=status.HTTP_200_OK)
         
         # Validation Failed
@@ -152,78 +191,91 @@ def verify_otp_view(request):
                 # Check if user exists
                 user = None
                 if phone:
-                    clean_phone_num = ''.join(filter(str.isdigit, str(phone)))[-10:]
+                    clean_phone_num = normalize_phone(phone)
                     # 🔍 DEBUG: Check exact string and query
                     log_debug(f"LOOKUP: clean_phone_num='{clean_phone_num}'")
                     
-                    user = User.objects.filter(phone=clean_phone_num).first()
+                    user = find_user_by_phone(clean_phone_num)
                     
                     log_debug(f"FOUND USER: {user} (ID: {user.id if user else 'None'})")
                 elif email:
                     user = User.objects.filter(email=email).first()
 
                 if user:
-                    # SECURE ROLE CHECK
-                    # If user exists but role mismatch, return error to prevent wrong portal login
-                    if role_requested and user.role != role_requested:
-                        log_debug(f"ROLE MISMATCH: User {user.phone} is {user.role}, but requested {role_requested}")
-                        
-                        return Response({
-                            "error": "ROLE_MISMATCH",
-                            "message": f"This number is registered as a {user.role.capitalize()}. Please use the correct login page.",
-                            "registered_role": user.role
-                        }, status=status.HTTP_403_FORBIDDEN)
-                    
-                    # 📌 USER EXISTS -> LOGIN
-                    refresh = RefreshToken.for_user(user)
-                    refresh['role'] = user.role
-                    
-                    response_data = {
-                        "action": "LOGIN",
-                        "message": "OTP verified successfully",
-                        "token": str(refresh.access_token),
-                        "refresh": str(refresh),
-                        "user": UserSerializer(user, context={'request': request}).data
-                    }
+                    created = False
+                else:
+                    # 📌 USER DOES NOT EXIST -> REGISTER directly here
+                    log_debug(f"REGISTER: Phone/Email {phone or email} not found in DB. Creating new user.")
+                    if phone:
+                        clean_phone_num = normalize_phone(phone)
+                        user = User.objects.create(
+                            phone=clean_phone_num,
+                            role='CLIENT',
+                            is_verified=True,
+                            is_active=True
+                        )
+                    elif email:
+                        user = User.objects.create(
+                            email=email,
+                            role='CLIENT',
+                            is_verified=True,
+                            is_active=True
+                        )
+                    created = True
 
-                    # Role redirection logic
-                    if user.role == 'RIDER':
-                        # ... rider logic ...
-                        try:
-                            from rider_legacy.models import RiderProfile
-                            profile = RiderProfile.objects.filter(rider=user).first()
-                            if profile:
-                                if profile.status == 'APPROVED' and profile.is_onboarding_complete:
-                                    response_data['redirect_to'] = 'dashboard'
-                                elif profile.status == 'UNDER_REVIEW':
-                                    response_data['redirect_to'] = 'status'
-                                elif profile.status == 'REJECTED':
-                                    response_data['redirect_to'] = 'rejected'
-                                elif profile.status == 'BLOCKED':
-                                    response_data['redirect_to'] = 'blocked'
-                                else:
-                                    response_data['redirect_to'] = 'onboarding'
-                                    response_data['step'] = profile.onboarding_step
-                                response_data['rider_status'] = profile.status
+                # SECURE ROLE CHECK
+                # If user exists but role mismatch, return error to prevent wrong portal login
+                if not created and role_requested and user.role != role_requested:
+                    log_debug(f"ROLE MISMATCH: User {user.phone} is {user.role}, but requested {role_requested}")
+                    
+                    return Response({
+                        "error": "ROLE_MISMATCH",
+                        "message": f"This number is registered as a {user.role.capitalize()}. Please use the correct login page.",
+                        "registered_role": user.role
+                    }, status=status.HTTP_403_FORBIDDEN)
+                
+                # 📌 USER LOGIN / CREATED
+                refresh = RefreshToken.for_user(user)
+                refresh['role'] = user.role
+                
+                response_data = {
+                    "action": "LOGIN",
+                    "message": "OTP verified successfully",
+                    "token": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "is_new_user": created,
+                    "user": UserSerializer(user, context={'request': request}).data
+                }
+
+                # Role redirection logic
+                if user.role == 'RIDER':
+                    # ... rider logic ...
+                    try:
+                        from rider_legacy.models import RiderProfile
+                        profile = RiderProfile.objects.filter(rider=user).first()
+                        if profile:
+                            if profile.status == 'APPROVED' and profile.is_onboarding_complete:
+                                response_data['redirect_to'] = 'dashboard'
+                            elif profile.status == 'UNDER_REVIEW':
+                                response_data['redirect_to'] = 'status'
+                            elif profile.status == 'REJECTED':
+                                response_data['redirect_to'] = 'rejected'
+                            elif profile.status == 'BLOCKED':
+                                response_data['redirect_to'] = 'blocked'
                             else:
                                 response_data['redirect_to'] = 'onboarding'
-                                response_data['step'] = 0
-                                response_data['rider_status'] = 'NEW'
-                        except Exception as e:
-                            log_debug(f"Error fetching rider profile: {e}")
-                    
-                    log_debug(f"SUCCESS: User {user.phone} logged in as {user.role}")
-                    
-                    return Response(response_data, status=status.HTTP_200_OK)
-                else:
-                    # 📌 USER DOES NOT EXIST -> REGISTER
-                    log_debug(f"REGISTER: Phone/Email {phone or email} not found in DB")
-                    return Response({
-                        "action": "REGISTER",
-                        "message": "OTP verified successfully. Please complete registration.",
-                        "phone": phone if phone else None,
-                        "email": email if email else None
-                    }, status=status.HTTP_200_OK)
+                                response_data['step'] = profile.onboarding_step
+                            response_data['rider_status'] = profile.status
+                        else:
+                            response_data['redirect_to'] = 'onboarding'
+                            response_data['step'] = 0
+                            response_data['rider_status'] = 'NEW'
+                    except Exception as e:
+                        log_debug(f"Error fetching rider profile: {e}")
+                
+                log_debug(f"SUCCESS: User {user.phone} logged in as {user.role}")
+                
+                return Response(response_data, status=status.HTTP_200_OK)
             else:
                 log_debug(f"FAILURE: Invalid or Expired OTP for {phone or email}")
                 return Response({
@@ -253,9 +305,10 @@ def register_view(request):
         email = serializer.validated_data.get('email')
         name = serializer.validated_data.get('name')
         role = serializer.validated_data.get('role', 'CLIENT')
+        normalized_phone = normalize_phone(phone)
 
-        # Double check if user already exists
-        if User.objects.filter(phone=phone).exists():
+        # Double check if user already exists (including legacy +91 formats)
+        if find_user_by_phone(normalized_phone):
              return Response({"error": "User with this phone number already exists"}, status=status.HTTP_400_BAD_REQUEST)
         
         if email and User.objects.filter(email=email).exists():
@@ -263,7 +316,7 @@ def register_view(request):
 
         # Create user
         user = User.objects.create(
-            phone=phone,
+            phone=normalized_phone,
             email=email if email else None,
             name=name,
             role=role,
@@ -291,7 +344,7 @@ def login_view(request):
     """Login with email and password"""
     serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
-        email = serializer.validated_data['email']
+        email = serializer.validated_data['email'].strip()
         password = serializer.validated_data['password']
         
         # Authenticate user
@@ -305,16 +358,14 @@ def login_view(request):
                  User = get_user_model()
                  try:
                      # Try finding by Email
-                     user_obj = User.objects.filter(email=email).first()
+                     user_obj = User.objects.filter(email__iexact=email).first()
                      
-                     # Try finding by Phone if not found and input looks like phone
-                     clean_phone = email.strip().replace(' ', '').replace('+', '')
-                     if not user_obj and clean_phone.isdigit():
-                         user_obj = (User.objects.filter(phone=clean_phone).first() or 
-                                    User.objects.filter(phone=f"+{clean_phone}").first())
-                         
-                     elif email.strip().lower() == 'admin':
+                     if not user_obj and email.lower() == 'admin':
                           user_obj = User.objects.filter(role='ADMIN', is_superuser=True).first()
+
+                     # Try finding by Phone using normalized and legacy formats
+                     if not user_obj:
+                         user_obj = find_user_by_phone(email)
 
                      if user_obj:
                          print(f"DEBUG: Found user by lookup: {getattr(user_obj, 'email', '') or getattr(user_obj, 'phone', '')}")

@@ -28,11 +28,13 @@ class RestaurantProfileSerializer(serializers.ModelSerializer):
 class RestaurantSerializer(serializers.ModelSerializer):
     image = SmartImageField(required=False, allow_null=True)
     cover_image = SmartImageField(required=False, allow_null=True)
+    image_url = serializers.ReadOnlyField(source='get_image_url')
+    cover_image_url = serializers.ReadOnlyField(source='get_cover_image_url')
     profile = RestaurantProfileSerializer(read_only=True)
     
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'slug', 'description', 'image', 'cover_image',
+        fields = ['id', 'name', 'slug', 'description', 'image', 'cover_image', 'image_url', 'cover_image_url',
                   'phone', 'email', 'address', 'city', 'state', 'pincode',
                   'latitude', 'longitude', 'rating', 'total_ratings',
                   'delivery_time', 'delivery_fee', 'min_order_amount',
@@ -41,10 +43,11 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
 class MenuItemSerializer(serializers.ModelSerializer):
     image = SmartImageField(required=False, allow_null=True)
+    image_url = serializers.ReadOnlyField(source='get_image_url')
     
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'image', 'price', 'veg_type',
+        fields = ['id', 'name', 'description', 'image', 'image_url', 'price', 'veg_type',
                   'category', 'is_available', 'preparation_time', 'rating',
                   'total_orders', 'created_at', 'updated_at']
 

@@ -107,7 +107,7 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        const res = await login(email, password);
+        const res = await login(email, password, 'CLIENT');
         if (res.success) {
             navigate('/client');
         } else {
