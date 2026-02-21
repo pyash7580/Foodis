@@ -2,7 +2,7 @@ const getBaseUrl = () => {
     if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
     // If on localhost, use local backend. Otherwise, use the Render backend.
     return window.location.origin.includes('localhost')
-        ? 'http://127.0.0.1:8000'
+        ? 'http://localhost:8000'
         : 'https://foodis-jpvq.onrender.com';
 };
 
@@ -10,7 +10,7 @@ const getWsUrl = () => {
     if (process.env.REACT_APP_WS_URL) return process.env.REACT_APP_WS_URL;
     // If on localhost, use local WS. Otherwise, use the Render WS.
     return window.location.origin.includes('localhost')
-        ? 'ws://127.0.0.1:8000/ws'
+        ? 'ws://localhost:8000/ws'
         : 'wss://foodis-jpvq.onrender.com/ws';
 };
 
