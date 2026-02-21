@@ -9,6 +9,8 @@ services:
       python manage.py migrate
     startCommand: daphne -b 0.0.0.0 -p $PORT foodis.asgi:application
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: DEBUG
         value: "False"
       - key: USE_POSTGRES
@@ -31,6 +33,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A foodis worker --loglevel=info
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: DEBUG
         value: "False"
       - key: USE_POSTGRES
@@ -54,18 +58,17 @@ services:
     staticPublishPath: frontend/build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://foodis-backend.onrender.com # Change to your actual backend URL
+        value: https://foodis-backend.onrender.com
+
+  # Redis for Channels and Celery
+  - type: redis
+    name: foodis-cache
+    plan: free
+    ipAllowList: []
 
 databases:
   - name: foodis-db
     plan: free
-
-# Redis for Channels and Celery
-services:
-  - type: redis
-    name: foodis-cache
-    plan: free
-    ipAllowList: [] # Only allow internal access
 
 envVarGroups:
   - name: foodis-globals
