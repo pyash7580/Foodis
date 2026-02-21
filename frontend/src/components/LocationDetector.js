@@ -32,7 +32,7 @@ const LocationDetector = ({ onLocationDetected }) => {
             },
             (err) => {
                 console.warn('Geolocation:', err.message);
-                setError('Permission denied or unavailable');
+                setError('Location access denied');
                 setLocation('Select Location');
                 setIsLoading(false);
             },
@@ -98,9 +98,19 @@ const LocationDetector = ({ onLocationDetected }) => {
                 </div>
             )}
 
-            {error && !isLoading && isOpen && (
-                <div className="absolute top-full left-0 mt-32 w-56 px-2">
-                    <p className="text-xs text-red-500 bg-red-50 p-1 rounded">⚠️ {error}</p>
+            {error && !isLoading && (
+                <div className="absolute top-full left-0 mt-2 w-64 px-2 z-40">
+                    <div className="bg-red-50 border border-red-100 rounded-md p-3 shadow-sm">
+                        <p className="text-xs text-red-600 font-medium flex items-start">
+                            <span className="mr-2">⚠️</span>
+                            <span>
+                                {error}. <br />
+                                <span className="text-[10px] text-gray-500 mt-1 block">
+                                    Try enabling it in your browser settings or select a city manually.
+                                </span>
+                            </span>
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
