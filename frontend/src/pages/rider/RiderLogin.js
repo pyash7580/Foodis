@@ -74,7 +74,15 @@ const RiderLogin = () => {
             const res = await verifyOtp(phone, otp, 'mobile', '', 'RIDER');
 
             if (res.success) {
-                const { redirect, step, state } = res;
+                if (res.action === 'REGISTER') {
+                    setError('Rider account not found. Please contact admin to register your rider profile.');
+                    setLoading(false);
+                    return;
+                }
+
+                const redirect = res.redirect_to || res.redirect;
+                const step = res.step;
+                const state = res.state;
                 console.log("Login Success. Redirection:", redirect, "Step:", step, "State:", state);
 
                 toast.success('Verified Successfully!');
@@ -104,7 +112,7 @@ const RiderLogin = () => {
                         break;
                 }
             } else {
-                setError(res.error || 'Invalid OTP. Please try again.');
+                setError(res.message || res.error || 'Invalid OTP. Please try again.');
             }
         } catch (err) {
             console.error(err);

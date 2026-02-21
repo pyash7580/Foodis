@@ -35,57 +35,99 @@ class MenuItemSerializer(serializers.ModelSerializer):
     image = SmartImageField(required=False, allow_null=True)
     customizations = MenuItemCustomizationSerializer(many=True, read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
-    
+
     is_favourite = serializers.SerializerMethodField()
-    
+
     restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
     restaurant_slug = serializers.CharField(source='restaurant.slug', read_only=True)
     restaurant_city = serializers.CharField(source='restaurant.city', read_only=True)
+    image_url = serializers.ReadOnlyField(source='get_image_url')
 
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'image', 'image_url', 'price', 'veg_type', 
+        fields = ['id', 'name', 'description', 'image', 'image_url', 'price', 'veg_type',
                   'category', 'category_name', 'is_available', 'preparation_time',
                   'rating', 'total_orders', 'customizations', 'is_favourite',
                   'restaurant', 'restaurant_name', 'restaurant_slug', 'restaurant_city']
-    
-    def get_is_favourite(self, obj):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-load all favorite menu items in a single query (not per-item)
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
-            # We use a global import or local to avoid circularity if model is below
             from .models import FavouriteMenuItem
-            return FavouriteMenuItem.objects.filter(user=request.user, menu_item=obj).exists()
-        return False
+            # Load all favorited menu item IDs for this user in ONE query
+            fav_item_ids = set(
+                FavouriteMenuItem.objects.filter(user=request.user)
+                .values_list('menu_item_id', flat=True)
+            )
+            self.context['fav_menu_items'] = fav_item_ids
+        else:
+            self.context['fav_menu_items'] = set()
+
+    def get_is_favourite(self, obj):
+        # Use pre-loaded set instead of querying for each menu item
+        fav_menu_items = self.context.get('fav_menu_items', set())
+        return obj.id in fav_menu_items
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
     image = SmartImageField(required=False, allow_null=True)
     cover_image = SmartImageField(required=False, allow_null=True)
+    image_url = serializers.ReadOnlyField(source='get_image_url')
+    cover_image_url = serializers.ReadOnlyField(source='get_cover_image_url')
     distance = serializers.SerializerMethodField()
-    menu_items_count = serializers.IntegerField(source='menu_items.count', read_only=True)
+    menu_items_count = serializers.SerializerMethodField()
     cuisine_types = serializers.SerializerMethodField()
-    
+
     is_favourite = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'slug', 'description', 'cuisine', 'image', 'cover_image',
+        fields = ['id', 'name', 'slug', 'description', 'cuisine', 'image', 'cover_image', 'image_url', 'cover_image_url',
                   'phone', 'email', 'address', 'city', 'state', 'pincode',
                   'latitude', 'longitude', 'rating', 'total_ratings',
                   'delivery_time', 'delivery_fee', 'min_order_amount',
                   'is_veg', 'is_active', 'distance', 'menu_items_count', 'cuisine_types', 'is_favourite']
-    
-    def get_is_favourite(self, obj):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-load all favorite restaurants in a single query (not per-item)
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             from .models import FavouriteRestaurant
-            return FavouriteRestaurant.objects.filter(user=request.user, restaurant=obj).exists()
-        return False
-    
+            # Load all favorited restaurant IDs for this user in ONE query
+            fav_rest_ids = set(
+                FavouriteRestaurant.objects.filter(user=request.user)
+                .values_list('restaurant_id', flat=True)
+            )
+            self.context['fav_restaurants'] = fav_rest_ids
+        else:
+            self.context['fav_restaurants'] = set()
+
+    def get_is_favourite(self, obj):
+        # Use pre-loaded set instead of querying for each restaurant
+        fav_restaurants = self.context.get('fav_restaurants', set())
+        return obj.id in fav_restaurants
+
     def get_cuisine_types(self, obj):
-        return list(obj.menu_items.values_list('category__name', flat=True).distinct().exclude(category__name=None)[:3])
-    
+        # Avoid N+1 query: use prefetched menu_items if available
+        menu_items = obj.menu_items.all()  # Uses prefetched cache if available
+        categories = set()
+        for item in menu_items:
+            if item.category and item.category.name:
+                categories.add(item.category.name)
+        return list(categories)[:3]
+
+    def get_menu_items_count(self, obj):
+        # Use annotated count if available, otherwise fallback to count()
+        if hasattr(obj, 'menu_items_count_cached'):
+            return obj.menu_items_count_cached
+        return obj.menu_items.count()
+
     def get_distance(self, obj):
+        # Only calculate distance if explicitly requested in query params
+        # Most of the distance filtering is done in get_queryset already
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             user_lat = request.query_params.get('latitude')

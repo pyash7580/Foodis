@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 const RestaurantCard = ({ restaurant, index }) => {
     const { token } = useAuth();
     const [isFav, setIsFav] = useState(restaurant.is_favourite);
+    const [imageLoaded, setImageLoaded] = useState(true);
 
     // Generate a consistent random color for placeholder if no image
     const colors = ['bg-red-100', 'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-purple-100'];
@@ -37,6 +38,10 @@ const RestaurantCard = ({ restaurant, index }) => {
         }
     };
 
+    const handleImageError = () => {
+        setImageLoaded(false);
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -46,13 +51,24 @@ const RestaurantCard = ({ restaurant, index }) => {
         >
             <Link to={`/client/restaurants/${restaurant.id}`} className="block group">
                 <div className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 bg-white border border-gray-100 ${colorClass} h-full`}>
-                    <div className="h-52 w-full bg-cover bg-center relative group-hover:scale-105 transition-transform duration-700"
-                        style={{ backgroundImage: (restaurant.cover_image || restaurant.image) ? `url(${restaurant.cover_image || restaurant.image}?t=${new Date(restaurant.updated_at || Date.now()).getTime()})` : 'none' }}>
-                        {(!restaurant.image && !restaurant.cover_image) && (
+                    <div className="h-52 w-full bg-cover bg-center relative group-hover:scale-105 transition-transform duration-700 flex items-center justify-center"
+                        style={imageLoaded && (restaurant.image_url || restaurant.cover_image_url || restaurant.image) ? { backgroundImage: `url(${restaurant.image_url || restaurant.cover_image_url || restaurant.image}?t=${new Date(restaurant.updated_at || Date.now()).getTime()})` } : {}}>
+                        {/* Image element for error detection */}
+                        {imageLoaded && (restaurant.image_url || restaurant.cover_image_url || restaurant.image) && (
+                            <img
+                                src={`${restaurant.image_url || restaurant.cover_image_url || restaurant.image}?t=${new Date(restaurant.updated_at || Date.now()).getTime()}`}
+                                alt={restaurant.name}
+                                onError={handleImageError}
+                                className="hidden"
+                                crossOrigin="anonymous"
+                            />
+                        )}
+                        {/* Fallback when no image or image fails to load */}
+                        {!imageLoaded || (!restaurant.image_url && !restaurant.cover_image_url && !restaurant.image) ? (
                             <div className={`w-full h-full flex items-center justify-center ${colorClass}`}>
                                 <span className="text-5xl">🍽️</span>
                             </div>
-                        )}
+                        ) : null}
 
                         {/* Favorite Button */}
                         <button
@@ -95,4 +111,4 @@ const RestaurantCard = ({ restaurant, index }) => {
     );
 };
 
-export default RestaurantCard;
+export default React.memo(RestaurantCard);

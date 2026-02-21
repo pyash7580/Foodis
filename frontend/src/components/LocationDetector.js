@@ -33,12 +33,16 @@ const LocationDetector = ({ onLocationDetected }) => {
             (err) => {
                 console.warn('Geolocation:', err.message);
                 setError('Location access denied');
-                setLocation('Select Location');
+                setLocation('Mehsana (Default)');
                 setIsLoading(false);
+                // Fallback to default city when geolocation fails
+                if (onLocationDetected) {
+                    onLocationDetected({ city: 'Mehsana' });
+                }
             },
-            { timeout: 10000 }
+            { timeout: 15000 }
         );
-    }, [onLocationDetected]);
+    }, []);
 
     useEffect(() => {
         detectLocation();
@@ -104,10 +108,7 @@ const LocationDetector = ({ onLocationDetected }) => {
                         <p className="text-xs text-red-600 font-medium flex items-start">
                             <span className="mr-2">⚠️</span>
                             <span>
-                                {error}. <br />
-                                <span className="text-[10px] text-gray-500 mt-1 block">
-                                    Try enabling it in your browser settings or select a city manually.
-                                </span>
+                                Location unavailable. Please select manually.
                             </span>
                         </p>
                     </div>

@@ -3,7 +3,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Avg, Count, Sum
+from django.db.models import Q, Avg, Count, Sum, Prefetch
 from django.db import transaction
 from geopy.distance import distance
 from decimal import Decimal
@@ -34,6 +34,7 @@ from core.serializers import UserSerializer, AddressSerializer
 from rider_legacy.models import RiderReview, RiderProfile
 from rider_legacy.serializers import RiderReviewSerializer
 from core.models import Address
+from core.city_utils import normalize_city_name
 from ai_engine.utils import get_recommendations, get_trending_items
 
 channel_layer = get_channel_layer()
@@ -56,31 +57,68 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Restaurant.objects.filter(status='APPROVED', is_active=True)
     serializer_class = RestaurantSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['city', 'is_veg']
+    filterset_fields = ['is_veg']
     search_fields = ['name', 'description', 'city', 'menu_items__name', 'menu_items__description']
     ordering_fields = ['rating', 'delivery_time', 'created_at']
     ordering = ['-rating']
     
     def get_queryset(self):
         queryset = Restaurant.objects.filter(status='APPROVED', is_active=True)
-        
+
+        # Add select_related for foreign keys to avoid N+1 queries
+        queryset = queryset.select_related('city_id')
+
+        # Prefetch menu items and categories to avoid N+1 queries
+        queryset = queryset.prefetch_related('menu_items__category')
+
+        # Annotate menu items count to avoid individual count() queries in serializer
+        queryset = queryset.annotate(menu_items_count_cached=Count('menu_items', distinct=True))
+
+        city = self.request.query_params.get('city')
+
+        if city:
+            normalized_city = normalize_city_name(city)
+            queryset = queryset.filter(
+                Q(city__iexact=normalized_city) |
+                Q(city_id__name__iexact=normalized_city)
+            )
+
         latitude = self.request.query_params.get('latitude')
         longitude = self.request.query_params.get('longitude')
         radius = float(self.request.query_params.get('radius', 80)) # Default 80km
-        
+
         if latitude and longitude:
             try:
                 user_location = (float(latitude), float(longitude))
+
+                # First pass: bounding box filter to reduce dataset before expensive distance calculations
+                # Approximate: 1 degree latitude ≈ 111km, longitude varies by cos(latitude)
+                import math
+                lat_delta = radius / 111.0
+                lon_delta = radius / (111.0 * math.cos(math.radians(float(latitude))))
+
+                queryset = queryset.filter(
+                    latitude__gte=float(latitude) - lat_delta,
+                    latitude__lte=float(latitude) + lat_delta,
+                    longitude__gte=float(longitude) - lon_delta,
+                    longitude__lte=float(longitude) + lon_delta
+                )
+
+                # Second pass: precise distance filtering only on the bounding box results
                 filtered_ids = []
                 for restaurant in queryset:
-                    res_location = (float(restaurant.latitude), float(restaurant.longitude))
-                    if distance(user_location, res_location).km <= radius:
-                        filtered_ids.append(restaurant.id)
+                    try:
+                        res_location = (float(restaurant.latitude), float(restaurant.longitude))
+                        if distance(user_location, res_location).km <= radius:
+                            filtered_ids.append(restaurant.id)
+                    except (ValueError, TypeError):
+                        continue
                 queryset = queryset.filter(id__in=filtered_ids)
             except (ValueError, TypeError):
                 pass
-                
+
         return queryset
     
     def get_serializer_context(self):
@@ -104,13 +142,16 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
             restaurants = []
             
             for restaurant in self.queryset:
-                restaurant_location = (float(restaurant.latitude), float(restaurant.longitude))
-                dist = distance(user_location, restaurant_location).km
-                if dist <= radius:
-                    restaurants.append({
-                        'restaurant': RestaurantSerializer(restaurant, context={'request': request}).data,
-                        'distance': round(dist, 2)
-                    })
+                try:
+                    restaurant_location = (float(restaurant.latitude), float(restaurant.longitude))
+                    dist = distance(user_location, restaurant_location).km
+                    if dist <= radius:
+                        restaurants.append({
+                            'restaurant': RestaurantSerializer(restaurant, context={'request': request}).data,
+                            'distance': round(dist, 2)
+                        })
+                except (ValueError, TypeError):
+                    pass
             
             # Sort by distance
             restaurants.sort(key=lambda x: x['distance'])
@@ -123,13 +164,19 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
     def menu(self, request, pk=None):
         """Get restaurant menu"""
         restaurant = self.get_object()
-        menu_items = MenuItem.objects.filter(restaurant=restaurant, is_available=True)
+        menu_items = MenuItem.objects.filter(restaurant=restaurant, is_available=True).select_related('category')
         serializer = MenuItemSerializer(menu_items, many=True, context={'request': request})
         return Response(serializer.data)
-    
+
     def retrieve(self, request, *args, **kwargs):
         """Get restaurant details"""
         instance = self.get_object()
+        # Prefetch menu items with categories for detail view
+        from django.db.models import Prefetch
+        menu_items = MenuItem.objects.filter(is_available=True).select_related('category')
+        instance.menu_items_all = instance.menu_items.filter(
+            is_available=True
+        ).select_related('category')
         serializer = RestaurantDetailSerializer(instance, context={'request': request})
         return Response(serializer.data)
 

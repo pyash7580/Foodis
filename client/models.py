@@ -68,6 +68,11 @@ class Restaurant(models.Model):
         db_table = 'restaurants'
         verbose_name = 'Restaurant'
         verbose_name_plural = 'Restaurants'
+        indexes = [
+            models.Index(fields=['status', 'is_active'], name='idx_restaurant_status_active'),
+            models.Index(fields=['city'], name='idx_restaurant_city'),
+            models.Index(fields=['latitude', 'longitude'], name='idx_restaurant_coordinates'),
+        ]
     def __str__(self):
         return self.name
 
@@ -86,6 +91,20 @@ class Restaurant(models.Model):
         
         super().save(*args, **kwargs)
 
+    @property
+    def get_image_url(self):
+        if self.image:
+            from django.conf import settings
+            return f"{settings.MEDIA_URL}{self.image.name}"
+        return None
+
+    @property
+    def get_cover_image_url(self):
+        if self.cover_image:
+            from django.conf import settings
+            return f"{settings.MEDIA_URL}{self.cover_image.name}"
+        return None
+
 
 class MenuItem(models.Model):
     """Menu Item Model"""
@@ -99,7 +118,6 @@ class MenuItem(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
-    image_url = models.URLField(max_length=500, blank=True, null=True, help_text='External image URL (e.g., from Pexels)')
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     veg_type = models.CharField(max_length=10, choices=VEG_CHOICES, default='VEG')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
@@ -121,6 +139,13 @@ class MenuItem(models.Model):
     
     def __str__(self):
         return f"{self.restaurant.name} - {self.name}"
+
+    @property
+    def get_image_url(self):
+        if self.image:
+            from django.conf import settings
+            return f"{settings.MEDIA_URL}{self.image.name}"
+        return None
 
 
 class MenuItemCustomization(models.Model):
@@ -505,12 +530,16 @@ class FavouriteRestaurant(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favourite_restaurants')
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'user_favourite_restaurants'
         unique_together = ['user', 'restaurant']
         verbose_name = 'Favourite Restaurant'
         verbose_name_plural = 'Favourite Restaurants'
+        indexes = [
+            models.Index(fields=['user'], name='idx_fav_rest_user'),
+            models.Index(fields=['user', 'restaurant'], name='idx_fav_rest_user_restaurant'),
+        ]
 
     def __str__(self):
         return f"{self.user.name} ❤️ {self.restaurant.name}"
@@ -521,12 +550,16 @@ class FavouriteMenuItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favourite_menu_items')
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'user_favourite_menu_items'
         unique_together = ['user', 'menu_item']
         verbose_name = 'Favourite Menu Item'
         verbose_name_plural = 'Favourite Menu Items'
+        indexes = [
+            models.Index(fields=['user'], name='idx_fav_item_user'),
+            models.Index(fields=['user', 'menu_item'], name='idx_fav_item_user_menuitem'),
+        ]
 
     def __str__(self):
         return f"{self.user.name} ❤️ {self.menu_item.name}"
