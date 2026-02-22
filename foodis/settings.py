@@ -153,8 +153,10 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     CSRF_TRUSTED_ORIGINS = [
+        'https://foodis-nu.vercel.app',
         'https://foodis-coral.vercel.app',
         'https://foodis-up4t.onrender.com',
+        'https://foodis-xtpw.onrender.com',
     ]
 
 # Redis Configuration
@@ -299,6 +301,7 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = [
+    'https://foodis-nu.vercel.app',
     'https://foodis-coral.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
