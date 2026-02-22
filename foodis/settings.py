@@ -17,12 +17,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Production Deployment Settings
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
-DEBUG = True
+DEBUG = config('DEBUG', default='True', cast=bool)
 ALLOWED_HOSTS = [
     'foodis-up4t.onrender.com',
+    '.onrender.com',
     'localhost',
     '127.0.0.1',
 ]
+
+# Render sets this automatically
+_RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+if _RENDER_HOSTNAME and _RENDER_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_RENDER_HOSTNAME)
 
 # Application definition
 
@@ -392,17 +398,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',
+        'level': 'DEBUG' if DEBUG else 'WARNING',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'WARNING',
             'propagate': True,
         },
         'django.request': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'ERROR',
             'propagate': False,
         },
     },
