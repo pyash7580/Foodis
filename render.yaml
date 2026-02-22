@@ -5,12 +5,14 @@ services:
     env: python
     buildCommand: |
       pip install -r requirements.txt
-      python manage.py collectstatic --no-input
+      python manage.py collectstatic --noinput
       python manage.py migrate
-    startCommand: gunicorn foodis.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: gunicorn foodis.wsgi:application --workers 2 --timeout 120 --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: foodis.settings
       - key: DEBUG
         value: "False"
       - key: USE_POSTGRES
@@ -35,6 +37,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: foodis.settings
       - key: DEBUG
         value: "False"
       - key: USE_POSTGRES
@@ -76,11 +80,11 @@ envVarGroups:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: foodis-backend.onrender.com,foodis-frontend.onrender.com
+        value: foodis-backend.onrender.com,foodis-up4t.onrender.com,foodis-frontend.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://foodis-backend.onrender.com,https://foodis-frontend.onrender.com
+        value: https://foodis-backend.onrender.com,https://foodis-up4t.onrender.com,https://foodis-coral.vercel.app
       - key: CORS_ALLOWED_ORIGINS
-        value: https://foodis-frontend.onrender.com
+        value: https://foodis-coral.vercel.app,https://foodis-frontend.onrender.com
       - key: GOOGLE_MAPS_API_KEY
         sync: false
       - key: RAZORPAY_KEY_ID
