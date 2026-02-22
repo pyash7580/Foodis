@@ -48,28 +48,33 @@ const Home = () => {
     ];
 
     const fetchRestaurants = useCallback(async () => {
+        setLoading(true);
         try {
-            setLoading(true);
             let url = `${API_BASE_URL}/api/client/restaurants/`;
-            const params = new URLSearchParams();
-            if (selectedCity) params.append('city', selectedCity);
-            if (params.toString()) url += `?${params.toString()}`;
+            if (selectedCity) url += `?city=${selectedCity}`;
 
             const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
             const res = await axios.get(url, config);
-            const data = res.data.results || res.data;
 
-            const restaurantsList = Array.isArray(data) ? data : [];
-            setRestaurants(restaurantsList);
-            setFilteredRestaurants(restaurantsList);
+            let data = res.data;
+            // Handle all possible response shapes
+            if (data && data.results) data = data.results;
+            else if (data && data.data) data = data.data;
+            else if (!Array.isArray(data)) data = [];
+
+            setRestaurants(data);
+            setFilteredRestaurants(data);
+            console.log(`✅ Loaded ${data.length} restaurants`);
             setError(null);
         } catch (err) {
             console.error('Failed to fetch restaurants:', err);
+            // Log the actual server error message
+            if (err.response?.data) {
+                console.error('Server error:', err.response.data);
+            }
             setRestaurants([]);
             setFilteredRestaurants([]);
-            if (!err.response || err.response.status !== 401) {
-                setError("Failed to load restaurants.");
-            }
+            setError("Failed to load restaurants.");
         } finally {
             setLoading(false);
         }

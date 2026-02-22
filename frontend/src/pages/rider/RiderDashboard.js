@@ -276,7 +276,7 @@ const RiderDashboard = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => navigate(`/rider/order/${activeOrder.id}`)}
+                                onClick={() => activeOrder?.id && navigate(`/rider/order/${activeOrder.id}`)}
                                 className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors"
                             >
                                 <FaChevronRight className="text-gray-400" />
@@ -396,7 +396,7 @@ const RiderDashboard = () => {
                             </div>
                         ) : activeOrder ? (
                             <div
-                                onClick={() => navigate(`/rider/order/${activeOrder.id}`)}
+                                onClick={() => activeOrder?.id && navigate(`/rider/order/${activeOrder.id}`)}
                                 className="glass-morphism-dark p-6 rounded-[2.5rem] shadow-2xl border-t-2 border-orange-500/50 flex items-center justify-between cursor-pointer"
                             >
                                 <div className="flex items-center space-x-4">

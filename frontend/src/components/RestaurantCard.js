@@ -5,15 +5,57 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import ImageWithFallback from './ImageWithFallback';
+
+// Helper to get correct image URL
+const getImageSrc = (imageUrl) => {
+    if (!imageUrl) return null;
+    if (imageUrl.startsWith('http')) return imageUrl;
+    // Local media file — prepend backend URL
+    const backendUrl = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+    return `${backendUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+};
+
+// Image component with fallback
+const RestaurantImage = ({ src, name }) => {
+    const [error, setError] = React.useState(false);
+    const imgSrc = getImageSrc(src);
+
+    if (!imgSrc || error) {
+        return (
+            <div style={{
+                width: '100%', height: '180px',
+                background: 'linear-gradient(135deg, #fff5f0, #ffe8e0)',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                borderRadius: '12px 12px 0 0'
+            }}>
+                <span style={{ fontSize: '48px' }}>🍽️</span>
+                <span style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+                    {name}
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={imgSrc}
+            alt={name}
+            style={{
+                width: '100%', height: '180px',
+                objectFit: 'cover',
+                borderRadius: '12px 12px 0 0'
+            }}
+            loading="lazy"
+            onError={() => setError(true)}
+        />
+    );
+};
 
 const RestaurantCard = ({ restaurant, index }) => {
     const { token } = useAuth();
     const [isFav, setIsFav] = useState(restaurant.is_favourite);
-    const [imageLoaded, setImageLoaded] = useState(true);
-
-    // Generate a consistent random color for placeholder if no image
-    const colors = ['bg-red-100', 'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-purple-100'];
-    const colorClass = colors[restaurant.id % colors.length] || 'bg-gray-100';
 
     const toggleFavorite = async (e) => {
         e.preventDefault();
@@ -38,10 +80,6 @@ const RestaurantCard = ({ restaurant, index }) => {
         }
     };
 
-    const handleImageError = () => {
-        setImageLoaded(false);
-    };
-
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -50,25 +88,9 @@ const RestaurantCard = ({ restaurant, index }) => {
             className="relative"
         >
             <Link to={`/client/restaurants/${restaurant.id}`} className="block group">
-                <div className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 bg-white border border-gray-100 ${colorClass} h-full`}>
-                    <div className="h-52 w-full bg-cover bg-center relative group-hover:scale-105 transition-transform duration-700 flex items-center justify-center"
-                        style={imageLoaded && (restaurant.image_url || restaurant.cover_image_url || restaurant.image) ? { backgroundImage: `url(${restaurant.image_url || restaurant.cover_image_url || restaurant.image}?t=${new Date(restaurant.updated_at || Date.now()).getTime()})` } : {}}>
-                        {/* Image element for error detection */}
-                        {imageLoaded && (restaurant.image_url || restaurant.cover_image_url || restaurant.image) && (
-                            <img
-                                src={`${restaurant.image_url || restaurant.cover_image_url || restaurant.image}?t=${new Date(restaurant.updated_at || Date.now()).getTime()}`}
-                                alt={restaurant.name}
-                                onError={handleImageError}
-                                className="hidden"
-                                crossOrigin="anonymous"
-                            />
-                        )}
-                        {/* Fallback when no image or image fails to load */}
-                        {!imageLoaded || (!restaurant.image_url && !restaurant.cover_image_url && !restaurant.image) ? (
-                            <div className={`w-full h-full flex items-center justify-center ${colorClass}`}>
-                                <span className="text-5xl">🍽️</span>
-                            </div>
-                        ) : null}
+                <div className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 bg-white border border-gray-100 h-full`}>
+                    <div className="h-52 w-full relative group-hover:scale-105 transition-transform duration-700 flex items-center justify-center overflow-hidden">
+                        <RestaurantImage src={restaurant.image_url} name={restaurant.name} />
 
                         {/* Favorite Button */}
                         <button

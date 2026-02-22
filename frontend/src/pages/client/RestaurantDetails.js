@@ -1,42 +1,69 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import axiosInstance from '../../api/axiosInstance';
 import Navbar from '../../components/Navbar';
 import { getRestaurantCover, getRestaurantImage } from '../../utils/images';
 import { useCart } from '../../contexts/CartContext';
-import { API_BASE_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import ImageWithFallback from '../../components/ImageWithFallback';
 
 const RestaurantDetails = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { token } = useAuth();
     const [restaurant, setRestaurant] = useState(null);
     const [menuItems, setMenuItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [dietFilter, setDietFilter] = useState('ALL'); // 'ALL', 'VEG', 'NON_VEG'
 
     // Cart Context
     const { addToCart, cartItems, getCartCount, getCartTotal, updateQuantity } = useCart();
 
-    const fetchData = useCallback(async () => {
-        try {
-            const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
-            const restRes = await axios.get(`${API_BASE_URL}/api/client/restaurants/${id}/`, config);
-            const menuRes = await axios.get(`${API_BASE_URL}/api/client/restaurants/${id}/menu/`, config);
-            setRestaurant(restRes.data);
-            setMenuItems(menuRes.data);
-            setLoading(false);
-        } catch (err) {
-            console.error("Error fetching details", err);
-            setLoading(false);
-        }
-    }, [id, token]);
-
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        if (!id) {
+            setError('Invalid restaurant');
+            setLoading(false);
+            return;
+        }
+
+        const fetchAll = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                // Fetch restaurant detail
+                const res = await axiosInstance.get(
+                    `/api/client/restaurants/${id}/`
+                );
+                setRestaurant(res.data);
+
+                // Fetch menu separately — failure here won't break page
+                try {
+                    const menuRes = await axiosInstance.get(
+                        `/api/client/restaurants/${id}/menu/`
+                    );
+                    const items = menuRes.data?.results || menuRes.data;
+                    setMenuItems(Array.isArray(items) ? items : []);
+                } catch (menuErr) {
+                    console.warn('Menu load failed:', menuErr);
+                    setMenuItems([]);
+                }
+            } catch (err) {
+                console.error('Restaurant detail error:', err);
+                if (err.response?.status === 404) {
+                    setError('Restaurant not found');
+                } else {
+                    setError('Could not load restaurant. Please try again.');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAll();
+    }, [id]);
 
     const toggleFavItem = async (itemId) => {
         if (!token) {
@@ -44,9 +71,9 @@ const RestaurantDetails = () => {
             return;
         }
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/client/favourite-menu-items/toggle/`,
+            const res = await axiosInstance.post('/api/client/favourite-menu-items/toggle/',
                 { menu_item_id: itemId },
-                { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } }
+                { headers: { 'X-Role': 'CLIENT' } }
             );
 
             setMenuItems(prev => prev.map(item =>
@@ -59,11 +86,31 @@ const RestaurantDetails = () => {
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-gray-500 font-bold animate-pulse">🍱 Loading Deliciousness...</div>;
+    if (loading) return (
+        <div className="flex justify-center items-center min-h-screen">
+            <div className="animate-spin h-10 w-10 rounded-full 
+                          border-4 border-red-500 border-t-transparent" />
+        </div>
+    );
+
+    if (error) return (
+        <div className="flex flex-col items-center justify-center 
+                        min-h-screen gap-4">
+            <span className="text-6xl">🍽️</span>
+            <p className="text-red-500 text-xl font-semibold">{error}</p>
+            <button
+                onClick={() => navigate(-1)}
+                className="bg-red-500 text-white px-8 py-3 rounded-full 
+                       font-semibold hover:bg-red-600 transition-all"
+            >
+                ← Go Back
+            </button>
+        </div>
+    );
     if (!restaurant) return <div className="p-8 text-center text-red-500 font-bold">🚫 Restaurant not found</div>;
 
-    const coverImage = restaurant.cover_image || getRestaurantCover(restaurant.id);
-    const logoImage = restaurant.image || getRestaurantImage(restaurant.id);
+    const coverImage = restaurant.cover_image_url || getRestaurantCover(restaurant.id);
+    const logoImage = restaurant.image_url || getRestaurantImage(restaurant.id);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
@@ -72,12 +119,25 @@ const RestaurantDetails = () => {
             {/* Hero Section */}
             <div className="relative h-80 w-full overflow-hidden">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105"
-                    style={{ backgroundImage: `url(${coverImage}?t=${new Date(restaurant.updated_at || Date.now()).getTime()})` }}>
+                    style={{ backgroundImage: `url(${coverImage})` }}>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                 </div>
 
                 <div className="absolute bottom-0 left-0 right-0 max-w-[1600px] mx-auto px-4 pb-8 flex flex-col sm:flex-row sm:items-end">
-                    <img src={logoImage} alt={restaurant.name} className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl border-4 border-white shadow-2xl mb-4 sm:mb-0 sm:mr-6 object-cover bg-white" />
+                    {restaurant.image_url ? (
+                        <img
+                            src={restaurant.image_url}
+                            alt={restaurant.name}
+                            className="w-full h-64 object-cover rounded-xl"
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                            }}
+                        />
+                    ) : (
+                        <div className="w-full h-64 bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center rounded-xl">
+                            <span className="text-7xl">🍽️</span>
+                        </div>
+                    )}
                     <div className="text-white flex-1 mb-2">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                             <h1 className="text-3xl sm:text-5xl font-black leading-tight">{restaurant.name}</h1>
@@ -182,10 +242,17 @@ const RestaurantDetails = () => {
 
                                     <div className="relative w-full sm:w-auto flex justify-center sm:justify-end sm:ml-6 flex-shrink-0">
                                         <div className="h-40 w-full sm:h-28 sm:w-28 rounded-2xl overflow-hidden shadow-lg border-2 border-gray-100 relative">
-                                            {item.image || item.image_url ? (
-                                                <img src={item.image || item.image_url} alt={item.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            {item.image_url ? (
+                                                <img
+                                                    src={item.image_url}
+                                                    alt={item.name}
+                                                    className="w-20 h-20 object-cover rounded-lg"
+                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                />
                                             ) : (
-                                                <div className="h-full w-full bg-gray-50 flex items-center justify-center text-3xl opacity-50">🍲</div>
+                                                <div className="w-20 h-20 bg-orange-50 flex items-center justify-center rounded-lg text-3xl">
+                                                    🍜
+                                                </div>
                                             )}
                                         </div>
 

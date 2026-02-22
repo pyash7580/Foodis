@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Production Deployment Settings
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True
 ALLOWED_HOSTS = [
     'foodis-up4t.onrender.com',
     'localhost',
@@ -32,7 +32,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -86,6 +88,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'foodis.urls'
+AUTH_USER_MODEL = 'core.User'
 
 TEMPLATES = [
     {
@@ -112,37 +115,19 @@ try:
 except ImportError:
     pass
 
-# Database
-# Neon PostgreSQL Configuration
-USE_POSTGRES = config('USE_POSTGRES', default=True, cast=bool)
+import dj_database_url, os
 
-if USE_POSTGRES:
-    import dj_database_url
-    DATABASE_URL = config('DATABASE_URL', default='')
-    if DATABASE_URL:
-        # Neon requires SSL, which is encoded in the DATABASE_URL ?sslmode=require
-        DATABASES = {
-            'default': dj_database_url.config(
-                default=DATABASE_URL,
-                conn_max_age=600,
-                conn_health_checks=True,
-            )
-        }
-    else:
-        # Fallback to manual components if DATABASE_URL is missing
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': config('DB_NAME', default='neondb'),
-                'USER': config('DB_USER', default='neondb_owner'),
-                'PASSWORD': config('DB_PASSWORD', default='npg_8djsPyMJSYV7'),
-                'HOST': config('DB_HOST', default='ep-holy-mouse-aipoipo6-pooler.c-4.us-east-1.aws.neon.tech'),
-                'PORT': config('DB_PORT', default='5432'),
-                'OPTIONS': {
-                    'sslmode': 'require',
-                }
-            }
-        }
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+USE_POSTGRES = os.environ.get('USE_POSTGRES', 'False') == 'True'
+
+if USE_POSTGRES and DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require='sslmode' not in DATABASE_URL
+        )
+    }
 else:
     DATABASES = {
         'default': {
@@ -247,8 +232,27 @@ if (BASE_DIR / 'static').exists():
 # WhiteNoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME', '')
+
+if CLOUDINARY_CLOUD_NAME:
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
+        'API_KEY': os.environ.get('CLOUDINARY_API_KEY', ''),
+        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
+    }
+    import cloudinary
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+        api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+        secure=True
+    )
+else:
+    # Local development — use local file storage
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -267,7 +271,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,  # Reduced from 100 for faster initial load and lower bandwidth
+    'PAGE_SIZE': 100,  # Increased from 20 for faster initial load and lower bandwidth
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
@@ -361,3 +365,29 @@ COMMISSION_PERCENTAGE = 15  # percentage
 
 # AI Engine Settings
 AI_ENGINE_ENABLED = config('AI_ENGINE_ENABLED', default=True, cast=bool)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

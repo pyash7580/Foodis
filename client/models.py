@@ -57,8 +57,8 @@ class Restaurant(models.Model):
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     is_veg = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    is_active = models.BooleanField(default=True, db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.00)  # percentage
     password_plain = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -94,15 +94,13 @@ class Restaurant(models.Model):
     @property
     def get_image_url(self):
         if self.image:
-            from django.conf import settings
-            return f"{settings.MEDIA_URL}{self.image.name}"
+            return self.image.url
         return None
 
     @property
     def get_cover_image_url(self):
         if self.cover_image:
-            from django.conf import settings
-            return f"{settings.MEDIA_URL}{self.cover_image.name}"
+            return self.cover_image.url
         return None
 
 
@@ -121,7 +119,7 @@ class MenuItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     veg_type = models.CharField(max_length=10, choices=VEG_CHOICES, default='VEG')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
-    is_available = models.BooleanField(default=True)
+    is_available = models.BooleanField(default=True, db_index=True)
     preparation_time = models.IntegerField(default=15)  # minutes
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00, validators=[MinValueValidator(0), MaxValueValidator(5)])
     total_orders = models.IntegerField(default=0)
@@ -143,8 +141,7 @@ class MenuItem(models.Model):
     @property
     def get_image_url(self):
         if self.image:
-            from django.conf import settings
-            return f"{settings.MEDIA_URL}{self.image.name}"
+            return self.image.url
         return None
 
 

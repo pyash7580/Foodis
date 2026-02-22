@@ -79,3 +79,11 @@ frontend/*.json
 !frontend/package.json
 !frontend/package-lock.json
 !frontend/tsconfig.json
+
+# Temporary files
+tmpclaude-*
+nul
+output.txt
+tree_output.txt
+structure.txt
+*.html

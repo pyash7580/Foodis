@@ -21,7 +21,10 @@ numpy
 pandas
 scikit-learn
 openpyxl
+pytest-django==4.8.0
 gunicorn
-psycopg2-binary
-dj-database-url
+psycopg2-binary==2.9.9
+dj-database-url==2.1.0
+cloudinary==1.36.0
+django-cloudinary-storage==0.3.0
 channels-redis

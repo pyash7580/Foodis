@@ -79,7 +79,7 @@ const OrderRequestModal = ({ order, onAccept, onReject }) => {
                         {/* Actions */}
                         <div className="space-y-3">
                             <button
-                                onClick={() => onAccept(order.id)}
+                                onClick={() => order?.id && onAccept(order.id)}
                                 className="w-full bg-[#FF3008] text-white font-black py-5 rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-[0_15px_30px_rgba(255,48,8,0.3)] hover:bg-[#FF6B00] transition-all active:scale-95 border border-white/10"
                             >
                                 Accept Assignment

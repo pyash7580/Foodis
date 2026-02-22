@@ -173,16 +173,18 @@ const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }
 
     return (
         <div className="space-y-4">
-            {orders.map((item) => {
-                const order = item.order || item; // Handle wrapped or direct object
-                const distance = item.distance;
-                const earnings = item.estimated_earning || '40+'; // Fallback
+            {orders.map((item, index) => {
+                const order = item?.order || item; // Handle wrapped or direct object
+                if (!order) return null; // Fallback if item is malformed
+
+                const distance = item?.distance;
+                const earnings = item?.estimated_earning || '40+'; // Fallback
 
                 return (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        key={order.id}
+                        key={order.id || `fallback-${index}`}
                         className="glass-card p-5 rounded-3xl border border-white/5 relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
@@ -246,13 +248,14 @@ const ActiveOrderView = React.memo(({ order, navigate }) => {
     // Refresh handler
     const fetchOrderDetails = useCallback(async () => {
         try {
+            if (!currentOrder?.id) return;
             const timestamp = new Date().getTime();
             const res = await axios.get(`${API_BASE_URL}/api/rider/orders/${currentOrder.id}/?_t=${timestamp}`, { headers });
             setCurrentOrder(res.data);
         } catch (err) {
             console.error("Failed to refresh order", err);
         }
-    }, [currentOrder.id, headers]);
+    }, [currentOrder?.id, headers]);
 
     if (!currentOrder) {
         return (
@@ -352,7 +355,7 @@ const ActiveOrderView = React.memo(({ order, navigate }) => {
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isPickupPhase ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
                     {isPickupPhase ? 'Pickup Phase' : 'Delivery Phase'}
                 </span>
-                <span className="text-[10px] text-gray-400 font-bold uppercase">#{currentOrder.id}</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase">#{currentOrder?.id}</span>
             </div>
 
             {/* Restaurant Info */}
@@ -435,7 +438,7 @@ const ActiveOrderView = React.memo(({ order, navigate }) => {
             )}
 
             <button
-                onClick={() => navigate(`/rider/order/${currentOrder.id}`)}
+                onClick={() => navigate(`/rider/order/${currentOrder?.id}`)}
                 className="w-full mt-6 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center justify-center space-x-2 hover:bg-white/10 transition-colors border border-white/5"
             >
                 <span>View Full Details & Map</span>
@@ -458,21 +461,23 @@ const OrderHistoryList = React.memo(({ orders }) => {
 
     return (
         <div className="space-y-3">
-            {orders.map((order) => (
-                <div key={order.id} className="glass-card p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                    <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                            <span className={`w-2 h-2 rounded-full ${order.status === 'DELIVERED' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                            <h4 className="font-bold text-white text-sm">{order.restaurant_name}</h4>
+            {orders.map((order, index) => {
+                if (!order) return null;
+                return (
+                    <div key={order.id || `history-${index}`} className="glass-card p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                        <div>
+                            <div className="flex items-center space-x-2 mb-1">
+                                <span className={`w-2 h-2 rounded-full ${order.status === 'DELIVERED' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                <h4 className="font-bold text-white text-sm">{order.restaurant_name}</h4>
+                            </div>
+                            <p className="text-[10px] text-gray-500">{new Date(order.created_at).toLocaleDateString()} • #{order.id}</p>
                         </div>
-                        <p className="text-[10px] text-gray-500">{new Date(order.created_at).toLocaleDateString()} • #{order.id}</p>
+                        <div className="text-right">
+                            <div className="font-black text-white">₹{order.total_amount}</div>
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <div className="font-black text-white">₹{order.total_amount}</div>
-                        <div className="text-[9px] text-gray-500 uppercase tracking-widest">{order.status}</div>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 });

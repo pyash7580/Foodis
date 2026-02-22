@@ -19,6 +19,10 @@ router.register(r'favourite-restaurants', views.FavouriteRestaurantViewSet, base
 router.register(r'favourite-menu-items', views.FavouriteMenuItemViewSet, basename='favourite-menu-item')
 
 urlpatterns = [
+    path('restaurants/', views.RestaurantListView.as_view(), name='restaurant-list-override'),
+    path('restaurants/<int:pk>/', views.RestaurantDetailView.as_view(), name='restaurant-detail'),
+    path('restaurants/<int:pk>/menu/', views.RestaurantMenuView.as_view(), name='restaurant-menu'),
+    path('restaurants/<int:pk>/full/', views.RestaurantFullDetailView.as_view(), name='restaurant-full-detail'),
     path('', include(router.urls)),
     path('search/', views.search_restaurants, name='search'),
     path('recommendations/', views.get_recommendations_view, name='recommendations'),

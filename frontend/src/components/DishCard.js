@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import toast from 'react-hot-toast';
+import ImageWithFallback from './ImageWithFallback';
 
 const DishCard = ({ item }) => {
     const { addToCart, cartItems, updateQuantity } = useCart();
@@ -46,15 +47,12 @@ const DishCard = ({ item }) => {
         >
             <div className="relative h-48 overflow-hidden">
                 <Link to={`/client/restaurants/${item.restaurant}`}> {/* Link to Restaurant */}
-                    {item.image || item.image_url ? (
-                        <img
-                            src={item.image || item.image_url}
-                            alt={item.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-gray-50 flex items-center justify-center text-4xl">🍲</div>
-                    )}
+                    <ImageWithFallback
+                        src={item.image || item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        type="dish"
+                    />
                 </Link>
 
                 <div className="absolute top-4 right-4">
@@ -118,4 +116,4 @@ const DishCard = ({ item }) => {
     );
 };
 
-export default DishCard;
+export default React.memo(DishCard);
