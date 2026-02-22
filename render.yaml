@@ -80,9 +80,9 @@ envVarGroups:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: foodis-backend.onrender.com,foodis-up4t.onrender.com,foodis-frontend.onrender.com
+        value: foodis-backend.onrender.com,foodis-xtpw.onrender.com,foodis-frontend.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://foodis-backend.onrender.com,https://foodis-up4t.onrender.com,https://foodis-coral.vercel.app
+        value: https://foodis-backend.onrender.com,https://foodis-xtpw.onrender.com,https://foodis-coral.vercel.app
       - key: CORS_ALLOWED_ORIGINS
         value: https://foodis-coral.vercel.app,https://foodis-frontend.onrender.com
       - key: GOOGLE_MAPS_API_KEY
