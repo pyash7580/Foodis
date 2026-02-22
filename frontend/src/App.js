@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { Toaster } from 'react-hot-toast';
 import { CartProvider } from './contexts/CartContext';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import ClientRoutes from './routes/ClientRoutes';
 import RestaurantRoutes from './routes/RestaurantRoutes';
@@ -74,6 +75,7 @@ function App() {
             </Routes>
           </CartProvider>
         </WebSocketProvider>
+        <SpeedInsights />
       </AuthProvider>
     </Router>
   );
