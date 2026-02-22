@@ -19,7 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default='True', cast=bool)
 ALLOWED_HOSTS = [
-    'foodis-up4t.onrender.com',
+    'foodis-xtpw.onrender.com',
     '.onrender.com',
     'localhost',
     '127.0.0.1',
@@ -155,7 +155,6 @@ if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         'https://foodis-nu.vercel.app',
         'https://foodis-coral.vercel.app',
-        'https://foodis-up4t.onrender.com',
         'https://foodis-xtpw.onrender.com',
     ]
 
