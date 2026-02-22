@@ -25,7 +25,7 @@ const Home = () => {
     const [activeFilter, setActiveFilter] = useState('All');
     const [sortBy, setSortBy] = useState('rating'); // rating, cost_low, cost_high
     const [selectedCity, setSelectedCity] = useState(''); // Track selected city for filtering
-    const [userLocation, setUserLocation] = useState(null); // Track coordinates for live location
+    const [_userLocation, setUserLocation] = useState(null); // Track coordinates for live location // eslint-disable-line no-unused-vars
 
     // Animation Variants
     const containerVariants = {
