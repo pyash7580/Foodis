@@ -47,6 +47,18 @@ const Home = () => {
         { name: 'Dessert', icon: '🍰' },
     ];
 
+    const handleLocationDetected = useCallback((location) => {
+        if (location) {
+            if (location.city) {
+                setSelectedCity(location.city);
+                setUserLocation(null);
+            } else if (location.latitude && location.longitude) {
+                setUserLocation({ latitude: location.latitude, longitude: location.longitude });
+                setSelectedCity('');
+            }
+        }
+    }, []);
+
     const fetchRestaurants = useCallback(async () => {
         setLoading(true);
         try {
@@ -81,11 +93,8 @@ const Home = () => {
     }, [selectedCity, token]);
 
     useEffect(() => {
-        // Only fetch restaurants after location is detected
-        if (selectedCity || userLocation) {
-            fetchRestaurants();
-        }
-    }, [fetchRestaurants, selectedCity, userLocation]);
+        fetchRestaurants();
+    }, [fetchRestaurants]);
 
     const searchDishes = useCallback(async () => {
         if (searchMode === 'dish') {
@@ -144,17 +153,7 @@ const Home = () => {
             <div className="bg-white sticky top-0 z-40 border-b border-gray-100 shadow-sm">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <LocationDetector onLocationDetected={(location) => {
-                            if (location) {
-                                if (location.city) {
-                                    setSelectedCity(location.city);
-                                    setUserLocation(null);
-                                } else if (location.latitude && location.longitude) {
-                                    setUserLocation({ latitude: location.latitude, longitude: location.longitude });
-                                    setSelectedCity('');
-                                }
-                            }
-                        }} />
+                        <LocationDetector onLocationDetected={handleLocationDetected} />
                         <div className="flex-1 max-w-3xl w-full">
                             <div className="flex items-center gap-2 mb-2">
                                 <button
