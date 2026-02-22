@@ -42,7 +42,7 @@ const LocationDetector = ({ onLocationDetected }) => {
             },
             { timeout: 15000 }
         );
-    }, []);
+    }, [onLocationDetected]);
 
     useEffect(() => {
         detectLocation();
