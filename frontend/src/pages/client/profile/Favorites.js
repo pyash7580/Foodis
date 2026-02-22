@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import { useAuth } from '../../../contexts/AuthContext';
+import ImageWithFallback from '../../../components/ImageWithFallback';
 
 const Favorites = () => {
     const { token } = useAuth();
@@ -96,11 +97,7 @@ const Favorites = () => {
                 {activeTab === 'restaurants' && Array.isArray(favRestaurants) && favRestaurants.map(item => (
                     <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 relative group">
                         <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                            {item.restaurant_details.image ? (
-                                <img src={item.restaurant_details.image} alt={item.restaurant_details.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-2xl">🏪</div>
-                            )}
+                            <ImageWithFallback src={item.restaurant_details.image} alt={item.restaurant_details.name} className="w-full h-full object-cover" type="restaurant" />
                         </div>
                         <div className="flex-1">
                             <h3 className="font-black text-gray-900 text-lg leading-tight">{item.restaurant_details.name}</h3>
@@ -121,11 +118,7 @@ const Favorites = () => {
                 {activeTab === 'dishes' && Array.isArray(favDishes) && favDishes.map(item => (
                     <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 relative group">
                         <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                            {item.menu_item_details.image ? (
-                                <img src={item.menu_item_details.image} alt={item.menu_item_details.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-2xl">🥘</div>
-                            )}
+                            <ImageWithFallback src={item.menu_item_details.image} alt={item.menu_item_details.name} className="w-full h-full object-cover" type="dish" />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">

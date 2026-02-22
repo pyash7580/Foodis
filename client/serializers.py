@@ -37,11 +37,23 @@ class MenuItemSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
 
     is_favourite = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
     restaurant_slug = serializers.CharField(source='restaurant.slug', read_only=True)
     restaurant_city = serializers.CharField(source='restaurant.city', read_only=True)
-    image_url = serializers.ReadOnlyField(source='get_image_url')
+    def get_image_url(self, obj):
+        try:
+            if obj.image:
+                url = obj.image.url
+                if url and not url.startswith('http'):
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(url)
+                return url
+            return None
+        except Exception:
+            return None
 
     class Meta:
         model = MenuItem
@@ -72,23 +84,81 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
-    image = SmartImageField(required=False, allow_null=True)
-    cover_image = SmartImageField(required=False, allow_null=True)
-    image_url = serializers.ReadOnlyField(source='get_image_url')
-    cover_image_url = serializers.ReadOnlyField(source='get_cover_image_url')
+    image_url = serializers.SerializerMethodField()
+    cover_image_url = serializers.SerializerMethodField()
+    city_name = serializers.SerializerMethodField()
     distance = serializers.SerializerMethodField()
     menu_items_count = serializers.SerializerMethodField()
     cuisine_types = serializers.SerializerMethodField()
-
     is_favourite = serializers.SerializerMethodField()
+    is_approved = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'slug', 'description', 'cuisine', 'image', 'cover_image', 'image_url', 'cover_image_url',
-                  'phone', 'email', 'address', 'city', 'state', 'pincode',
+        fields = ['id', 'name', 'slug', 'description', 'cuisine', 'image_url', 'cover_image_url',
+                  'phone', 'email', 'address', 'city_name', 'state', 'pincode',
                   'latitude', 'longitude', 'rating', 'total_ratings',
                   'delivery_time', 'delivery_fee', 'min_order_amount',
-                  'is_veg', 'is_active', 'distance', 'menu_items_count', 'cuisine_types', 'is_favourite']
+                  'is_veg', 'is_active', 'is_approved', 'distance', 'menu_items_count', 'cuisine_types', 'is_favourite']
+
+    def get_is_approved(self, obj):
+        return obj.status == 'APPROVED'
+
+    def get_image_url(self, obj):
+        try:
+            # Try image field first
+            if hasattr(obj, 'image') and obj.image:
+                val = obj.image
+                # If it's already a full URL string
+                if isinstance(val, str) and val.startswith('http'):
+                    return val
+                # If it's a Cloudinary/ImageField object
+                if hasattr(val, 'url'):
+                    url = val.url
+                    if url and url.startswith('http'):
+                        return url
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(url)
+                    return url
+                # If it's a string path
+                if isinstance(val, str) and val:
+                    if val.startswith('/'):
+                        request = self.context.get('request')
+                        if request:
+                            return request.build_absolute_uri(val)
+                    return val
+            
+            # Try image_url field
+            if hasattr(obj, 'image_url') and obj.image_url:
+                return str(obj.image_url)
+            
+            return None
+        except Exception as e:
+            print(f"Image URL error for {obj.pk}: {e}")
+            return None
+
+    def get_cover_image_url(self, obj):
+        try:
+            if hasattr(obj, 'cover_image') and obj.cover_image:
+                url = obj.cover_image.url
+                if url and not url.startswith('http'):
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(url)
+                return url
+            return None
+        except Exception:
+            return None
+
+    def get_city_name(self, obj):
+        try:
+            # Handle both string and ForeignKey city
+            if hasattr(obj, 'city_id') and obj.city_id:
+                return obj.city_id.name
+            return str(obj.city) if hasattr(obj, 'city') and obj.city else ''
+        except Exception:
+            return ''
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
@@ -16,20 +15,24 @@ const getStorageKey = (pathname) => {
     return 'token_client';
 };
 
+// ✅ FIX 1: Normalize phone to always send +91 prefix consistently
+//    so send-otp and verify-otp use the same format as the OTP cache key
+const normalizePhone = (phone) => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    const last10 = digits.slice(-10);
+    return `+91${last10}`;
+};
+
 export const AuthProvider = ({ children }) => {
     const location = useLocation();
     const [user, setUser] = useState(null);
-    // Initialize using current path
     const [token, setToken] = useState(localStorage.getItem(getStorageKey(location.pathname)));
     const [loading, setLoading] = useState(true);
 
-    // Switch token when Realm changes (e.g. /client -> /restaurant)
     useEffect(() => {
         const expectedKey = getStorageKey(location.pathname);
         const storedToken = localStorage.getItem(expectedKey);
-
-        // Only update if the token in state doesn't match what's expected for this route
-        // This handles the case where user navigates from Client -> Restaurant
         if (token !== storedToken) {
             console.log(`Switching Auth Realm: ${expectedKey}`);
             setToken(storedToken);
@@ -40,12 +43,11 @@ export const AuthProvider = ({ children }) => {
             } else {
                 delete axios.defaults.headers.common['Authorization'];
                 delete axios.defaults.headers.common['X-Role'];
-                setUser(null); // Clear user if no token for this realm
+                setUser(null);
             }
         }
     }, [location.pathname, token]);
 
-    // GLOBAL AXIOS INTERCEPTOR for 401s
     useEffect(() => {
         const interceptor = axios.interceptors.response.use(
             response => response,
@@ -54,20 +56,17 @@ export const AuthProvider = ({ children }) => {
                     console.warn("Unauthorized (401) detected. Clearing session.");
                     const key = getStorageKey(location.pathname);
                     localStorage.removeItem(key);
-                    setToken(null); // This triggers the logic to remove axios headers
+                    setToken(null);
                     setUser(null);
                 }
                 return Promise.reject(error);
             }
         );
-
         return () => {
             axios.interceptors.response.eject(interceptor);
         };
     }, [location.pathname]);
 
-    // Configure Axios defaults (keep existing check)
-    // We strictly sync axios headers with state `token`
     useEffect(() => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -80,7 +79,6 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token, location.pathname]);
 
-
     useEffect(() => {
         const loadUser = async () => {
             if (token) {
@@ -89,7 +87,6 @@ export const AuthProvider = ({ children }) => {
                     setUser(response.data);
                 } catch (error) {
                     console.error("Failed to load user", error);
-                    // 401 handled by interceptor now, but good to keep safe fallback
                 }
             } else {
                 setUser(null);
@@ -133,7 +130,12 @@ export const AuthProvider = ({ children }) => {
 
     const sendOtp = useCallback(async (contact, type = 'phone') => {
         try {
-            const payload = (type === 'phone' || type === 'mobile') ? { phone: contact } : { email: contact };
+            // ✅ FIX 2: Always send phone with +91 prefix so OTP is cached under consistent key
+            const phone = (type === 'phone' || type === 'mobile') ? normalizePhone(contact) : null;
+            const payload = phone ? { phone } : { email: contact };
+
+            console.log('[sendOtp] Sending payload:', payload); // debug aid
+
             const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp/`, payload);
             return { success: true, otp: res.data.otp, message: res.data.message };
         } catch (error) {
@@ -143,13 +145,13 @@ export const AuthProvider = ({ children }) => {
                 if (error.response.data && typeof error.response.data === 'object') {
                     const messages = Object.values(error.response.data).flat();
                     if (messages.length > 0) updateMsg = messages.join(', ');
-                }
-                else if (error.response.statusText) {
+                } else if (error.response.statusText) {
                     updateMsg = `${error.response.status}: ${error.response.statusText}`;
                 }
             }
             return {
                 success: false,
+                // ✅ FIX 3: Prefer human-readable .message over raw error code
                 error: error.response?.data?.message || updateMsg,
                 code: error.response?.data?.error || null,
             };
@@ -158,16 +160,23 @@ export const AuthProvider = ({ children }) => {
 
     const verifyOtp = useCallback(async (contact, otp, type = 'phone', name = '', role = 'CLIENT') => {
         try {
-            const payload = (type === 'phone' || type === 'mobile')
-                ? { phone: contact, otp_code: otp, name, role }
-                : { email: contact, otp_code: otp, name, role };
+            // ✅ FIX 4: Same normalizePhone so verify-otp key matches send-otp key in cache
+            const phone = (type === 'phone' || type === 'mobile') ? normalizePhone(contact) : null;
+
+            const payload = phone
+                ? { phone, otp_code: String(otp), role }  // ✅ FIX 5: otp as String, skip empty name
+                : { email: contact, otp_code: String(otp), role };
+
+            // Only include name if it's actually provided (avoids serializer rejecting empty string)
+            if (name && name.trim()) payload.name = name.trim();
+
+            console.log('[verifyOtp] Sending payload:', payload); // debug aid
 
             const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp/`, payload);
 
             if (res.data.action === 'LOGIN' && res.data.token) {
                 const { token, user } = res.data;
                 const key = getStorageKey(location.pathname);
-
                 localStorage.setItem(key, token);
                 const roleHeader = key.replace('token_', '').toUpperCase();
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -179,11 +188,14 @@ export const AuthProvider = ({ children }) => {
             return { success: true, ...res.data };
         } catch (error) {
             console.error("OTP Verification Error:", error);
+            // ✅ FIX 6: Show .message (human readable) not .error (code like "SERVER_ERROR")
+            //    Fallback chain: message → error code → generic
+            const errData = error.response?.data;
             return {
                 success: false,
-                error: error.response?.data?.error || "Invalid OTP",
-                message: error.response?.data?.message || "Invalid OTP",
-                code: error.response?.data?.error || null,
+                error: errData?.message || errData?.error || "Invalid or expired OTP. Please try again.",
+                message: errData?.message || errData?.error || "Invalid or expired OTP. Please try again.",
+                code: errData?.error || null,
             };
         }
     }, [location.pathname]);
@@ -192,9 +204,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post(`${API_BASE_URL}/api/auth/register/`, regData);
             const { token, user } = res.data;
-
             const key = getStorageKey(location.pathname);
-
             localStorage.setItem(key, token);
             const roleHeader = key.replace('token_', '').toUpperCase();
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -215,7 +225,6 @@ export const AuthProvider = ({ children }) => {
         const realm = location.pathname.startsWith('/restaurant') ? 'restaurant' :
             location.pathname.startsWith('/rider') ? 'rider' :
                 location.pathname.startsWith('/admin') ? 'admin' : 'client';
-
         try {
             if (token) {
                 await axios.post(`${API_BASE_URL}/api/auth/logout/`);
@@ -223,15 +232,12 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.warn("Backend logout failed or session already expired", e);
         }
-
         const key = getStorageKey(location.pathname);
         localStorage.removeItem(key);
-
         setToken(null);
         setUser(null);
         delete axios.defaults.headers.common['Authorization'];
         delete axios.defaults.headers.common['X-Role'];
-
         window.location.href = realm === 'client' ? '/login' : `/${realm}/login`;
     }, [location.pathname, token]);
 

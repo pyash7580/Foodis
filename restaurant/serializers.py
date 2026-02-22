@@ -28,9 +28,56 @@ class RestaurantProfileSerializer(serializers.ModelSerializer):
 class RestaurantSerializer(serializers.ModelSerializer):
     image = SmartImageField(required=False, allow_null=True)
     cover_image = SmartImageField(required=False, allow_null=True)
-    image_url = serializers.ReadOnlyField(source='get_image_url')
-    cover_image_url = serializers.ReadOnlyField(source='get_cover_image_url')
+    image_url = serializers.SerializerMethodField()
+    cover_image_url = serializers.SerializerMethodField()
     profile = RestaurantProfileSerializer(read_only=True)
+    
+    def get_image_url(self, obj):
+        try:
+            # Try image field first
+            if hasattr(obj, 'image') and obj.image:
+                val = obj.image
+                # If it's already a full URL string
+                if isinstance(val, str) and val.startswith('http'):
+                    return val
+                # If it's a Cloudinary/ImageField object
+                if hasattr(val, 'url'):
+                    url = val.url
+                    if url and url.startswith('http'):
+                        return url
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(url)
+                    return url
+                # If it's a string path
+                if isinstance(val, str) and val:
+                    if val.startswith('/'):
+                        request = self.context.get('request')
+                        if request:
+                            return request.build_absolute_uri(val)
+                    return val
+            
+            # Try image_url field
+            if hasattr(obj, 'image_url') and obj.image_url:
+                return str(obj.image_url)
+            
+            return None
+        except Exception as e:
+            print(f"Image URL error for {obj.pk}: {e}")
+            return None
+
+    def get_cover_image_url(self, obj):
+        try:
+            if hasattr(obj, 'cover_image') and obj.cover_image:
+                url = obj.cover_image.url
+                if url and not url.startswith('http'):
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(url)
+                return url
+            return None
+        except Exception:
+            return None
     
     class Meta:
         model = Restaurant

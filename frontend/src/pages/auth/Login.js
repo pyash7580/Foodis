@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
@@ -6,24 +5,22 @@ import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const Login = () => {
-    const [activeTab, setActiveTab] = useState('mobile'); // 'mobile' or 'email'
+    const [activeTab, setActiveTab] = useState('mobile');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [step, setStep] = useState('input'); // 'input' or 'otp'
+    const [step, setStep] = useState('input');
 
-    // Form States
     const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
     const [name, setName] = useState('');
-    const [isSignup, setIsSignup] = useState(false); // Toggle between Login and Signup
+    const [isSignup, setIsSignup] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
 
     const { login, sendOtp, verifyOtp } = useAuth();
     const navigate = useNavigate();
 
-    // Reset timer on step change to 'otp'
     React.useEffect(() => {
         let interval;
         if (resendTimer > 0) {
@@ -35,20 +32,19 @@ const Login = () => {
     }, [resendTimer]);
 
     const handleSendOtp = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         setError('');
         setLoading(true);
 
+        // ✅ FIX 1: contact is the raw 10-digit mobile or email —
+        //    AuthContext.sendOtp now handles +91 normalization internally
         const contact = activeTab === 'mobile' ? mobile : email;
         const res = await sendOtp(contact, activeTab);
 
         if (res.success) {
             setStep('otp');
-            setResendTimer(30); // Start 30s countdown
-            // DEVELOPER AID: Display OTP in toast for testing, but DO NOT autofill anymore
+            setResendTimer(30);
             if (res.otp) {
-
-                // Display as a nice notification instead of alert/inline box
                 toast.custom((t) => (
                     <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
                         <div className="flex-1 w-0 p-4">
@@ -60,7 +56,10 @@ const Login = () => {
                                 </div>
                                 <div className="ml-3 flex-1">
                                     <p className="text-sm font-medium text-gray-900">Foodis OTP</p>
-                                    <p className="mt-1 text-sm text-gray-500">Your verification code is <span className="font-bold text-gray-900 tracking-wider">{res.otp}</span></p>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Your verification code is{' '}
+                                        <span className="font-bold text-gray-900 tracking-wider">{res.otp}</span>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -76,7 +75,8 @@ const Login = () => {
                 ), { duration: 30000 });
             }
         } else {
-            setError(res.error);
+            // ✅ FIX 2: res.error is now always human-readable from AuthContext
+            setError(res.error || 'Failed to send OTP. Please try again.');
         }
         setLoading(false);
     };
@@ -84,10 +84,19 @@ const Login = () => {
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         setError('');
+
+        // ✅ FIX 3: Basic client-side OTP length validation before hitting server
+        if (!otp || otp.length < 4) {
+            setError('Please enter a valid OTP.');
+            return;
+        }
+
         setLoading(true);
 
         const contact = activeTab === 'mobile' ? mobile : email;
-        const res = await verifyOtp(contact, otp, activeTab, name);
+
+        // ✅ FIX 4: Pass name only when in signup mode; empty string causes serializer issues
+        const res = await verifyOtp(contact, otp, activeTab, isSignup ? name : '');
 
         if (res.success) {
             if (res.action === 'REGISTER') {
@@ -97,7 +106,8 @@ const Login = () => {
                 navigate('/client');
             }
         } else {
-            setError(res.error);
+            // ✅ FIX 5: res.error is now always the human-readable message
+            setError(res.error || 'Verification failed. Please try again.');
         }
         setLoading(false);
     };
@@ -178,7 +188,6 @@ const Login = () => {
                                         </div>
                                     </div>
 
-                                    {/* Name field - ONLY for Signup */}
                                     {isSignup && (
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -267,7 +276,7 @@ const Login = () => {
                                         <span className="text-sm text-gray-500">Or use </span>
                                         <button
                                             type="button"
-                                            onClick={(e) => { e.preventDefault(); handleSendOtp(e); }}
+                                            onClick={handleSendOtp}
                                             className="text-sm font-medium text-red-600 hover:text-red-500"
                                         >
                                             OTP via Email
@@ -282,7 +291,9 @@ const Login = () => {
                         <form className="space-y-6" onSubmit={handleVerifyOtp}>
                             <p className="text-center text-gray-600 text-sm">
                                 We sent a code to <br />
-                                <span className="font-bold text-gray-900">{activeTab === 'mobile' ? `+91 ${mobile}` : email}</span>
+                                <span className="font-bold text-gray-900">
+                                    {activeTab === 'mobile' ? `+91 ${mobile}` : email}
+                                </span>
                             </p>
 
                             <div>
@@ -299,7 +310,7 @@ const Login = () => {
 
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || otp.length < 4}
                                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-70"
                             >
                                 {loading ? 'Verifying...' : 'Verify & Proceed'}
@@ -324,7 +335,7 @@ const Login = () => {
 
                             <button
                                 type="button"
-                                onClick={() => { setStep('input'); setResendTimer(0); }}
+                                onClick={() => { setStep('input'); setOtp(''); setResendTimer(0); setError(''); }}
                                 className="w-full text-center text-sm text-gray-500 hover:text-gray-700 pt-2"
                             >
                                 Change Number / Email

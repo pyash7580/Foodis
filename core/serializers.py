@@ -17,19 +17,34 @@ class SmartImageField(serializers.ImageField):
         image_str = str(value)
         if image_str.startswith('http'):
             return image_str
-        return super().to_representation(value)
+        try:
+            return super().to_representation(value)
+        except Exception as getattr_fail:
+            return None
 
 
 class UserSerializer(serializers.ModelSerializer):
-    avatar = SmartImageField(required=False, allow_null=True)
-    
-    class Meta:
-        model = User
+    name = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False)
     
+    def get_name(self, obj):
+        try:
+            return getattr(obj, 'name', '') or getattr(obj, 'phone', '') or getattr(obj, 'email', '') or ''
+        except Exception:
+            return ''
+
+    def get_profile_image(self, obj):
+        try:
+            if hasattr(obj, 'avatar') and obj.avatar:
+                return obj.avatar.url if hasattr(obj.avatar, 'url') else str(obj.avatar)
+            return None
+        except Exception:
+            return None
+    
     class Meta:
         model = User
-        fields = ['id', 'phone', 'email', 'name', 'role', 'avatar', 'language_preference', 'is_verified', 'created_at', 'password']
+        fields = ['id', 'phone', 'email', 'name', 'password', 'profile_image', 'role', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def update(self, instance, validated_data):

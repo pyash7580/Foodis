@@ -61,7 +61,7 @@ const getWsUrl = () => {
             const derivedRemote = toWsUrlFromHttp(envApiUrl);
             if (derivedRemote) return derivedRemote;
         }
-        return 'ws://localhost:8000/ws';
+        return process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws';
     }
 
     if (envWsUrl) {
