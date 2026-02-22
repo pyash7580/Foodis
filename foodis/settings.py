@@ -116,16 +116,32 @@ except ImportError:
     pass
 
 import dj_database_url, os
+import socket
 
-DATABASE_URL = os.environ.get('DATABASE_URL', '')
-USE_POSTGRES = os.environ.get('USE_POSTGRES', 'False') == 'True'
+DATABASE_URL = config('DATABASE_URL', default='')
 
-if USE_POSTGRES and DATABASE_URL:
+# Check if the database host is reachable before using remote DB
+_use_remote_db = False
+if DATABASE_URL:
+    try:
+        from urllib.parse import urlparse
+        _parsed = urlparse(DATABASE_URL)
+        if _parsed.hostname:
+            socket.getaddrinfo(_parsed.hostname, _parsed.port or 5432)
+            _use_remote_db = True
+    except (socket.gaierror, OSError):
+        import warnings
+        warnings.warn(
+            f"Cannot resolve database host '{_parsed.hostname}'. "
+            "Falling back to SQLite for local development."
+        )
+
+if _use_remote_db:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require='sslmode' not in DATABASE_URL
+            ssl_require=False  # sslmode is already in the URL
         )
     }
 else:
