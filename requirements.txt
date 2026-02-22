@@ -61,7 +61,7 @@ phonenumbers==9.0.22
 pillow==12.1.0
 pluggy==1.6.0
 prompt_toolkit==3.0.52
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
 py-ubjson==0.16.1
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
