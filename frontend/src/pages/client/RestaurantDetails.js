@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import Navbar from '../../components/Navbar';
-import { getRestaurantCover, getRestaurantImage } from '../../utils/images';
+import { getRestaurantCover } from '../../utils/images';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import ImageWithFallback from '../../components/ImageWithFallback';
 
 const RestaurantDetails = () => {
     const { id } = useParams();
@@ -110,7 +109,6 @@ const RestaurantDetails = () => {
     if (!restaurant) return <div className="p-8 text-center text-red-500 font-bold">🚫 Restaurant not found</div>;
 
     const coverImage = restaurant.cover_image_url || getRestaurantCover(restaurant.id);
-    const logoImage = restaurant.image_url || getRestaurantImage(restaurant.id);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">

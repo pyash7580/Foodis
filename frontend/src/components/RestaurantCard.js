@@ -5,7 +5,6 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import ImageWithFallback from './ImageWithFallback';
 
 // Helper to get correct image URL
 const getImageSrc = (imageUrl) => {
