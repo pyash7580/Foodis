@@ -29,4 +29,4 @@ RUN chmod +x run.sh
 EXPOSE 8000
 
 # Start command
-CMD ["bash", "run.sh"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn foodis.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"]
