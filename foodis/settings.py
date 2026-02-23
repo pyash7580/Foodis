@@ -301,20 +301,12 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOWED_ORIGINS = [
     'https://foodis-nu.vercel.app',
+    'https://foodis-ordcwtays-pyash7580s-projects.vercel.app',
     'https://foodis-git-main-pyash7580s-projects.vercel.app',
     'http://localhost:3000',
 ]
-
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'authorization',
-    'content-type',
-    'origin',
-    'x-requested-with',
-]
+CORS_ALLOW_ALL_ORIGINS = False
 
 # Google Maps API
 GOOGLE_MAPS_API_KEY = config('GOOGLE_MAPS_API_KEY', default='')
