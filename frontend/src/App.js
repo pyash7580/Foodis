@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -74,6 +75,7 @@ function App() {
             </Routes>
           </CartProvider>
         </WebSocketProvider>
+        <SpeedInsights />
       </AuthProvider>
     </Router>
   );
