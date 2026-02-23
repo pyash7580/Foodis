@@ -265,6 +265,181 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
+class RestaurantDetailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, pk=None):
+        try:
+            from restaurant.models import Restaurant
+            
+            try:
+                restaurant = Restaurant.objects.select_related(
+                    'city_id'
+                ).get(pk=pk)
+            except Restaurant.DoesNotExist:
+                return Response(
+                    {'error': f'Restaurant {pk} not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Build response safely field by field
+            data = {
+                'id': restaurant.pk,
+                'name': str(restaurant.name or ''),
+                'is_active': restaurant.is_active,
+                'is_approved': getattr(restaurant, 'status', '') == 'APPROVED' or getattr(restaurant, 'is_approved', False),
+            }
+            
+            # Optional string fields
+            for field in ['address', 'cuisine_type', 'description',
+                          'phone', 'delivery_time']:
+                try:
+                    data[field] = str(getattr(restaurant, field, '') or '')
+                except Exception:
+                    data[field] = ''
+            
+            # Optional number fields
+            for field in ['rating', 'minimum_order', 'delivery_fee']:
+                try:
+                    data[field] = float(getattr(restaurant, field, 0) or 0)
+                except Exception:
+                    data[field] = 0.0
+            
+            # City
+            try:
+                data['city'] = restaurant.city_id.name if getattr(restaurant, 'city_id', None) else getattr(restaurant, 'city', '')
+            except Exception:
+                data['city'] = ''
+            
+            # Image — handle all possible field types
+            data['image_url'] = None
+            data['cover_image_url'] = None
+            for field in ['image', 'image_url', 'cover_image', 'photo']:
+                try:
+                    val = getattr(restaurant, field, None)
+                    if not val:
+                        continue
+                    if isinstance(val, str) and val.startswith('http'):
+                        if 'cover' in field:
+                            data['cover_image_url'] = val
+                        else:
+                            data['image_url'] = val
+                        break
+                    if hasattr(val, 'url') and val:
+                        if 'cover' in field:
+                            data['cover_image_url'] = val.url
+                        else:
+                            data['image_url'] = val.url
+                        break
+                    if isinstance(val, str) and val:
+                        if 'cover' in field:
+                            data['cover_image_url'] = val
+                        else:
+                            data['image_url'] = val
+                        break
+                except Exception:
+                    continue
+            
+            return Response(data, status=200)
+        
+        except Exception as e:
+            print(f"RESTAURANT DETAIL CRASH pk={pk}:\n",
+                  traceback.format_exc())
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class RestaurantMenuView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, pk=None):
+        try:
+            # Try different possible locations for MenuItem model
+            MenuItem = None
+            for model_path in [
+                ('restaurant.models', 'MenuItem'),
+                ('client.models', 'MenuItem'),
+                ('core.models', 'MenuItem'),
+            ]:
+                try:
+                    mod = __import__(model_path[0], 
+                                     fromlist=[model_path[1]])
+                    MenuItem = getattr(mod, model_path[1])
+                    break
+                except (ImportError, AttributeError):
+                    continue
+            
+            if MenuItem is None:
+                return Response([], status=200)
+            
+            items = MenuItem.objects.filter(
+                restaurant_id=pk
+            ).select_related('restaurant')
+            
+            # Make all items available if none are
+            if items.exists() and not items.filter(
+                is_available=True
+            ).exists():
+                items.update(is_available=True)
+            
+            available = items.filter(is_available=True)
+            
+            result = []
+            for item in available:
+                try:
+                    dish = {
+                        'id': item.pk,
+                        'name': str(item.name or ''),
+                        'price': float(item.price or 0),
+                        'is_available': True,
+                    }
+                    
+                    # Optional fields
+                    for field in ['description', 'category',
+                                  'veg_type']:
+                        try:
+                            # If category is a foreign key, get the name instead of the model instance
+                            val = getattr(item, field, None)
+                            if field == 'category' and val:
+                                dish[field] = str(getattr(val, 'name', val) or '')
+                            else:
+                                dish[field] = str(val or '')
+                        except Exception:
+                            dish[field] = ''
+                    
+                    # Item image
+                    dish['image_url'] = None
+                    for field in ['image', 'image_url', 'photo']:
+                        try:
+                            val = getattr(item, field, None)
+                            if not val:
+                                continue
+                            if isinstance(val, str) and \
+                               val.startswith('http'):
+                                dish['image_url'] = val
+                                break
+                            if hasattr(val, 'url') and val:
+                                dish['image_url'] = val.url
+                                break
+                        except Exception:
+                            continue
+                    
+                    result.append(dish)
+                except Exception as row_e:
+                    print(f"MenuItem {item.pk} error: {row_e}")
+                    continue
+            
+            return Response(result, status=200)
+        
+        except Exception as e:
+            print(f"MENU CRASH restaurant {pk}:\n",
+                  traceback.format_exc())
+            # Return empty array — never crash the UI
+            return Response([], status=200)
+
+
 class RestaurantFullDetailView(generics.RetrieveAPIView):
     """
     Combined endpoint for Restaurant Details + Menu Items 
