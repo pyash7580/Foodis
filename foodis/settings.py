@@ -156,6 +156,7 @@ if not DEBUG:
         'https://foodis-nu.vercel.app',
         'https://foodis-coral.vercel.app',
         'https://foodis-xtpw.onrender.com',
+        'https://*.vercel.app',
     ]
 
 # Redis Configuration
@@ -299,6 +300,10 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://foodis.*\.vercel\.app$",
+]
+
 CORS_ALLOWED_ORIGINS = [
     'https://foodis-nu.vercel.app',
     'https://foodis-ordcwtays-pyash7580s-projects.vercel.app',
