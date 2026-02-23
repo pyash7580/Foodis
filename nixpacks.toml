@@ -5,4 +5,4 @@ nixPkgs = ["python311", "gcc", "postgresql"]
 cmds = ["python -m venv /opt/venv", ". /opt/venv/bin/activate", "pip install -r requirements.txt"]
 
 [start]
-cmd = "bash run.sh"
+cmd = "bash start_prod.sh"

@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run script as entrypoint (ensures CMD can run it)
-RUN chmod +x run.sh
+RUN chmod +x start_prod.sh
 
 # Expose port
 EXPOSE 8000
