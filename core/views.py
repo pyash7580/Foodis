@@ -1,4 +1,5 @@
-from rest_framework import status, generics, permissions
+from rest_framework import status, generics
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -51,7 +52,7 @@ def log_debug(message):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def auth_root_view(request):
     return Response({
         "name": "Foodis Auth API",
@@ -61,12 +62,13 @@ def auth_root_view(request):
             "login": "/api/auth/login/",
             "logout": "/api/auth/logout/",
             "profile": "/api/auth/profile/",
+            "users": "/api/auth/users/",
         }
     }, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def home_view(request):
     return Response({
         "name": "Foodis API",
@@ -75,7 +77,7 @@ def home_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def send_otp_view(request):
     """API for sending OTP to phone or email"""
     log_debug(f"\n--- [{timezone.now()}] SEND OTP REQUEST ---\nDATA: {request.data}")
@@ -142,7 +144,7 @@ def send_otp_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def verify_otp_view(request):
     """API for verifying OTP and logging in/initiating registration"""
     log_debug(f"\n--- [{timezone.now()}] VERIFY OTP REQUEST ---\nDATA: {request.data}")
@@ -294,7 +296,7 @@ def verify_otp_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def register_view(request):
     """Create a new user after OTP verification"""
     serializer = RegistrationSerializer(data=request.data)
@@ -335,7 +337,7 @@ def register_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def login_view(request):
     """Login with email and password"""
     serializer = LoginSerializer(data=request.data)
@@ -374,7 +376,7 @@ def login_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def logout_view(request):
     logout(request)
     return Response({'message': 'Logged out successfully'}, status=status.HTTP_200_OK)
@@ -391,14 +393,19 @@ class ProfileView(APIView):
     def get(self, request):
         try:
             user = request.user
+            first_name = str(getattr(user, 'first_name', '') or '')
+            last_name = str(getattr(user, 'last_name', '') or '')
+            full_name = f"{first_name} {last_name}".strip()
+            fallback_name = str(getattr(user, 'name', '') or '')
             data = {
                 'id': user.pk,
                 'phone': str(getattr(user, 'phone', '') or ''),
                 'email': str(user.email or ''),
-                'first_name': str(user.first_name or ''),
-                'last_name': str(user.last_name or ''),
+                'first_name': first_name,
+                'last_name': last_name,
                 'name': (
-                    f"{user.first_name} {user.last_name}".strip()
+                    full_name
+                    or fallback_name
                     or str(getattr(user, 'phone', ''))
                     or user.email or ''
                 ),
@@ -407,7 +414,7 @@ class ProfileView(APIView):
                 'wallet_balance': 0.0,
             }
             try:
-                img = getattr(user, 'profile_image', None)
+                img = getattr(user, 'avatar', None) or getattr(user, 'profile_image', None)
                 if img:
                     data['profile_image'] = img.url if hasattr(img, 'url') else str(img)
             except Exception:
@@ -422,9 +429,15 @@ class ProfileView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all().order_by('-created_at')
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
+
+
 class AddressListCreateView(generics.ListCreateAPIView):
     serializer_class = AddressSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
@@ -435,20 +448,20 @@ class AddressListCreateView(generics.ListCreateAPIView):
 
 class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = AddressSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def get_config_view(request):
     return Response({'razorpay_key': settings.RAZORPAY_KEY_ID}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def health_check_view(request):
     return Response({
         "status": "healthy",
@@ -458,7 +471,7 @@ def health_check_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def seed_riders_view(request):
     """Temporary endpoint to seed riders from file"""
     import re

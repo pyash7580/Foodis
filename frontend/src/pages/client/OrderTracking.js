@@ -109,7 +109,7 @@ const OrderTracking = () => {
 
                     // Connect to WebSocket with dynamic base URL
                     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-                    const wsUrl = `${API_BASE_URL.replace(/^https?/, wsProtocol)}/ws/orders/${orderId}/?token=${token}`;
+                    const wsUrl = `${API_BASE_URL.replace(/^https?/, wsProtocol)}/ws/order/${orderId}/?token=${token}`;
                     console.log('Connecting to WS:', wsUrl);
                     socketRef.current = new WebSocket(wsUrl);
 
