@@ -1,0 +1,358 @@
+# 📋 FOODIS — COMPLETE TECHNICAL AUDIT REPORT
+
+> **Date:** 2026-02-23 · **Auditor:** Senior Software Auditor & Deployment Analyst  
+> **Scope:** Full-stack analysis — backend, frontend, deployment, and security
+
+---
+
+## 1️⃣ PROJECT OVERVIEW
+
+| Field | Detail |
+|---|---|
+| **Project Name** | Foodis |
+| **Backend** | Python 3.11 · Django 5.2.11 · Django REST Framework 3.16.1 |
+| **Frontend** | React 18.2.0 · Create React App (react-scripts 5.0.1) · Tailwind CSS 3.3.6 |
+| **Database** | PostgreSQL (Neon serverless) via `dj-database-url` · Local SQLite fallback |
+| **Auth** | JWT (`djangorestframework-simplejwt` 5.5.1) + Token Auth + Session Auth |
+| **Real-time** | Django Channels 4.3.2 + Daphne · `socket.io-client` on frontend |
+| **Task Queue** | Celery 5.6.2 + Redis broker · Django Celery Beat / Results |
+| **Media Storage** | Cloudinary (production) · Local filesystem (development) |
+| **Payments** | Razorpay SDK 2.0.0 |
+| **SMS/OTP** | MSG91 |
+| **AI Engine** | OpenAI 2.21.0 · scikit-learn 1.8.0 |
+| **App Type** | SPA (React, client-side routing) + REST API backend · WebSocket layer for real-time |
+
+---
+
+## 2️⃣ ARCHITECTURE SUMMARY
+
+### Folder Structure
+
+```
+Foodis/
+├── foodis/             # Django project settings, WSGI/ASGI, Celery config
+├── core/               # Custom User model, Auth (OTP/JWT), middleware, consumers
+├── client/             # Client-facing API (restaurants, orders, cart, reviews)
+├── restaurant/         # Restaurant management API (menu, orders, analytics)
+├── rider/              # Current rider module (dashboard, earnings, orders)
+├── rider_legacy/       # Legacy rider module (kept for backward compat)
+├── admin_panel/        # Admin dashboard API
+├── ai_engine/          # AI recommendations, analytics
+├── frontend/           # React SPA
+│   ├── src/
+│   │   ├── pages/      # 58 page components (auth, client, restaurant, rider, admin)
+│   │   ├── components/ # 12 shared components
+│   │   ├── contexts/   # AuthContext, CartContext, RiderContext, WebSocketContext
+│   │   ├── routes/     # Role-based route guards + route definitions
+│   │   ├── api/        # Axios instance
+│   │   ├── hooks/      # Custom hooks
+│   │   └── config.js   # Dynamic API URL resolution
+│   └── vercel.json     # Vercel deployment config
+├── scripts/            # 34 utility/migration scripts
+├── media/              # Local media uploads
+└── staticfiles/        # Collected static files
+```
+
+### Routing Strategy
+
+| Layer | Strategy |
+|---|---|
+| **Backend** | Django URL routing: `/api/auth/`, `/api/client/`, `/api/restaurant/`, `/api/rider/` |
+| **Frontend** | `react-router-dom` v6 with role-based nested routes |
+| **Roles** | Client (`/client/*`), Restaurant (`/restaurant/*`), Rider (`/rider/*`), Admin (`/admin/*`) |
+| **Auth guards** | `AdminProtectedRoute`, `RestaurantProtectedRoute`, `RiderProtectedRoute` |
+| **SPA Fallback** | Vercel `rewrites` → `/index.html` for all routes |
+
+### State Management
+
+- **React Context API** — `AuthContext`, `CartContext`, `RiderContext`, `WebSocketContext`
+- No Redux or Zustand; pure Context + local state
+
+### API Communication
+
+- **Axios** with interceptor-based retry (up to 3 retries on network errors with 2s delay)
+- Dynamic base URL via [config.js](file:///d:/Foodis/frontend/src/config.js) — auto-detects local vs. production
+- Hardcoded remote fallback: `https://foodis-jpvq.onrender.com`
+- WebSocket via `socket.io-client` (frontend) ↔ Django Channels (backend)
+
+---
+
+## 3️⃣ DEPENDENCY ANALYSIS
+
+### Critical Backend Dependencies
+
+| Package | Version | Status |
+|---|---|---|
+| Django | 5.2.11 | ✅ Current LTS |
+| djangorestframework | 3.16.1 | ✅ Current |
+| djangorestframework-simplejwt | 5.5.1 | ✅ Current |
+| psycopg2-binary | 2.9.9 | ⚠️ `psycopg2-binary` should not be used in production — use `psycopg2` |
+| celery | 5.6.2 | ✅ Current |
+| channels | 4.3.2 | ✅ Current |
+| gunicorn | 25.0.1 | ✅ Current |
+| openai | 2.21.0 | ✅ Current |
+| cloudinary | 1.36.0 | ✅ Current |
+| django-cloudinary-storage | 0.3.0 | ⚠️ Old, low activity — last release 2020 |
+| razorpay | 2.0.0 | ✅ Current |
+| scikit-learn | 1.8.0 | ✅ Current |
+| whitenoise | 6.11.0 | ✅ Current |
+
+### Critical Frontend Dependencies
+
+| Package | Version | Status |
+|---|---|---|
+| react | 18.2.0 | ✅ Stable |
+| react-scripts | 5.0.1 | 🔴 **DEPRECATED** — CRA is no longer maintained by Meta |
+| react-router-dom | 6.20.1 | ✅ Current |
+| axios | 1.6.2 | ✅ Current |
+| framer-motion | 12.23.26 | ✅ Current |
+| tailwindcss | 3.3.6 | ✅ Current |
+| socket.io-client | 4.6.1 | ✅ Current |
+| chart.js / recharts | Mixed | ⚠️ Two charting libraries — redundant |
+
+### Version Conflicts
+
+- **No hard version conflicts detected** in [requirements.txt](file:///d:/Foodis/requirements.txt) or [package.json](file:///d:/Foodis/frontend/package.json).
+
+### Deprecated Packages
+
+| Package | Issue | Severity |
+|---|---|---|
+| `react-scripts` 5.0.1 | CRA is officially deprecated and unmaintained | 🔴 High |
+| `django-cloudinary-storage` 0.3.0 | Very old, minimal maintenance | ⚠️ Medium |
+
+### Risky / Redundant Packages
+
+| Package | Risk |
+|---|---|
+| `chart.js` + `recharts` | Two charting libraries; unnecessary bundle size |
+| `socket.io-client` | Used but backend uses Django Channels (not socket.io server) — potential protocol mismatch |
+| `psycopg2-binary` | Not recommended for production deployments |
+
+---
+
+## 4️⃣ BUILD & DEPLOYMENT STATUS
+
+### Local Build Status
+
+| Check | Status |
+|---|---|
+| Backend (`manage.py runserver`) | ✅ Functional (uses SQLite locally when no `DATABASE_URL`) |
+| Frontend (`npm run build`) | ✅ Builds with `DISABLE_ESLINT_PLUGIN=true` (ESLint disabled in Vercel) |
+| Frontend build without ESLint bypass | ⚠️ **Would FAIL** — CRA treats warnings as errors in CI |
+
+### Deployment Readiness
+
+| Platform | Config File | Status |
+|---|---|---|
+| **Vercel** (Frontend) | [vercel.json](file:///d:/Foodis/frontend/vercel.json) | ⚠️ Functional but `REACT_APP_API_URL` points to `foodis-xtpw.onrender.com` |
+| **Render** (Backend) | [render.yaml](file:///d:/Foodis/render.yaml) | ⚠️ Config present but references `foodis-backend.onrender.com` (different from current URLs) |
+| **Railway** (Backend) | [railway.toml](file:///d:/Foodis/railway.toml) | ⚠️ Uses ASGI (uvicorn) — healthcheck points to `/api/client/restaurants/` (requires auth?) |
+| **Docker** | [Dockerfile](file:///d:/Foodis/Dockerfile) | ✅ Valid, uses ASGI with Uvicorn |
+
+### Common Failure Points
+
+1. **API URL Mismatch** — At least **4 different backend URLs** across configs:
+   - [vercel.json](file:///d:/Foodis/frontend/vercel.json): `https://foodis-xtpw.onrender.com`
+   - [frontend/.env](file:///d:/Foodis/frontend/.env): `https://happy-purpose-production.up.railway.app`
+   - [frontend/.env.production](file:///d:/Foodis/frontend/.env.production): `https://happy-purpose-production.up.railway.app`
+   - [frontend/src/config.js](file:///d:/Foodis/frontend/src/config.js) fallback: `https://foodis-jpvq.onrender.com`
+   - [render.yaml](file:///d:/Foodis/render.yaml): `https://foodis-backend.onrender.com`
+2. **ESLint as build-blocker** on any CI that doesn't set `DISABLE_ESLINT_PLUGIN=true`
+3. **Render cold starts** — Gunicorn with timeout 120s may not survive free-tier hibernation wakeups
+4. **Railway healthcheck** — Pointing to an authenticated endpoint will cause health check failures
+
+### Environment Variable Requirements
+
+| Variable | Required For | Status in [.env](file:///d:/Foodis/.env) |
+|---|---|---|
+| `SECRET_KEY` | Django core | ⚠️ Hardcoded default (`strong_random_key_foodis_2026`) |
+| `DATABASE_URL` | PostgreSQL (Neon) | ✅ Commented out locally, set on Render |
+| `REDIS_URL` | Celery, Channels, Cache | ⚠️ Set to `VALUE_HERE` (placeholder) |
+| `GOOGLE_MAPS_API_KEY` | Maps | ⚠️ Set to `VALUE_HERE` in backend [.env](file:///d:/Foodis/.env) |
+| `RAZORPAY_KEY_ID` / `KEY_SECRET` | Payments | ⚠️ Set to `VALUE_HERE` (placeholder) |
+| `MSG91_API_KEY` / `TEMPLATE_ID` | OTP/SMS | ⚠️ Set to `VALUE_HERE` (placeholder) |
+| `CLOUDINARY_*` | Media uploads | ❌ Not in [.env](file:///d:/Foodis/.env) file — must be set in deployment dashboard |
+| `REACT_APP_API_URL` | Frontend → Backend | ⚠️ Inconsistent across files |
+
+---
+
+## 5️⃣ ERROR SCAN
+
+### A) TypeScript Errors — N/A
+> Project uses JavaScript, not TypeScript. No `tsconfig.json` present.
+
+### B) ESLint Errors — **0 Errors, 62 Warnings**
+
+| Category | Count | Severity | Key Files |
+|---|---|---|---|
+| `no-unused-vars` | ~35 | Low | Across 15+ files |
+| `react-hooks/exhaustive-deps` | ~20 | Medium | `Home.js`, `RiderDashboard.js`, `Wallet.js`, etc. |
+| `no-use-before-define` | 2 | Medium | [RiderDashboard.js](file:///d:/Foodis/frontend/src/pages/rider/RiderDashboard.js) |
+
+**Full list:** See [eslint_final.txt](file:///d:/Foodis/frontend/eslint_final.txt)
+
+### C) Build Errors
+
+| Error | Root Cause | File | Severity |
+|---|---|---|---|
+| Build fails without `DISABLE_ESLINT_PLUGIN=true` | CRA treats warnings as errors in production builds | All 22 files with warnings | 🔴 High |
+
+### D) Runtime Risks
+
+| Risk | Root Cause | File | Severity |
+|---|---|---|---|
+| `headers` object re-created on every render | Object defined in component body used in `useCallback` deps | [RiderDashboard.js](file:///d:/Foodis/frontend/src/pages/rider/RiderDashboard.js#L43) | ⚠️ Medium |
+| `fetchDashboardData` used before defined | Hoisting issue with `const` arrow functions | [RiderDashboard.js](file:///d:/Foodis/frontend/src/pages/rider/RiderDashboard.js#L48) | ⚠️ Medium |
+| Missing `useEffect` deps | Can cause stale closures, infinite loops, or missed re-fetches | Multiple (20 instances) | ⚠️ Medium |
+| `socket.io-client` ↔ Django Channels mismatch | Frontend uses socket.io protocol, backend uses native WebSocket | [WebSocketContext.js](file:///d:/Foodis/frontend/src/contexts/WebSocketContext.js) / [consumers.py](file:///d:/Foodis/core/consumers.py) | 🔴 High |
+| Hardcoded fallback URLs in [config.js](file:///d:/Foodis/frontend/src/config.js) | If env vars are missing, wrong backend is contacted | [config.js](file:///d:/Foodis/frontend/src/config.js) | ⚠️ Medium |
+
+### E) Missing Files / Modules
+
+| Issue | Detail | Severity |
+|---|---|---|
+| No [admin_panel/urls.py](file:///d:/Foodis/admin_panel/urls.py) check | Admin routes included in [App.js](file:///d:/Foodis/frontend/src/App.js) but not in Django [urls.py](file:///d:/Foodis/core/urls.py) | ⚠️ Medium |
+| `rider_legacy` app | Listed in `INSTALLED_APPS` — unclear if still needed | Low |
+| `MEDIA_URL` not set when Cloudinary active | `MEDIA_URL` only set in the `else` branch; Cloudinary URLs are direct | Low (functional) |
+
+---
+
+## 6️⃣ CONFIGURATION CHECK
+
+### Django Settings ([settings.py](file:///d:/Foodis/foodis/settings.py))
+
+| Check | Status | Notes |
+|---|---|---|
+| `DEBUG` default | ⚠️ `True` by default | Must be overridden in production |
+| `SECRET_KEY` | 🔴 Hardcoded default value | Must generate a proper secret |
+| `ALLOWED_HOSTS` | ✅ Properly configured with Render hostname detection |
+| `CORS` | ✅ Properly configured with allowed origins (not `ALLOW_ALL`) |
+| `CSRF` | ✅ Trusted origins set for production |
+| SSL / HSTS | ✅ Properly hardened when `DEBUG=False` |
+| `STATICFILES_STORAGE` | ⚠️ Uses deprecated `STATICFILES_STORAGE` key (Django 4.2+ uses `STORAGES`) | Low |
+| `AUTH_USER_MODEL` | ⚠️ Declared twice (lines 97 and 268) | No impact, but code smell |
+| Pagination `PAGE_SIZE=100` | ⚠️ Unusually high — could be slow on large datasets |
+
+### Frontend Config
+
+| Check | Status | Notes |
+|---|---|---|
+| [vercel.json](file:///d:/Foodis/frontend/vercel.json) | ✅ SPA rewrites configured |
+| `DISABLE_ESLINT_PLUGIN=true` | ✅ Present in Vercel build env — prevents build failures |
+| `CI=false` in [.env.production](file:///d:/Foodis/frontend/.env.production) | ✅ Prevents CI from treating warnings as errors |
+| `proxy` in [package.json](file:///d:/Foodis/frontend/package.json) | ✅ Set to `http://127.0.0.1:8000` for local dev CRA proxy |
+| [tailwind.config.js](file:///d:/Foodis/frontend/tailwind.config.js) | ✅ Properly configured with custom design system |
+| ESLint config | ✅ `extends: ["react-app"]` in [package.json](file:///d:/Foodis/frontend/package.json) |
+
+### Environment Variables
+
+| Check | Status |
+|---|---|
+| [.env.example](file:///d:/Foodis/.env.example) exists | ✅ Present with all required variables documented |
+| [.env](file:///d:/Foodis/.env) in [.gitignore](file:///d:/Foodis/.gitignore) | ⚠️ **Must verify** — [.env](file:///d:/Foodis/.env) contains real API keys and DB credentials |
+| Secrets exposed in [.env](file:///d:/Foodis/.env) | 🔴 `RENDER_API_KEY`, `VERCEL_API_KEY`, and DB credentials are in [.env](file:///d:/Foodis/.env) |
+
+### Scripts in [package.json](file:///d:/Foodis/frontend/package.json)
+
+| Script | Command | Status |
+|---|---|---|
+| `start` | `react-scripts start` | ✅ |
+| `build` | `react-scripts build` | ✅ |
+| `test` | `react-scripts test` | ✅ |
+| `eject` | `react-scripts eject` | ✅ (unused) |
+
+---
+
+## 7️⃣ STABILITY RISKS
+
+### Potential Breaking Issues
+
+| Risk | Impact | Severity |
+|---|---|---|
+| **4+ different API URLs** across frontend configs | Frontend may connect to wrong/dead backend on deploy | 🔴 High |
+| **`react-scripts` deprecated** | No security patches, future Node.js incompatibility | 🔴 High |
+| **`socket.io-client` + Django Channels** protocol mismatch | WebSocket connections may silently fail in production | 🔴 High |
+| **Railway healthcheck on authenticated endpoint** | Will fail health checks, trigger restarts | ⚠️ Medium |
+
+### Code Smells
+
+| Smell | Location |
+|---|---|
+| 35 unused variable imports | Various frontend pages |
+| `AUTH_USER_MODEL` declared twice | [settings.py](file:///d:/Foodis/foodis/settings.py) L97, L268 |
+| `rider_legacy` app still in `INSTALLED_APPS` | Adds overhead, potential migration conflicts |
+| 100+ `tmpclaude-*-cwd` temp files in project root | Pollutes workspace |
+| Multiple deployment configs that may conflict | [Dockerfile](file:///d:/Foodis/Dockerfile), [render.yaml](file:///d:/Foodis/render.yaml), [railway.toml](file:///d:/Foodis/railway.toml), [nixpacks.toml](file:///d:/Foodis/nixpacks.toml) |
+
+### Logical Risks
+
+| Risk | Detail |
+|---|---|
+| Celery eager mode in dev | `CELERY_TASK_ALWAYS_EAGER=True` in dev hides async/timing bugs |
+| Order cancellation limit = 525600 min (1 year) | Effectively disabled — any order can be cancelled at any time |
+| `PAGE_SIZE=100` | Large payloads on restaurant listing could impact mobile performance |
+
+### Performance Concerns
+
+| Concern | Detail |
+|---|---|
+| Redundant charting libraries | `chart.js` + `react-chartjs-2` AND `recharts` — doubles bundle size |
+| No code splitting beyond lazy `PaymentSuccessScreen` | All role-specific pages bundled together |
+| No image optimization | No `next/image` equivalent; images served as-is from Cloudinary |
+| `framer-motion` full import | Large library (100KB+) imported in multiple components |
+
+---
+
+## 8️⃣ DEPLOYMENT CHECKLIST
+
+| Check | Status | Notes |
+|---|---|---|
+| Production build safe? | ⚠️ **CONDITIONAL** | Only with `DISABLE_ESLINT_PLUGIN=true` and `CI=false` |
+| Env variables set? | ❌ **NO** | Multiple placeholders (`VALUE_HERE`), inconsistent API URLs |
+| Dependency lock present? | ✅ **YES** | [package-lock.json](file:///d:/Foodis/frontend/package-lock.json) (706KB) exists for frontend; backend uses pinned [requirements.txt](file:///d:/Foodis/requirements.txt) |
+| Linting safe? | ⚠️ **NO** | 62 warnings — safe only with ESLint bypass |
+| SSR safe? | ✅ **N/A** | Not an SSR app — pure SPA + REST API |
+| Docker ready? | ✅ **YES** | Valid Dockerfile present |
+| CORS configured? | ✅ **YES** | Properly scoped, not `ALLOW_ALL` |
+| HTTPS enforced? | ✅ **YES** | `SECURE_SSL_REDIRECT` + HSTS when `DEBUG=False` |
+| Secrets secured? | ⚠️ **PARTIAL** | [.env](file:///d:/Foodis/.env) is in [.gitignore](file:///d:/Foodis/.gitignore) ✅ but contains real API keys locally — rotate if ever committed |
+
+---
+
+## 9️⃣ SAFE FIX STRATEGY
+
+> Only minimal, non-breaking fixes are recommended. No refactors, no architecture changes.
+
+| # | Fix | Risk Level | Files |
+|---|---|---|---|
+| 1 | **Unify `REACT_APP_API_URL`** across all frontend [.env](file:///d:/Foodis/.env) files and [vercel.json](file:///d:/Foodis/frontend/vercel.json) to the current active backend URL | Safe | [.env](file:///d:/Foodis/.env), [.env.production](file:///d:/Foodis/frontend/.env.production), [vercel.json](file:///d:/Foodis/frontend/vercel.json) |
+| 2 | **Set `SECRET_KEY`** to a proper cryptographically random value in production env vars | Safe | Deployment dashboard |
+| 3 | **Remove `VALUE_HERE` placeholders** — set actual values or empty strings in [.env](file:///d:/Foodis/.env) | Safe | [.env](file:///d:/Foodis/.env) |
+| 4 | **Confirm [.env](file:///d:/Foodis/.env) was never committed** — [.gitignore](file:///d:/Foodis/.gitignore) entry present ✅; run `git log --all -- .env` to verify no past commits | Safe | Git history |
+| 5 | **Remove unused imports** flagged by ESLint to enable builds without ESLint bypass | Safe | 22 frontend files |
+| 6 | **Add `// eslint-disable-next-line` for legitimate `react-hooks/exhaustive-deps`** cases | Safe | ~20 locations |
+| 7 | **Change Railway healthcheck** from `/api/client/restaurants/` to a public unauthenticated endpoint (e.g., `/admin/login/`) | Safe | [railway.toml](file:///d:/Foodis/railway.toml) |
+| 8 | **Clean up 100+ `tmpclaude-*` temp files** from project root | Safe | Project root |
+| 9 | **Remove `rider_legacy`** from `INSTALLED_APPS` if fully replaced by `rider` | Low risk | [settings.py](file:///d:/Foodis/seed_settings.py) |
+
+---
+
+## 🔟 FINAL VERDICT
+
+# ⚠️ MINOR FIXES NEEDED
+
+The Foodis application is **functionally operational** but has several configuration and hygiene issues that must be resolved before a stable production deployment:
+
+**Blockers (must fix before deploy):**
+- 🔴 **Unify API URLs** — 4+ conflicting backend URLs will cause frontend connection failures
+- ⚠️ **Audit git history for [.env](file:///d:/Foodis/.env)** — file is gitignored but verify no past accidental commits
+- 🔴 **Set production `SECRET_KEY`** — current default is weak and predictable
+
+**Recommended (soon after deploy):**
+- ⚠️ Clean up ESLint warnings to remove dependency on `DISABLE_ESLINT_PLUGIN` bypass
+- ⚠️ Plan migration from deprecated `react-scripts` (CRA) to Vite
+- ⚠️ Investigate `socket.io-client` ↔ Django Channels protocol compatibility
+- ⚠️ Remove redundant `chart.js` or `recharts` to reduce bundle size
+
+> **Bottom line:** The app can deploy today with the 3 blockers resolved, but carries technical debt that should be addressed within the next sprint cycle.

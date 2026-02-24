@@ -3,8 +3,15 @@ Django settings for foodis project.
 """
 
 from pathlib import Path
-from decouple import config
+from dotenv import load_dotenv
 import os
+
+# Load .env into os.environ BEFORE any config reads
+load_dotenv()
+
+print("DEBUG DATABASE_URL =", os.environ.get("DATABASE_URL"))
+
+from decouple import config
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -18,12 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default='True', cast=bool)
-ALLOWED_HOSTS = [
-    'foodis-xtpw.onrender.com',
-    '.onrender.com',
-    'localhost',
-    '127.0.0.1',
-]
+ALLOWED_HOSTS = ['*']
 
 # Render sets this automatically
 _RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
@@ -122,25 +124,25 @@ except ImportError:
     pass
 
 import dj_database_url
+from decouple import config
 
-DATABASE_URL = os.environ.get('DATABASE_URL', config('DATABASE_URL', default=''))
+DATABASE_URL = os.environ.get("DATABASE_URL") or config("DATABASE_URL", default=None)
 
 if DATABASE_URL:
     DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
+        "default": dj_database_url.parse(
+            DATABASE_URL,
             conn_max_age=600,
-            conn_health_checks=True,
+            ssl_require=True
         )
     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-
 # Production Security Hardening
 if not DEBUG:
     SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
@@ -306,6 +308,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOWED_ORIGINS = [
     'https://foodis-nu.vercel.app',
+    'https://foodis-coral.vercel.app',
     'https://foodis-ordcwtays-pyash7580s-projects.vercel.app',
     'https://foodis-git-main-pyash7580s-projects.vercel.app',
     'http://localhost:3000',

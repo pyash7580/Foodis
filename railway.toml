@@ -1,9 +1,9 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install -r requirements.txt"
+buildCommand = "pip install -r requirements.txt && python manage.py collectstatic --noinput"
 
 [deploy]
-startCommand = "python manage.py migrate --noinput && gunicorn foodis.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"
-healthcheckPath = "/api/client/restaurants/"
+startCommand = "bash start_prod.sh"
+healthcheckPath = "/health/"
 restartPolicy = "on-failure"
 maxRestartCount = 3

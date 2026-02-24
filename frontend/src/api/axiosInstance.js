@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://foodis-xtpw.onrender.com';
+const API_URL = process.env.REACT_APP_API_URL || 'https://happy-purpose-production.up.railway.app';
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
