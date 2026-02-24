@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status, generics
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -6,6 +7,7 @@ from django.db.models import Sum, Count, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+import logging
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
@@ -23,15 +25,56 @@ from ai_engine.utils import get_restaurant_insights
 from client.services.otp_service import OTPService
 
 channel_layer = get_channel_layer()
+logger = logging.getLogger(__name__)
 
 
 class RestaurantViewSet(viewsets.ModelViewSet):
     """ViewSet for Restaurant Management"""
     serializer_class = RestaurantSerializer
-    permission_classes = [IsAuthenticated]
+
+    def _safe_restaurant_data(self, restaurant, request):
+        """Serialize restaurant defensively to avoid breaking dashboard on bad records."""
+        try:
+            return RestaurantSerializer(restaurant, context={'request': request}).data
+        except Exception:
+            logger.exception("Failed to serialize restaurant id=%s", getattr(restaurant, "id", None))
+            return {
+                'id': restaurant.id,
+                'name': restaurant.name,
+                'slug': restaurant.slug,
+                'status': restaurant.status,
+                'city': restaurant.city,
+                'state': restaurant.state,
+                'pincode': restaurant.pincode,
+                'phone': restaurant.phone,
+                'email': restaurant.email,
+                'address': restaurant.address,
+                'delivery_time': restaurant.delivery_time,
+                'delivery_fee': restaurant.delivery_fee,
+                'min_order_amount': restaurant.min_order_amount,
+                'is_active': restaurant.is_active,
+                'rating': restaurant.rating,
+                'total_ratings': restaurant.total_ratings,
+                'profile': None,
+            }
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
-        return Restaurant.objects.filter(owner=self.request.user)
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Restaurant.objects.none()
+        if user.role == 'ADMIN':
+            return Restaurant.objects.all()
+        return Restaurant.objects.filter(owner=user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        data = [self._safe_restaurant_data(restaurant, request) for restaurant in queryset]
+        return Response(data, status=status.HTTP_200_OK)
     def create(self, request, *args, **kwargs):
         """Handle restaurant creation or update if already exists for owner"""
         restaurant = Restaurant.objects.filter(owner=self.request.user).first()
@@ -181,7 +224,7 @@ class RestaurantViewSet(viewsets.ModelViewSet):
             })
             
         return Response({
-            'restaurant': RestaurantSerializer(restaurant, context={'request': request}).data,
+            'restaurant': self._safe_restaurant_data(restaurant, request),
             'orders': {
                 'total': total_orders,
                 'today': today_orders,

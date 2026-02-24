@@ -6,7 +6,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse
+from django.shortcuts import render
+from core import views as core_views
+from .dashboard import dashboard_view
 
+
+# ✅ Homepage view
+def home(request):
+    return render(request, "index.html")
 
 # ✅ Healthcheck endpoint (Railway compatible)
 def health_check(request):
@@ -14,8 +21,15 @@ def health_check(request):
 
 
 urlpatterns = [
+    # ✅ Root homepage
+    path("", home),
+
+    # ✅ Dashboard Path
+    path("dashboard/", dashboard_view),
+
     # ✅ Railway Healthcheck
     path("health/", health_check),
+    path("api/health/", core_views.health_check_view),
 
     # Admin
     path("admin/", admin.site.urls),
@@ -31,6 +45,9 @@ urlpatterns = [
 
     # Rider endpoints
     path("api/rider/", include("rider.urls")),
+
+    # Admin panel endpoints
+    path("api/admin/", include("admin_panel.urls")),
 ]
 
 
