@@ -11,7 +11,7 @@ const getImageSrc = (imageUrl) => {
     if (!imageUrl) return null;
     if (imageUrl.startsWith('http')) return imageUrl;
     // Local media file — prepend backend URL
-    const backendUrl = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+    const backendUrl = process.env.REACT_APP_API_URL || 'https://happy-purpose-production.up.railway.app';
     return `${backendUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
 };
 

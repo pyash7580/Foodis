@@ -21,6 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
+# Run collectstatic
+RUN python manage.py collectstatic --noinput
 
 # Run script as entrypoint (ensures CMD can run it)
 RUN chmod +x start_prod.sh
@@ -29,4 +31,4 @@ RUN chmod +x start_prod.sh
 EXPOSE 8000
 
 # Start command
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn foodis.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"]
+CMD ["bash", "start_prod.sh"]

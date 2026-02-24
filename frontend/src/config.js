@@ -39,12 +39,12 @@ const getBaseUrl = () => {
     // ignore it and fall back to public backend.
     if (envApiUrl) {
         if (isLocalAddress(envApiUrl)) {
-            return 'https://foodis-jpvq.onrender.com';
+            return 'https://happy-purpose-production.up.railway.app';
         }
         return envApiUrl;
     }
 
-    return 'https://foodis-jpvq.onrender.com';
+    return 'https://happy-purpose-production.up.railway.app';
 };
 
 const getWsUrl = () => {
@@ -66,7 +66,7 @@ const getWsUrl = () => {
 
     if (envWsUrl) {
         if (isLocalAddress(envWsUrl)) {
-            return 'wss://foodis-jpvq.onrender.com/ws';
+            return 'wss://happy-purpose-production.up.railway.app/ws';
         }
         return envWsUrl;
     }
@@ -78,7 +78,7 @@ const getWsUrl = () => {
         }
     }
 
-    return 'wss://foodis-jpvq.onrender.com/ws';
+    return 'wss://happy-purpose-production.up.railway.app/ws';
 };
 
 export const API_BASE_URL = getBaseUrl();
