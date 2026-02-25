@@ -236,7 +236,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # WhiteNoise optimization for production
@@ -244,6 +244,7 @@ if not DEBUG:
     # Infinitely cacheable assets (1 year)
     WHITENOISE_MAX_AGE = 31536000
     WHITENOISE_INDEX_FILE = True
+    WHITENOISE_USE_FINDERS = True
     # More resilient storage
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 else:
