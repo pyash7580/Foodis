@@ -17,13 +17,10 @@ def home(request):
 
 # ✅ Healthcheck endpoint (Railway compatible)
 def health_check(request):
-    return HttpResponse("OK", status=200)
+    return HttpResponse("OK_V2.2", status=200)
 
 
 urlpatterns = [
-    # ✅ Root homepage
-    path("", home),
-
     # ✅ Dashboard Path
     path("dashboard/", dashboard_view),
 
