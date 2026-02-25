@@ -37,16 +37,27 @@ const RiderManagement = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token_admin');
-            const res = await axios.get(`${API_BASE_URL}/api/admin/riders/`, {
-                headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
-            });
-            // Handle pagination if present
-            const data = res.data.results ? res.data.results : res.data;
+            let allRiders = [];
+            let url = `${API_BASE_URL}/api/admin/riders/`;
 
-            if (Array.isArray(data)) {
-                setRiders(data);
+            while (url) {
+                const res = await axios.get(url, {
+                    headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
+                });
+
+                if (res.data && res.data.results) {
+                    allRiders = [...allRiders, ...res.data.results];
+                    url = res.data.next;
+                } else {
+                    allRiders = Array.isArray(res.data) ? res.data : [];
+                    break;
+                }
+            }
+
+            if (Array.isArray(allRiders)) {
+                setRiders(allRiders);
             } else {
-                console.error("API response is not an array:", data);
+                console.error("API response is not an array");
                 toast.error("Invalid data received");
             }
         } catch (error) {
