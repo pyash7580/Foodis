@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodis | Data Explorer Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff4d4d;
+            --secondary: #704dff;
+            --bg: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(255, 77, 77, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(112, 77, 255, 0.15) 0px, transparent 50%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.4);
+            transform: scale(1.02);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 0.3rem 0.7rem;
+            font-size: 0.8rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            border-radius: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.4);
+        }
+
+        .data-section {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            min-height: 500px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            color: #94a3b8;
+            font-weight: 400;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            padding: 1.2rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+
+        .status-rejected {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .rider-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .owner-badge {
+            background: rgba(168, 85, 247, 0.1);
+            color: #a855f7;
+        }
+
+        .messages {
+            margin-bottom: 2rem;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid var(--success);
+            color: white;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--danger);
+        }
+
+        .quick-add {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .quick-add input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            padding: 0.7rem 1rem;
+            border-radius: 10px;
+            color: white;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        form {
+            display: inline;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">FOODIS <span style="font-weight: 300; font-size: 1rem; color: #94a3b8">DATA
+                    EXPLORER</span></div>
+            <div>
+                <a href="/admin/" class="btn" style="margin-right: 1rem;">Django Admin</a>
+                <span style="color: #94a3b8">v2.0 Stable</span>
+            </div>
+        </header>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Restaurants</div>
+                <div class="stat-value">{{ stats.restaurants }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Riders</div>
+                <div class="stat-value">{{ stats.riders }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Users</div>
+                <div class="stat-value">{{ stats.users }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Orders</div>
+                <div class="stat-value">{{ stats.orders }}</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--primary)">
+                <div class="stat-label">Live</div>
+                <div class="stat-value" style="color: var(--primary)">{{ stats.live_orders }}</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('orders')">Orders</button>
+            <button class="tab-btn" onclick="showTab('restaurants')">Restaurants</button>
+            <button class="tab-btn" onclick="showTab('riders')">Riders</button>
+            <button class="tab-btn" onclick="showTab('users')">Users</button>
+        </div>
+
+        <!-- Orders Section -->
+        <div id="orders-section" class="data-section fade-in">
+            <h2>Live & Recent Orders</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Restaurant</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders %}
+                    <tr>
+                        <td style="font-weight: 600; color: var(--secondary)">#{{ o.order_id }}</td>
+                        <td>{{ o.restaurant.name }}</td>
+                        <td>{{ o.user.name }}</td>
+                        <td>
+                            <span class="status-badge {% if o.status == 'CANCELLED' %}status-rejected{% endif %}">
+                                {{ o.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="font-weight: 600">₹{{ o.total }}</td>
+                        <td>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_status">
+                                <input type="hidden" name="type" value="order">
+                                <input type="hidden" name="id" value="{{ o.id }}">
+                                <button type="submit" class="btn btn-small">Toggle Status</button>
+                            </form>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="type" value="order">
+                                <input type="hidden" name="id" value="{{ o.id }}">
+                                <button type="submit" class="btn btn-small btn-danger"
+                                    onclick="return confirm('Delete order?')">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Restaurants Section -->
+        <div id="restaurants-section" class="data-section fade-in" style="display: none;">
+            <h2>
+                Active Restaurants
+                <button class="btn btn-primary btn-small" onclick="toggleForm('add-rest-form')">+ Add New</button>
+            </h2>
+
+            <div id="add-rest-form" class="quick-add" style="display: none;">
+                <form method="POST" style="display: contents;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_restaurant">
+                    <input type="text" name="name" placeholder="Restaurant Name" required>
+                    <input type="text" name="city" placeholder="City">
+                    <input type="text" name="cuisine" placeholder="Cuisine">
+                    <button type="submit" class="btn btn-primary">Save Restaurant</button>
+                </form>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>City</th>
+                        <th>Status</th>
+                        <th>Rating</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in restaurants %}
+                    <tr>
+                        <td style="font-weight: 600">{{ r.name }}</td>
+                        <td>{{ r.city }}</td>
+                        <td>
+                            <span class="status-badge {% if r.status != 'APPROVED' %}status-rejected{% endif %}">
+                                {{ r.status }}
+                            </span>
+                        </td>
+                        <td style="color: #f59e0b">★ {{ r.rating }}</td>
+                        <td>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_status">
+                                <input type="hidden" name="type" value="restaurant">
+                                <input type="hidden" name="id" value="{{ r.id }}">
+                                <button type="submit" class="btn btn-small">{% if r.status == 'APPROVED' %}Reject{% else
+                                    %}Approve{% endif %}</button>
+                            </form>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="type" value="restaurant">
+                                <input type="hidden" name="id" value="{{ r.id }}">
+                                <button type="submit" class="btn btn-small btn-danger"
+                                    onclick="return confirm('Delete restaurant?')">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Riders Section -->
+        <div id="riders-section" class="data-section fade-in" style="display: none;">
+            <h2>Recent Riders</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Balance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rider in riders %}
+                    <tr>
+                        <td style="font-weight: 600">{{ rider.full_name }}</td>
+                        <td>{{ rider.phone }}</td>
+                        <td><span class="status-badge rider-badge">{{ rider.status }}</span></td>
+                        <td>₹{{ rider.wallet_balance }}</td>
+                        <td>
+                            <span style="color: #64748b; font-size: 0.8rem italic">Managed via App</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Users Section -->
+        <div id="users-section" class="data-section fade-in" style="display: none;">
+            <h2>User Management</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Verified</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td style="font-weight: 600">{{ user.name }}</td>
+                        <td><span class="status-badge owner-badge">{{ user.role }}</span></td>
+                        <td>{% if user.is_verified %}✅{% else %}❌{% endif %}</td>
+                        <td>{{ user.created_at|date:"M d" }}</td>
+                        <td>
+                            {% if user.id != request.user.id %}
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="type" value="user">
+                                <input type="hidden" name="id" value="{{ user.id }}">
+                                <button type="submit" class="btn btn-small btn-danger"
+                                    onclick="return confirm('Delete user?')">Delete</button>
+                            </form>
+                            {% else %}
+                            <span style="color: #64748b; font-size: 0.8rem">Current Admin</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            document.querySelectorAll('.data-section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(tab + '-section').style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+
+        function toggleForm(id) {
+            const f = document.getElementById(id);
+            f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+        }
+    </script>
+</body>
+
+</html>
