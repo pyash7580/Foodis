@@ -245,6 +245,7 @@ if not DEBUG:
     WHITENOISE_MAX_AGE = 31536000
     WHITENOISE_INDEX_FILE = True
     WHITENOISE_USE_FINDERS = True
+    WHITENOISE_MANIFEST_STRICT = False
     # More resilient storage
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 else:

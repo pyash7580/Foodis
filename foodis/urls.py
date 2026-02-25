@@ -17,7 +17,7 @@ def home(request):
 
 # ✅ Healthcheck endpoint (Railway compatible)
 def health_check(request):
-    return HttpResponse("OK_V2.3", status=200)
+    return HttpResponse("OK_V2.4", status=200)
 
 
 urlpatterns = [
@@ -26,7 +26,7 @@ urlpatterns = [
 
     # ✅ Railway Healthcheck
     path("health/", health_check),
-    path("test-deploy/", lambda r: HttpResponse("DEPLOY_V2.3_SUCCESS")),
+    path("test-deploy/", lambda r: HttpResponse("DEPLOY_V2.4_SUCCESS")),
     path("api/health/", core_views.health_check_view),
 
     # Admin
