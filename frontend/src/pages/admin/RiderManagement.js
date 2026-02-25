@@ -190,6 +190,7 @@ const RiderManagement = () => {
                         className="p-3 border border-gray-200 rounded-lg focus:outline-none"
                     >
                         <option value="ALL">All Status</option>
+                        <option value="UNDER_REVIEW">Under Review</option>
                         <option value="APPROVED">Approved</option>
                     </select>
                 </div>
@@ -245,10 +246,11 @@ const RiderManagement = () => {
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${rider.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-                                                rider.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                                                    'bg-red-100 text-red-700'
+                                                rider.status === 'UNDER_REVIEW' ? 'bg-orange-100 text-orange-700' :
+                                                    rider.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                                        'bg-red-100 text-red-700'
                                                 }`}>
-                                                {rider.status}
+                                                {rider.status === 'UNDER_REVIEW' ? 'UNDER REVIEW' : rider.status}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
@@ -261,7 +263,7 @@ const RiderManagement = () => {
                                                     <FaEye />
                                                 </button>
 
-                                                {rider.status === 'PENDING' && (
+                                                {(rider.status === 'PENDING' || rider.status === 'UNDER_REVIEW') && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAction(rider.id, 'approve')}
