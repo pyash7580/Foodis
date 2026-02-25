@@ -5,13 +5,13 @@ from rider_legacy.models import RiderProfile as Rider
 from core.models import User
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
+from django.http import HttpResponse
 
-def admin_required(user):
-    return user.is_staff or user.role == 'ADMIN'
 
-@user_passes_test(admin_required)
 def dashboard_view(request):
-    """Premium Data Explorer Dashboard with CRUD"""
+    # Basic auth check
+    if not request.user.is_authenticated or request.user.role != 'ADMIN':
+        return HttpResponse("Unauthorized", status=401)
     
     if request.method == 'POST':
         action = request.POST.get('action')
