@@ -26,6 +26,7 @@ urlpatterns = [
 
     # ✅ Railway Healthcheck
     path("health/", health_check),
+    path("test-deploy/", lambda r: HttpResponse("DEPLOY_V2.2_SUCCESS")),
     path("api/health/", core_views.health_check_view),
 
     # Admin
