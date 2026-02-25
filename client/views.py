@@ -88,16 +88,16 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                     Q(city_id__name__iexact=normalized_city)
                 )
 
-            latitude = self.request.query_params.get('latitude')
-            longitude = self.request.query_params.get('longitude')
-            radius = float(self.request.query_params.get('radius', 80)) # Default 80km
+            # Support both latitude/longitude and lat/lng
+            latitude = self.request.query_params.get('latitude') or self.request.query_params.get('lat')
+            longitude = self.request.query_params.get('longitude') or self.request.query_params.get('lng')
+            radius = float(self.request.query_params.get('radius', 20000)) # Increased to 20,000km for global visibility
 
             if latitude and longitude:
                 try:
                     user_location = (float(latitude), float(longitude))
 
-                    # First pass: bounding box filter to reduce dataset before expensive distance calculations
-                    # Approximate: 1 degree latitude ≈ 111km, longitude varies by cos(latitude)
+                    # Bounding box filter
                     import math
                     lat_delta = radius / 111.0
                     lon_delta = radius / (111.0 * math.cos(math.radians(float(latitude))))
@@ -109,7 +109,7 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                         longitude__lte=float(longitude) + lon_delta
                     )
 
-                    # Second pass: precise distance filtering only on the bounding box results
+                    # Precise distance filtering
                     filtered_ids = []
                     for restaurant in queryset:
                         try:
@@ -124,10 +124,9 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
 
             return queryset
         except Exception as e:
-            import traceback
-            print("RESTAURANT ERROR:", traceback.format_exc())
-            raise
-    
+            logger.error(f"RESTAURANT QUERYSET ERROR: {e}")
+            return Restaurant.objects.none()
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
@@ -212,12 +211,12 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def nearby(self, request):
         """Get nearby restaurants"""
-        latitude = request.query_params.get('latitude')
-        longitude = request.query_params.get('longitude')
-        radius = float(request.query_params.get('radius', 80))  # km
+        latitude = request.query_params.get('latitude') or request.query_params.get('lat')
+        longitude = request.query_params.get('longitude') or request.query_params.get('lng')
+        radius = float(request.query_params.get('radius', 20000))  # Increased to 20,000km for global visibility
         
         if not latitude or not longitude:
             return Response({'error': 'Latitude and longitude are required'}, 
@@ -227,7 +226,8 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
             user_location = (float(latitude), float(longitude))
             restaurants = []
             
-            for restaurant in self.queryset:
+            # Using self.get_queryset() ensures we respect approval status and is_active
+            for restaurant in self.get_queryset():
                 try:
                     restaurant_location = (float(restaurant.latitude), float(restaurant.longitude))
                     dist = distance(user_location, restaurant_location).km
@@ -464,13 +464,13 @@ class MenuItemViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['restaurant', 'category', 'veg_type']
     search_fields = ['name', 'description']
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def trending(self, request):
         """Get trending menu items"""
         trending_items = get_trending_items()
         return Response(trending_items, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def recommendations(self, request):
         """Get personalized recommendations"""
         query = request.query_params.get('query')
@@ -1527,174 +1527,6 @@ class FavouriteMenuItemViewSet(viewsets.ModelViewSet):
             return Response({'status': 'removed'}, status=status.HTTP_200_OK)
         return Response({'status': 'added'}, status=status.HTTP_201_CREATED)
 
-class RestaurantDetailView(APIView):
-    permission_classes = [AllowAny]
-    
-    def get(self, request, pk=None):
-        try:
-            from restaurant.models import Restaurant
-            
-            try:
-                restaurant = Restaurant.objects.select_related(
-                    'city_id'
-                ).get(pk=pk)
-            except Restaurant.DoesNotExist:
-                return Response(
-                    {'error': f'Restaurant {pk} not found'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Build response safely field by field
-            data = {
-                'id': restaurant.pk,
-                'name': str(restaurant.name or ''),
-                'is_active': restaurant.is_active,
-                'is_approved': restaurant.status == 'APPROVED',
-            }
-            
-            # Optional string fields
-            for field in ['address', 'cuisine_type', 'description',
-                          'phone', 'delivery_time']:
-                try:
-                    data[field] = str(getattr(restaurant, field, '') or '')
-                except Exception:
-                    data[field] = ''
-            
-            # Optional number fields
-            for field in ['rating', 'minimum_order', 'delivery_fee']:
-                try:
-                    data[field] = float(getattr(restaurant, field, 0) or 0)
-                except Exception:
-                    data[field] = 0.0
-            
-            # City
-            try:
-                data['city'] = restaurant.city_id.name if restaurant.city_id else restaurant.city
-            except Exception:
-                data['city'] = ''
-            
-            # Image — handle all possible field types
-            data['image_url'] = None
-            for field in ['image', 'image_url', 'cover_image', 'photo']:
-                try:
-                    val = getattr(restaurant, field, None)
-                    if not val:
-                        continue
-                    if isinstance(val, str) and val.startswith('http'):
-                        data['image_url'] = val
-                        break
-                    if hasattr(val, 'url') and val:
-                        data['image_url'] = val.url
-                        break
-                    if isinstance(val, str) and val:
-                        data['image_url'] = val
-                        break
-                except Exception:
-                    continue
-            
-            return Response(data, status=200)
-        
-        except Exception as e:
-            import traceback
-            print(f"RESTAURANT DETAIL CRASH pk={pk}:\n",
-                  traceback.format_exc())
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-class RestaurantMenuView(APIView):
-    permission_classes = [AllowAny]
-    
-    def get(self, request, pk=None):
-        try:
-            # Try different possible locations for MenuItem model
-            MenuItem = None
-            for model_path in [
-                ('restaurant.models', 'MenuItem'),
-                ('client.models', 'MenuItem'),
-                ('core.models', 'MenuItem'),
-            ]:
-                try:
-                    mod = __import__(model_path[0], 
-                                     fromlist=[model_path[1]])
-                    MenuItem = getattr(mod, model_path[1])
-                    break
-                except (ImportError, AttributeError):
-                    continue
-            
-            if MenuItem is None:
-                return Response([], status=200)
-            
-            items = MenuItem.objects.filter(
-                restaurant_id=pk
-            ).select_related('restaurant')
-            
-            # Make all items available if none are
-            if items.exists() and not items.filter(
-                is_available=True
-            ).exists():
-                items.update(is_available=True)
-            
-            available = items.filter(is_available=True)
-            
-            result = []
-            for item in available:
-                try:
-                    dish = {
-                        'id': item.pk,
-                        'name': str(item.name or ''),
-                        'price': float(item.price or 0),
-                        'is_available': True,
-                    }
-                    
-                    # Optional fields
-                    for field in ['description', 'category',
-                                  'food_type', 'veg_type']: # Added veg_type for frontend compatibility
-                        try:
-                            # 'category' might be an object, check if it has name
-                            if field == 'category' and hasattr(item, 'category') and item.category:
-                                dish[field] = str(item.category.name)
-                            else:
-                                dish[field] = str(getattr(item, field, '') or '')
-                        except Exception:
-                            dish[field] = ''
-                    
-                    # Item image
-                    dish['image_url'] = None
-                    for field in ['image', 'image_url', 'photo']:
-                        try:
-                            val = getattr(item, field, None)
-                            if not val:
-                                continue
-                            if isinstance(val, str) and \
-                               val.startswith('http'):
-                                dish['image_url'] = val
-                                break
-                            if hasattr(val, 'url') and val:
-                                url = val.url
-                                dish['image_url'] = request.build_absolute_uri(url) if request and not url.startswith('http') else url
-                                break
-                            if isinstance(val, str) and val:
-                                dish['image_url'] = request.build_absolute_uri(val) if request and not val.startswith('http') else val
-                                break
-                        except Exception:
-                            continue
-                    
-                    result.append(dish)
-                except Exception as row_e:
-                    print(f"MenuItem {item.pk} error: {row_e}")
-                    continue
-            
-            return Response(result, status=200)
-        
-        except Exception as e:
-            import traceback
-            print(f"MENU CRASH restaurant {pk}:\n",
-                  traceback.format_exc())
-            # Return empty array — never crash the UI
-            return Response([], status=200)
 
 class RestaurantListView(APIView):
     permission_classes = [AllowAny]
@@ -1703,9 +1535,30 @@ class RestaurantListView(APIView):
         try:
             from restaurant.models import Restaurant
             
+            # Support both latitude/longitude and lat/lng
+            lat = request.query_params.get('lat') or request.query_params.get('latitude')
+            lng = request.query_params.get('lng') or request.query_params.get('longitude')
+            city = request.query_params.get('city', '').strip()
+            
             qs = Restaurant.objects.filter(
                 is_active=True, status='APPROVED'
             ).select_related('city_id')
+            
+            if lat and lng:
+                try:
+                    lat_f = float(lat)
+                    lng_f = float(lng)
+                    # Rough bounding box (~80km)
+                    qs = qs.filter(
+                        latitude__range=(lat_f - 0.72, lat_f + 0.72),
+                        longitude__range=(lng_f - 0.72, lng_f + 0.72)
+                    )
+                except (ValueError, TypeError):
+                    pass
+            elif city:
+                qs = qs.filter(
+                    Q(city__icontains=city) | Q(city_id__name__icontains=city)
+                )
             
             results = []
             for r in qs:
@@ -1719,8 +1572,6 @@ class RestaurantListView(APIView):
                             elif hasattr(val, 'url'):
                                 url = val.url
                                 image_url = request.build_absolute_uri(url) if request and not url.startswith('http') else url
-                            elif isinstance(val, str) and val:
-                                image_url = request.build_absolute_uri(val) if request and not val.startswith('http') else val
                             if image_url:
                                 break
                     
@@ -1742,5 +1593,6 @@ class RestaurantListView(APIView):
             return Response(results, status=200)
         
         except Exception as e:
+            import traceback
             print("RESTAURANT LIST CRASH:\n", traceback.format_exc())
             return Response({'error': str(e)}, status=500)

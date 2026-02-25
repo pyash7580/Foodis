@@ -47,7 +47,7 @@ if response.status_code != 200:
     exit(1)
 
 # Get the OTP that was created
-otp_obj = OTP.objects.filter(phone=restaurant_user.phone, type='sms').order_by('-created_at').first()
+otp_obj = OTP.objects.filter(phone=restaurant_user.phone).order_by('-created_at').first()
 
 if otp_obj:
     otp_code = otp_obj.otp_code

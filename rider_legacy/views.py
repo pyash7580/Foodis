@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -30,9 +31,15 @@ channel_layer = get_channel_layer()
 class RiderProfileViewSet(viewsets.ModelViewSet):
     """ViewSet for Rider Profile"""
     serializer_class = RiderProfileSerializer
-    permission_classes = [IsAuthenticated]
-    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
     def get_queryset(self):
+        # In production/demo, allow seeing ALL riders for visibility
+        if self.action == 'list':
+            return RiderProfile.objects.all()
         return RiderProfile.objects.filter(rider=self.request.user)
     
     def perform_create(self, serializer):

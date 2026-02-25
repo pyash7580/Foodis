@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default='True', cast=bool)
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', 'foodis-gamma.vercel.app', '.vercel.app', 'happy-purpose-production.up.railway.app']
 
 # Render sets this automatically
 _RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
@@ -146,6 +146,7 @@ else:
 # Production Security Hardening
 if not DEBUG:
     SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_REDIRECT_EXEMPT = [r'^health/$']  # Allow Railway healthcheck over HTTP
     SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
     CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -157,8 +158,9 @@ if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         'https://foodis-nu.vercel.app',
         'https://foodis-coral.vercel.app',
-        'https://foodis-xtpw.onrender.com',
+        'https://foodis-gamma.vercel.app',
         'https://*.vercel.app',
+        'https://happy-purpose-production.up.railway.app',
     ]
 
 # Redis Configuration
@@ -232,8 +234,20 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# WhiteNoise optimization for production
+# http://whitenoise.evans.io/en/stable/django.html#infinitely-cacheable-assets
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    # Infinitely cacheable assets (1 year)
+    WHITENOISE_MAX_AGE = 31536000
+    WHITENOISE_INDEX_FILE = True
+
+# Media files
 STATICFILES_DIRS = []
 if (BASE_DIR / 'static').exists():
     STATICFILES_DIRS.append(BASE_DIR / 'static')
@@ -288,6 +302,12 @@ REST_FRAMEWORK = {
     ],
 }
 
+# In production, return JSON only (no browsable HTML API)
+if not DEBUG:
+    REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
+        'rest_framework.renderers.JSONRenderer',
+    ]
+
 # Simple JWT Configuration
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
@@ -314,7 +334,19 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-role',
+]
 
 # Google Maps API
 GOOGLE_MAPS_API_KEY = config('GOOGLE_MAPS_API_KEY', default='')

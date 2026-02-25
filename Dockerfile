@@ -4,7 +4,6 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PORT 8000
 
 # Set work directory
 WORKDIR /app
@@ -21,14 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
-# Run collectstatic
-RUN python manage.py collectstatic --noinput
 
 # Run script as entrypoint (ensures CMD can run it)
 RUN chmod +x start_prod.sh
-
-# Expose port
-EXPOSE 8000
 
 # Start command
 CMD ["bash", "start_prod.sh"]

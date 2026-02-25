@@ -72,11 +72,6 @@ def send_otp_sms(phone, otp):
             return True
             
     except Exception as e:
-        # print(f"❌ Error sending OTP: {str(e)}")
-        # Fallback: print to console
-        # print(f"\n{'='*50}")
-        # print(f"📱 FALLBACK OTP for {phone}: {otp}")
-        # print(f"{'='*50}\n")
         return True
 
 
@@ -125,6 +120,7 @@ def verify_otp(phone, otp_code):
     - Replay prevention (is_used)
     - Try count limit
     """
+    phone = clean_phone(phone) # ✅ FIX: Standardize phone to 10 digits to match send_otp
     otp_code = str(otp_code).strip()
     
     logger.debug(f"VERIFYING OTP | PHONE: {phone} | ATTEMPT: {otp_code}")
@@ -135,7 +131,6 @@ def verify_otp(phone, otp_code):
         return True
 
     # 1. Look for the latest unexpired, unused OTP for this phone
-    # We allow a 60s grace period for server time drift or network lag
     grace_time = timezone.now() - timezone.timedelta(seconds=60)
     
     otp_obj = OTP.objects.filter(
@@ -148,14 +143,14 @@ def verify_otp(phone, otp_code):
         print("FAILURE: No active OTP record found for this phone")
         return False
 
-    # Check attempt limit (e.g., 5 attempts)
+    # Check attempt limit
     if otp_obj.attempt_count >= 5:
         print("FAILURE: Max attempts exceeded for this OTP")
-        otp_obj.is_used = True # Burn the OTP
+        otp_obj.is_used = True 
         otp_obj.save()
         return False
 
-    # Compare codes (normalized)
+    # Compare codes
     if otp_obj.otp_code == otp_code:
         otp_obj.is_verified = True
         otp_obj.is_used = True
@@ -173,14 +168,12 @@ def send_email_otp(email):
     """Send OTP to email address"""
     otp_code = generate_otp()
     
-    # Store OTP in cache with 5 minute expiry (non-blocking).
     cache_key = f'otp_email_{email}'
     try:
         cache.set(cache_key, otp_code, timeout=300)
     except Exception as cache_err:
         logger.warning(f"Email OTP cache set skipped for {email}: {cache_err}")
     
-    # Send OTP via Email
     try:
         from django.core.mail import send_mail
         
@@ -190,22 +183,8 @@ def send_email_otp(email):
         recipient_list = [email]
         
         send_mail(subject, message, from_email, recipient_list, fail_silently=False)
-        # print(f"✅ OTP sent successfully to {email}")
-        
-        if settings.DEBUG:
-            # print(f"\n{'='*50}")
-            # print(f"🔧 DEBUG MODE: Email OTP for {email}: {otp_code}")
-            # print(f"{'='*50}\n")
-            pass
             
     except Exception as e:
-        # print(f"❌ Error sending Email OTP: {str(e)}")
-        # Fallback: print to console
-        # print(f"\n\n{'#'*80}")
-        # print(f"{' '*20}📧 EMAIL OTP FALLBACK 📧")
-        # print(f"{' '*10}EMAIL: {email}")
-        # print(f"{' '*10}OTP CODE: {otp_code}")
-        # print(f"{'#'*80}\n\n")
         pass
     
     return otp_code
