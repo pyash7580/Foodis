@@ -430,51 +430,72 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         if not profile or profile.status != 'APPROVED':
             return Response({'error': 'Rider not available or offline'}, 
                           status=status.HTTP_400_BAD_REQUEST)
-        
-        # 📌 RELAXED CHECK: Show incoming orders even if rider has one active order
-        # if profile.current_order:
-        #      return Response([], status=status.HTTP_200_OK)
 
-        # Get orders ready for pickup or preparing in the SAME CITY
-        # Allow riders to see orders even if they are just confirmed/preparing (optimization)
-        available_orders = Order.objects.filter(
-            status__in=['CONFIRMED', 'PREPARING', 'READY'],
-            rider__isnull=True,
-            city_id=profile.city_id 
-        )
+        from django.db.models import Q
         
-        # Filter by distance if rider location is available
+        # 📌 City-Wise Filtering: Get orders ready for pickup or preparing in the SAME CITY
+        city_filters = Q()
+        if profile.city_id:
+            city_filters |= Q(city_id=profile.city_id)
+            city_filters |= Q(restaurant__city_id=profile.city_id)
+            
+        if profile.city:
+            city_filters |= Q(restaurant__city__iexact=profile.city)
+            
+        if not city_filters:
+            return Response([], status=status.HTTP_200_OK)
+
+        available_orders = Order.objects.filter(
+            city_filters,
+            status__in=['CONFIRMED', 'PREPARING', 'READY'],
+            rider__isnull=True
+        ).select_related('restaurant')
+        
+        # Calculate distances & format consistent output
+        nearby_orders = []
+        rider_location = None
         if profile.current_latitude and profile.current_longitude:
             rider_location = (float(profile.current_latitude), float(profile.current_longitude))
-            nearby_orders = []
-            for order in available_orders:
-                try:
-                    # Calculate distance to restaurant
-                    restaurant_location = (float(order.restaurant.latitude), float(order.restaurant.longitude))
-                    dist = distance(rider_location, restaurant_location).km
-                    
-                    # Calculate delivery trip distance
-                    delivery_location = (float(order.delivery_latitude), float(order.delivery_longitude))
-                    delivery_dist = distance(restaurant_location, delivery_location).km
+            
+        for order in available_orders:
+            try:
+                dist = None
+                delivery_dist = None
+                estimated_earning = 40.0
+                
+                if rider_location and order.restaurant.latitude and order.restaurant.longitude:
+                    try:
+                        restaurant_location = (float(order.restaurant.latitude), float(order.restaurant.longitude))
+                        dist = distance(rider_location, restaurant_location).km
+                    except Exception as e:
+                        print(f"Error calculating restaurant dist {order.id}: {e}")
+                        
+                    try:
+                        if order.delivery_latitude and order.delivery_longitude:
+                            delivery_location = (float(order.delivery_latitude), float(order.delivery_longitude))
+                            delivery_dist = distance(restaurant_location, delivery_location).km
+                    except Exception as e:
+                        print(f"Error calculating delivery dist {order.id}: {e}")
                     
                     # Only show orders within reasonable pickup range (e.g., 20km)
-                    if dist <= 20:
-                        nearby_orders.append({
-                            'order': OrderSerializer(order).data,
-                            'distance': round(dist, 2),
-                            'delivery_distance': round(delivery_dist, 2),
-                            'estimated_earning': 40 + (dist * 5) + (delivery_dist * 10) # Simple earnings calc
-                        })
-                except Exception as e:
-                    print(f"Error calculating distance for order {order.id}: {e}")
-                    continue
-            
-            # Sort by distance
-            nearby_orders.sort(key=lambda x: x['distance'])
-            return Response(nearby_orders, status=status.HTTP_200_OK)
+                    if dist is not None and dist > 20:
+                        continue
+                        
+                    estimated_earning = 40 + (dist * 5 if dist else 0) + ((delivery_dist or 0) * 10)
+                
+                nearby_orders.append({
+                    'order': OrderSerializer(order, context={'request': request}).data,
+                    'distance': round(dist, 2) if dist is not None else None,
+                    'delivery_distance': round(delivery_dist, 2) if delivery_dist is not None else None,
+                    'estimated_earning': round(estimated_earning, 2)
+                })
+            except Exception as e:
+                print(f"Error processing order {order.id}: {e}")
+                continue
         
-        serializer = OrderSerializer(available_orders, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Sort by proximity to rider
+        nearby_orders.sort(key=lambda x: x['distance'] if x['distance'] is not None else float('inf'))
+        return Response(nearby_orders, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])
     def active(self, request):
