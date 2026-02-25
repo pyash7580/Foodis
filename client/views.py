@@ -492,6 +492,94 @@ class CartViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Cart.objects.filter(user=self.request.user)
     
+    def create(self, request):
+        """Override create to handle cart sync from frontend
+        
+        Supports two payload formats:
+        1. restaurant_id + items (sync format)
+        2. menu_item_id + quantity (add_item format)
+        """
+        try:
+            # Format 1: Sync format (restaurant_id + items)
+            if 'restaurant_id' in request.data and 'items' in request.data:
+                restaurant_id = request.data.get('restaurant_id')
+                items = request.data.get('items', [])
+                
+                restaurant = Restaurant.objects.get(id=restaurant_id)
+                
+                # Get or create cart for this user
+                cart = Cart.objects.filter(user=request.user).first()
+                if not cart:
+                    cart = Cart.objects.create(user=request.user, restaurant=restaurant)
+                else:
+                    # Update restaurant if different
+                    if cart.restaurant != restaurant:
+                        cart.items.all().delete()
+                        cart.restaurant = restaurant
+                        cart.save()
+                
+                # Clear existing items and add new ones
+                cart.items.all().delete()
+                for item in items:
+                    menu_item_id = item.get('id') or item.get('menu_item_id')
+                    CartItem.objects.create(
+                        cart=cart,
+                        menu_item_id=menu_item_id,
+                        quantity=item.get('quantity', 1),
+                        customizations=item.get('customizations', {})
+                    )
+                
+                serializer = CartSerializer(cart, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+            # Format 2: Add item format (menu_item_id + quantity)
+            elif 'menu_item_id' in request.data:
+                menu_item_id = request.data.get('menu_item_id')
+                quantity = int(request.data.get('quantity', 1))
+                customizations = request.data.get('customizations', {})
+                
+                menu_item = MenuItem.objects.get(id=menu_item_id, is_available=True)
+                
+                # Get or create cart for this restaurant
+                cart = Cart.objects.filter(user=request.user).first()
+                if not cart:
+                    cart = Cart.objects.create(user=request.user, restaurant=menu_item.restaurant)
+                elif cart.restaurant != menu_item.restaurant:
+                    # Different restaurant - clear and switch
+                    cart.items.all().delete()
+                    cart.restaurant = menu_item.restaurant
+                    cart.save()
+                
+                # Add item to cart
+                cart_item, created = CartItem.objects.get_or_create(
+                    cart=cart,
+                    menu_item=menu_item,
+                    customizations=customizations,
+                    defaults={'quantity': quantity}
+                )
+                
+                if not created:
+                    cart_item.quantity += quantity
+                    cart_item.save()
+                
+                serializer = CartSerializer(cart, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+            else:
+                return Response(
+                    {'error': 'Invalid payload. Must include either (restaurant_id + items) or (menu_item_id + quantity)'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        except Restaurant.DoesNotExist:
+            return Response({'error': 'Restaurant not found'}, status=status.HTTP_404_NOT_FOUND)
+        except MenuItem.DoesNotExist:
+            return Response({'error': 'Menu item not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import traceback
+            print(f"Cart create error: {str(e)}\n{traceback.format_exc()}")
+            return Response({'error': f'Failed to create cart: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+    
     @action(detail=False, methods=['post'])
     def add_item(self, request):
         """Add item to cart"""
@@ -635,7 +723,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         return context
     
     def create(self, request):
-        """Create order from cart"""
+        """Create order from cart
+        
+        Parameters:
+        - address_id: Required - delivery address ID
+        - payment_method: Optional - COD (default), WALLET, RAZORPAY
+        - coupon_code: Optional - coupon code for discount
+        - delivery_instructions: Optional - special instructions
+        - cart_id: Optional - cart ID (auto-assigned if not provided)
+        """
         cart_id = request.data.get('cart_id')
         address_id = request.data.get('address_id')
         payment_method = request.data.get('payment_method', 'COD')
@@ -643,8 +739,36 @@ class OrderViewSet(viewsets.ModelViewSet):
         delivery_instructions = request.data.get('delivery_instructions', '')
         
         try:
-            cart = Cart.objects.get(id=cart_id, user=request.user)
-            address = Address.objects.get(id=address_id, user=request.user)
+            # If cart_id not provided, use user's most recent cart
+            if not cart_id:
+                cart = Cart.objects.filter(user=request.user).order_by('-id').first()
+                if not cart:
+                    return Response(
+                        {'error': 'No active cart found. Please add items to cart first.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                cart = Cart.objects.get(id=cart_id, user=request.user)
+            
+            # Get delivery address
+            if address_id:
+                address = Address.objects.get(id=address_id, user=request.user)
+            else:
+                # Try to use primary address if not specified
+                address = Address.objects.filter(user=request.user, is_primary=True).first()
+                if not address:
+                    # Use inline address if provided
+                    delivery_data = request.data.get('delivery_address')
+                    if not delivery_data:
+                        return Response(
+                            {'error': 'Please provide address_id or delivery_address'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    # Create temporary address object (or return error if not allowed)
+                    return Response(
+                        {'error': 'Please provide a valid address_id or save an address first'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             if cart.items.count() == 0:
                 return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
