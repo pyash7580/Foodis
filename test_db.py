@@ -33,12 +33,12 @@ try:
     count = Restaurant.objects.count()
     print(f"✅ Total Restaurants: {count}")
     active = Restaurant.objects.filter(
-        is_active=True, is_approved=True
+        is_active=True, status='APPROVED'
     ).count()
     print(f"✅ Active+Approved: {active}")
     if active < 48:
         Restaurant.objects.all().update(
-            is_active=True, is_approved=True
+            is_active=True, status='APPROVED'
         )
         print("✅ Fixed: all restaurants set to active+approved")
 except Exception as e:
