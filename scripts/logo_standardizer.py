@@ -1,8 +1,8 @@
-
 import os
 import sys
 import shutil
 import django
+from PIL import Image
 
 # Setup Django environment
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -41,6 +41,17 @@ def standardize_logos():
     logo_files = [f for f in os.listdir(logos_src) if os.path.isfile(os.path.join(logos_src, f))]
     cover_files = [f for f in os.listdir(covers_src) if os.path.isfile(os.path.join(covers_src, f))] if os.path.exists(covers_src) else []
 
+    def convert_to_png_fallback(src_path, dest_path):
+        try:
+            with Image.open(src_path) as img:
+                img.save(dest_path, "PNG")
+            return True
+        except Exception as e:
+            print(f"Error converting {src_path}: {e}")
+            # Fallback to direct copy if conversion fails
+            shutil.copy2(src_path, dest_path)
+            return False
+
     found_count = 0
     for r in restaurants:
         r_norm = normalize(r.name)
@@ -62,10 +73,10 @@ def standardize_logos():
                     break
 
         if logo_match:
-            ext = os.path.splitext(logo_match)[1]
-            shutil.copy2(os.path.join(logos_src, logo_match), os.path.join(logos_dest, f"restaurant_{r.id}{ext}"))
-            print(f"LOGGED: {r.name} (ID: {r.id}) logo matched -> {logo_match}")
-            logo_mapping[r.id] = f"restaurant_{r.id}{ext}"
+            dest_filename = f"restaurant_{r.id}.png"
+            convert_to_png_fallback(os.path.join(logos_src, logo_match), os.path.join(logos_dest, dest_filename))
+            print(f"LOGGED: {r.name} (ID: {r.id}) logo matched -> {logo_match} (Standardized to PNG)")
+            logo_mapping[r.id] = dest_filename
             found_count += 1
         
         # 2. Match Cover
@@ -81,16 +92,16 @@ def standardize_logos():
             for f in logo_files:
                 if "cover" in f.lower() and r_norm in normalize(f):
                     cover_match = f
-                    ext = os.path.splitext(f)[1]
-                    shutil.copy2(os.path.join(logos_src, cover_match), os.path.join(covers_dest, f"restaurant_{r.id}{ext}"))
-                    print(f"COVER: {r.name} (ID: {r.id}) cover matched (from logos) -> {cover_match}")
-                    cover_mapping[r.id] = f"restaurant_{r.id}{ext}"
+                    dest_filename = f"restaurant_{r.id}.png"
+                    convert_to_png_fallback(os.path.join(logos_src, cover_match), os.path.join(covers_dest, dest_filename))
+                    print(f"COVER: {r.name} (ID: {r.id}) cover matched (from logos) -> {cover_match} (Standardized to PNG)")
+                    cover_mapping[r.id] = dest_filename
                     break
         elif cover_match:
-            ext = os.path.splitext(cover_match)[1]
-            shutil.copy2(os.path.join(covers_src, cover_match), os.path.join(covers_dest, f"restaurant_{r.id}{ext}"))
-            print(f"COVER: {r.name} (ID: {r.id}) cover matched -> {cover_match}")
-            cover_mapping[r.id] = f"restaurant_{r.id}{ext}"
+            dest_filename = f"restaurant_{r.id}.png"
+            convert_to_png_fallback(os.path.join(covers_src, cover_match), os.path.join(covers_dest, dest_filename))
+            print(f"COVER: {r.name} (ID: {r.id}) cover matched -> {cover_match} (Standardized to PNG)")
+            cover_mapping[r.id] = dest_filename
 
     # Generate JS Mapping file
     js_map_path = os.path.join(os.path.dirname(media_root), 'frontend', 'src', 'utils', 'logo_map.js')
