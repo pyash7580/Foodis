@@ -12,6 +12,7 @@
         "DISABLE_ESLINT_PLUGIN": "true",
         "SKIP_PREFLIGHT_CHECK": "true",
         "GENERATE_SOURCEMAP": "false",
-        "CI": "false"
+        "CI": "false",
+        "REACT_APP_API_URL": ""
     }
 }

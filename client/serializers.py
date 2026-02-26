@@ -45,11 +45,10 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         try:
             if obj.image:
-                url = obj.image.url
+                url = str(obj.image)
+                # Return relative path with /media/ prefix
                 if url and not url.startswith('http'):
-                    request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(url)
+                    return f'/media/{url}' if not url.startswith('/media/') else url
                 return url
             return None
         except Exception:
@@ -106,46 +105,23 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         try:
-            # Try image field first
             if hasattr(obj, 'image') and obj.image:
-                val = obj.image
-                # If it's already a full URL string
-                if isinstance(val, str) and val.startswith('http'):
-                    return val
-                # If it's a Cloudinary/ImageField object
-                if hasattr(val, 'url'):
-                    url = val.url
-                    if url and url.startswith('http'):
-                        return url
-                    request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(url)
-                    return url
-                # If it's a string path
-                if isinstance(val, str) and val:
-                    if val.startswith('/'):
-                        request = self.context.get('request')
-                        if request:
-                            return request.build_absolute_uri(val)
-                    return val
-            
-            # Try image_url field
-            if hasattr(obj, 'image_url') and obj.image_url:
-                return str(obj.image_url)
-            
+                url = str(obj.image)
+                # Return relative path with /media/ prefix
+                if url and not url.startswith('http'):
+                    return f'/media/{url}' if not url.startswith('/media/') else url
+                return url
             return None
-        except Exception as e:
-            print(f"Image URL error for {obj.pk}: {e}")
+        except Exception:
             return None
 
     def get_cover_image_url(self, obj):
         try:
             if hasattr(obj, 'cover_image') and obj.cover_image:
-                url = obj.cover_image.url
+                url = str(obj.cover_image)
+                # Return relative path with /media/ prefix
                 if url and not url.startswith('http'):
-                    request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(url)
+                    return f'/media/{url}' if not url.startswith('/media/') else url
                 return url
             return None
         except Exception:
