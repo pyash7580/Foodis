@@ -8,19 +8,20 @@ from datetime import timedelta
 
 class SmartImageField(serializers.ImageField):
     """
-    Custom ImageField that returns the raw string if it starts with http,
-    otherwise uses the standard DRF ImageField behavior.
+    Custom ImageField that returns relative /media/ paths for local files,
+    or full URLs for external/Cloudinary images.
     """
     def to_representation(self, value):
         if not value:
             return None
         image_str = str(value)
+        # If already a full URL, return as-is
         if image_str.startswith('http'):
             return image_str
-        try:
-            return super().to_representation(value)
-        except Exception as getattr_fail:
-            return None
+        # Return relative path with /media/ prefix for local files
+        if image_str and not image_str.startswith('/media/'):
+            return f'/media/{image_str}'
+        return image_str
 
 
 class UserSerializer(serializers.ModelSerializer):

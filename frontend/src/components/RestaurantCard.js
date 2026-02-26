@@ -9,10 +9,9 @@ import toast from 'react-hot-toast';
 // Helper to get correct image URL
 const getImageSrc = (imageUrl) => {
     if (!imageUrl) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    // Local media file — prepend backend URL
-    const backendUrl = process.env.REACT_APP_API_URL || 'https://happy-purpose-production.up.railway.app';
-    return `${backendUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    // Images are either absolute URLs or relative /media/ paths
+    // Vercel serves /media/ paths as static assets, no backend needed
+    return imageUrl;
 };
 
 // Image component with fallback
