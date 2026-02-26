@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://happy-purpose-production.up.railway.app';
+// Get API URL from environment variables
+// Fallback only if running on localhost (for development)
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = process.env.REACT_APP_API_URL || (isLocalhost ? 'http://localhost:8000' : '');
 
 const axiosInstance = axios.create({
     baseURL: API_URL,

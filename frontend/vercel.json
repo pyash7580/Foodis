@@ -8,12 +8,10 @@
             "destination": "/index.html"
         }
     ],
-    "build": {
-        "env": {
-            "DISABLE_ESLINT_PLUGIN": "true",
-            "SKIP_PREFLIGHT_CHECK": "true",
-            "GENERATE_SOURCEMAP": "false",
-            "REACT_APP_API_URL": "https://happy-purpose-production.up.railway.app"
-        }
+    "env": {
+        "DISABLE_ESLINT_PLUGIN": "true",
+        "SKIP_PREFLIGHT_CHECK": "true",
+        "GENERATE_SOURCEMAP": "false",
+        "CI": "false"
     }
 }

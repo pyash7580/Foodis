@@ -36,15 +36,15 @@ const getBaseUrl = () => {
     }
 
     // Respect explicit env first. If env incorrectly points to localhost in production,
-    // ignore it and fall back to public backend.
+    // ignore it and fall back to empty string (will use default/proxy)
     if (envApiUrl) {
         if (isLocalAddress(envApiUrl)) {
-            return 'https://happy-purpose-production.up.railway.app';
+            return '';
         }
         return envApiUrl;
     }
 
-    return 'https://happy-purpose-production.up.railway.app';
+    return '';
 };
 
 const getWsUrl = () => {
@@ -66,7 +66,7 @@ const getWsUrl = () => {
 
     if (envWsUrl) {
         if (isLocalAddress(envWsUrl)) {
-            return 'wss://happy-purpose-production.up.railway.app/ws';
+            return '';
         }
         return envWsUrl;
     }
@@ -78,7 +78,7 @@ const getWsUrl = () => {
         }
     }
 
-    return 'wss://happy-purpose-production.up.railway.app/ws';
+    return '';
 };
 
 export const API_BASE_URL = getBaseUrl();
