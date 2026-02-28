@@ -18,6 +18,19 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from core.utils import broadcast_order_status
 from client.services.otp_service import OTPService
+from core.serializers import _to_relative_media_path
+
+
+def _get_image_url(obj, field_name):
+    """Get a relative /media/ image URL from a model field."""
+    val = getattr(obj, field_name, None)
+    if not val:
+        return None
+    if hasattr(val, 'url') and val:
+        return _to_relative_media_path(val.url)
+    if isinstance(val, str) and val:
+        return _to_relative_media_path(val)
+    return None
 
 logger = logging.getLogger(__name__)
 
@@ -189,15 +202,7 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                         item['city_id'] = None
                     
                     # Image — handle all possible image field types
-                    try:
-                        if hasattr(r, 'image') and r.image:
-                            item['image_url'] = r.image.url
-                        elif hasattr(r, 'image_url') and r.image_url:
-                            item['image_url'] = str(r.image_url)
-                        else:
-                            item['image_url'] = None
-                    except Exception:
-                        item['image_url'] = None
+                    item['image_url'] = _get_image_url(r, 'image')
                     
                     restaurants.append(item)
                 except Exception as row_error:
@@ -314,34 +319,9 @@ class RestaurantDetailView(APIView):
             except Exception:
                 data['city'] = ''
             
-            # Image — handle all possible field types
-            data['image_url'] = None
-            data['cover_image_url'] = None
-            for field in ['image', 'image_url', 'cover_image', 'photo']:
-                try:
-                    val = getattr(restaurant, field, None)
-                    if not val:
-                        continue
-                    if isinstance(val, str) and val.startswith('http'):
-                        if 'cover' in field:
-                            data['cover_image_url'] = val
-                        else:
-                            data['image_url'] = val
-                        break
-                    if hasattr(val, 'url') and val:
-                        if 'cover' in field:
-                            data['cover_image_url'] = val.url
-                        else:
-                            data['image_url'] = val.url
-                        break
-                    if isinstance(val, str) and val:
-                        if 'cover' in field:
-                            data['cover_image_url'] = val
-                        else:
-                            data['image_url'] = val
-                        break
-                except Exception:
-                    continue
+            # Image
+            data['image_url'] = _get_image_url(restaurant, 'image')
+            data['cover_image_url'] = _get_image_url(restaurant, 'cover_image')
             
             return Response(data, status=200)
         
@@ -413,21 +393,7 @@ class RestaurantMenuView(APIView):
                             dish[field] = ''
                     
                     # Item image
-                    dish['image_url'] = None
-                    for field in ['image', 'image_url', 'photo']:
-                        try:
-                            val = getattr(item, field, None)
-                            if not val:
-                                continue
-                            if isinstance(val, str) and \
-                               val.startswith('http'):
-                                dish['image_url'] = val
-                                break
-                            if hasattr(val, 'url') and val:
-                                dish['image_url'] = val.url
-                                break
-                        except Exception:
-                            continue
+                    dish['image_url'] = _get_image_url(item, 'image')
                     
                     result.append(dish)
                 except Exception as row_e:
@@ -1690,17 +1656,7 @@ class RestaurantListView(APIView):
             results = []
             for r in qs:
                 try:
-                    image_url = None
-                    for field in ['image', 'image_url', 'cover_image']:
-                        val = getattr(r, field, None)
-                        if val:
-                            if isinstance(val, str) and val.startswith('http'):
-                                image_url = val
-                            elif hasattr(val, 'url'):
-                                url = val.url
-                                image_url = request.build_absolute_uri(url) if request and not url.startswith('http') else url
-                            if image_url:
-                                break
+                    image_url = _get_image_url(r, 'image') or _get_image_url(r, 'cover_image')
                     
                     results.append({
                         'id': r.pk,
