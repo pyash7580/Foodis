@@ -5,28 +5,16 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { getMediaImageUrl } from '../utils/mediaImageUrl';
 
-// Helper to get correct image URL with proper backend base
+// Helper: /media/... loads from frontend public/media; other relative paths use API base
 const getImageSrc = (imageUrl) => {
-    if (!imageUrl) return null;
-    
-    // If already absolute URL (http/https), return as-is
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return imageUrl;
-    }
-    
-    // If relative path (e.g., /media/...), prepend API base URL
-    if (imageUrl.startsWith('/')) {
-        // Only prepend if we have an API_BASE_URL (production)
-        if (API_BASE_URL) {
-            return `${API_BASE_URL}${imageUrl}`;
-        }
-        // For local dev with proxy, just return the path
-        return imageUrl;
-    }
-    
-    // Default: return as-is
-    return imageUrl;
+    const mediaUrl = getMediaImageUrl(imageUrl);
+    if (!mediaUrl) return null;
+    if (mediaUrl.startsWith('http')) return mediaUrl;
+    if (mediaUrl.startsWith('/media/')) return mediaUrl; // from frontend public/media
+    if (API_BASE_URL && mediaUrl.startsWith('/')) return `${API_BASE_URL}${mediaUrl}`;
+    return mediaUrl;
 };
 
 // Image component with fallback

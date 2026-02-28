@@ -1,5 +1,8 @@
 import { RESTAURANT_LOGOS, RESTAURANT_COVERS } from './logo_map';
 
+// Images in frontend/public/media/ (served at /media/...)
+const MEDIA = '/media';
+
 // Curated list of high-quality food images from Unsplash
 export const FOOD_IMAGES = [
     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
@@ -31,12 +34,12 @@ export const COVER_IMAGES = [
 
 export const getRestaurantImage = (id) => {
     const filename = RESTAURANT_LOGOS[id];
-    if (filename) return `/assets/restaurants/logos/${filename}`;
+    if (filename) return `${MEDIA}/restaurants/logos/${filename}`;
     return FOOD_IMAGES[id % FOOD_IMAGES.length];
 };
 
 export const getRestaurantCover = (id) => {
     const filename = RESTAURANT_COVERS[id];
-    if (filename) return `/assets/restaurants/covers/${filename}`;
+    if (filename) return `${MEDIA}/restaurants/covers/${filename}`;
     return COVER_IMAGES[id % COVER_IMAGES.length];
 };

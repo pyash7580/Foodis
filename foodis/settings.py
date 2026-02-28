@@ -9,7 +9,6 @@ import os
 # Load .env into os.environ BEFORE any config reads
 load_dotenv()
 
-print("DEBUG DATABASE_URL =", os.environ.get("DATABASE_URL"))
 
 from decouple import config
 from datetime import timedelta
@@ -384,23 +383,32 @@ except ImportError:
 
 # OTP Configuration
 OTP_LENGTH = 6
-OTP_EXPIRY_MINUTES = 5
+OTP_EXPIRY_MINUTES = config('OTP_EXPIRY_MINUTES', default=10, cast=int)
+OTP_ATTEMPTS_LIMIT = config('OTP_ATTEMPTS_LIMIT', default=5, cast=int)
 
-# MSG91 SMS Configuration
-MSG91_API_KEY = config('MSG91_API_KEY', default=None)
-MSG91_TEMPLATE_ID = config('MSG91_TEMPLATE_ID', default=None)
+# SMS Configuration (Removed in favor of Email OTP)
 
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
-# Email Configuration
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+# Email Configuration (SendGrid for real OTP delivery)
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.sendgrid.net')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='apikey')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+# EMAIL_FROM must be a verified sender in SendGrid (Single Sender Verification or Domain Authentication)
+EMAIL_FROM = config('EMAIL_FROM', default='foodisindia@gmail.com')
+
+if not EMAIL_HOST_PASSWORD:
+    # No API key: print OTP to console only (no real email sent)
+    EMAIL_BACKEND = 'core.email_backends.ConsoleEmailBackend'
+elif DEBUG:
+    # Dev with API key: send real email, relax SSL for local issues
+    EMAIL_BACKEND = 'core.email_backends.UnsafeEmailBackend'
+else:
+    EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 
 # Order Settings
 ORDER_CANCELLATION_TIME_LIMIT = 525600  # 1 Year (Effectively Removed)

@@ -157,18 +157,21 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                 except (ValueError, TypeError):
                     pass
             elif city:
+                normalized_city = normalize_city_name(city)
                 queryset = queryset.filter(
-                    city__name__icontains=city
+                    Q(city__icontains=normalized_city) | Q(city_id__name__icontains=normalized_city)
                 )
             
             restaurants = []
             for r in queryset:
                 try:
+                    cuisine_val = getattr(r, 'cuisine', None) or getattr(r, 'cuisine_type', None) or ''
                     item = {
                         'id': r.pk,
                         'name': str(r.name) if r.name else '',
                         'address': str(r.address) if r.address else '',
-                        'cuisine_type': str(r.cuisine_type) if hasattr(r, 'cuisine_type') and r.cuisine_type else '',
+                        'cuisine_type': str(cuisine_val),
+                        'cuisine': str(cuisine_val),
                         'rating': float(r.rating) if hasattr(r, 'rating') and r.rating else 0.0,
                         'delivery_time': str(r.delivery_time) if hasattr(r, 'delivery_time') and r.delivery_time else '',
                         'minimum_order': float(r.minimum_order) if hasattr(r, 'minimum_order') and r.minimum_order else 0.0,
@@ -1704,10 +1707,10 @@ class RestaurantListView(APIView):
                         'name': str(r.name or ''),
                         'image_url': image_url,
                         'city': r.city_id.name if getattr(r, 'city_id', None) else (getattr(r, 'city', '')),
-                        'cuisine_type': str(getattr(r, 'cuisine_type', '') or ''),
+                        'cuisine': str(getattr(r, 'cuisine', '') or ''),
                         'rating': float(getattr(r, 'rating', 0) or 0),
                         'delivery_time': str(getattr(r, 'delivery_time', '') or ''),
-                        'minimum_order': float(getattr(r, 'minimum_order', 0) or 0),
+                        'min_order_amount': float(getattr(r, 'min_order_amount', 0) or 0),
                         'delivery_fee': float(getattr(r, 'delivery_fee', 0) or 0),
                     })
                 except Exception as row_e:
