@@ -21,14 +21,6 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-def log_debug(message):
-    """Consolidated debug logging to file"""
-    try:
-        log_path = os.path.join(settings.BASE_DIR, 'otp_debug.log')
-        with open(log_path, 'a') as f:
-            f.write(f"[{timezone.now()}] {message}\n")
-    except Exception:
-        pass
 
 
 @api_view(['GET'])
@@ -60,8 +52,6 @@ def home_view(request):
 @permission_classes([AllowAny])
 def send_otp_view(request):
     """API for sending OTP via email"""
-    log_debug(f"\n--- SEND OTP REQUEST ---\nDATA: {request.data}")
-
     try:
         serializer = OTPSendSerializer(data=request.data)
         if serializer.is_valid():
@@ -91,7 +81,6 @@ def send_otp_view(request):
             }, status=status.HTTP_200_OK)
 
         errors = serializer.errors
-        log_debug(f"VALIDATION FAILED: {errors}")
         return Response({
             "error": "INVALID_DATA",
             "message": "Please provide a valid email address",
@@ -100,7 +89,6 @@ def send_otp_view(request):
 
     except Exception as e:
         tb = traceback.format_exc()
-        log_debug(f"CRASH IN send_otp_view: {str(e)}\n{tb}")
         return Response({
             "error": "SERVER_ERROR",
             "message": "Failed to send OTP. Please try again.",
@@ -112,12 +100,9 @@ def send_otp_view(request):
 @permission_classes([AllowAny])
 def verify_otp_view(request):
     """API for verifying OTP and logging in/initiating registration"""
-    log_debug(f"\n--- VERIFY OTP REQUEST ---\nDATA: {request.data}")
-
     try:
         serializer = OTPVerifySerializer(data=request.data)
         if not serializer.is_valid():
-            log_debug(f"VERIFY VALIDATION FAILED: {serializer.errors}")
             return Response({
                 "error": "INVALID_DATA",
                 "message": "Invalid request data. Please check your input.",
@@ -130,11 +115,9 @@ def verify_otp_view(request):
         role_requested = serializer.validated_data.get('role', 'CLIENT')
 
         # Verify OTP
-        log_debug(f"Verifying OTP for email: {email}")
         is_verified = verify_email_otp(email, otp_code)
 
         if not is_verified:
-            log_debug(f"FAILURE: Invalid or Expired OTP for {email}")
             return Response({
                 "error": "INVALID_OTP",
                 "message": "Invalid or expired OTP. Please check the code and try again.",
@@ -146,7 +129,7 @@ def verify_otp_view(request):
 
         if user:
             # Existing user login
-            log_debug(f"EXISTING USER: {email}")
+            pass
         else:
             # New user registration
             if not name:
@@ -155,7 +138,6 @@ def verify_otp_view(request):
                     "message": "Name is required for new account registration. Please provide your name.",
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            log_debug(f"REGISTERING NEW USER: {email}")
             user = User.objects.create(
                 email=email,
                 name=name.strip(),
@@ -168,7 +150,6 @@ def verify_otp_view(request):
 
         # Role mismatch check
         if not created and role_requested and user.role != role_requested:
-            log_debug(f"ROLE MISMATCH: User {email} is {user.role}, but requested {role_requested}")
             return Response({
                 "error": "ROLE_MISMATCH",
                 "message": f"This email is registered as a {user.role.capitalize()}. Please use the correct login page.",
@@ -201,7 +182,6 @@ def verify_otp_view(request):
                 else:
                     response_data['redirect_to'] = 'onboarding'
             except Exception as e:
-                log_debug(f"Error fetching restaurant: {e}")
                 response_data['redirect_to'] = 'dashboard'
         elif user.role == 'RIDER':
             try:
@@ -213,15 +193,12 @@ def verify_otp_view(request):
                 else:
                     response_data['redirect_to'] = 'onboarding'
             except Exception as e:
-                log_debug(f"Error fetching rider: {e}")
                 response_data['redirect_to'] = 'dashboard'
 
-        log_debug(f"SUCCESS: User {email} logged in as {user.role}")
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
         tb = traceback.format_exc()
-        log_debug(f"CRASH IN verify_otp_view: {str(e)}\n{tb}")
         return Response({
             "error": "SERVER_ERROR",
             "message": "Verification failed due to a server error. Please try again.",

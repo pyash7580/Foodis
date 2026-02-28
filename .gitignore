@@ -33,6 +33,7 @@ db.sqlite3
 db.sqlite3-journal
 /media
 /staticfiles
+otp_debug.log
 
 # Environment variables
 .env
@@ -79,6 +80,7 @@ frontend/*.json
 !frontend/package.json
 !frontend/package-lock.json
 !frontend/tsconfig.json
+!frontend/jsconfig.json
 
 # Credentials and Local Management
 RESTAURANT_LOGIN_CREDENTIALS.csv
@@ -92,3 +94,21 @@ nul
 output.txt
 tree_output.txt
 structure.txt
+
+# Deployment and cleanup documentation
+*_GUIDE.md
+*_REPORT.md
+CLEANUP_*.md
+DEPLOY_*.md
+QUICK_*.txt
+TRANSFER_*.md
+HOW_TO_*.md
+*_SETUP_*.md
+
+# Data export/import files
+database_export.json
+railway_data.json
+*_export.json
+
+# Django cache
+django_cache/
