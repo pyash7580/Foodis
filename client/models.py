@@ -40,7 +40,7 @@ class Restaurant(models.Model):
     slug = models.SlugField(unique=True)
     cuisine = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='restaurants/', blank=True, null=True)
+    image = models.ImageField(upload_to='restaurants/logos/', blank=True, null=True)
     cover_image = models.ImageField(upload_to='restaurants/covers/', blank=True, null=True)
     # phone = models.CharField(max_length=17, blank=True, null=True)  # REMOVED
     email = models.EmailField(null=True, blank=True, default='')  # Primary auth identifier
@@ -115,7 +115,7 @@ class MenuItem(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='menu_items')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
+    image = models.ImageField(upload_to='menu_items/dishes/', blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     veg_type = models.CharField(max_length=10, choices=VEG_CHOICES, default='VEG')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')

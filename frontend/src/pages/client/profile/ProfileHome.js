@@ -93,7 +93,7 @@ const ProfileHome = () => {
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Spent</p>
-                    <p className="text-3xl font-black text-gray-900">₹{stats.total_spent.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-gray-900">₹{(stats.total_spent || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Member Since</p>
