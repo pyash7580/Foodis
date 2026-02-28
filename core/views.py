@@ -377,7 +377,24 @@ class ProfileView(APIView):
                 'role': str(getattr(user, 'role', '') or ''),
                 'profile_image': None,
                 'wallet_balance': 0.0,
+                'total_orders': 0,
+                'total_spent': 0.0,
+                'created_at': user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None,
             }
+            # Add stats for CLIENT
+            if user.role == 'CLIENT':
+                try:
+                    from client.models import Order
+                    from django.db.models import Sum, Count
+                    stats = Order.objects.filter(user=user, payment_status='PAID').aggregate(
+                        count=Count('id'),
+                        spent=Sum('total')
+                    )
+                    data['total_orders'] = stats['count'] or 0
+                    data['total_spent'] = float(stats['spent'] or 0.0)
+                except Exception as e:
+                    print(f"Error fetching client stats: {e}")
+            
             try:
                 img = getattr(user, 'avatar', None) or getattr(user, 'profile_image', None)
                 if img:
