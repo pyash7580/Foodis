@@ -15,7 +15,7 @@ const Login = () => {
     const [isSignup, setIsSignup] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
 
-    const { login, sendOtp, verifyOtp } = useAuth();
+    const { sendOtp, verifyOtp } = useAuth();
     const navigate = useNavigate();
 
     React.useEffect(() => {
