@@ -31,11 +31,12 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     @database_sync_to_async
-    def get_rider_details(self, user_phone):
+    def get_rider_details(self, user_id):
         from rider.models import Rider
         from core.city_utils import normalize_city_name
         try:
-            rider = Rider.objects.get(phone=user_phone)
+            # Look up rider by user ForeignKey instead of phone
+            rider = Rider.objects.get(user_id=user_id)
             normalized_city = normalize_city_name(rider.city)
             return {'city': normalized_city}
         except Rider.DoesNotExist:
@@ -113,8 +114,8 @@ class OrderTrackingConsumer(AsyncWebsocketConsumer):
             
             # Enforcement: Check if user is a rider and override with city-locked location
             user = self.scope.get('user')
-            if user and user.role == 'RIDER':
-                locked_location = await self.get_rider_locked_location(user.phone)
+            if user and user.is_authenticated and user.role == 'RIDER':
+                locked_location = await self.get_rider_locked_location(user.id)
                 if locked_location:
                     location = locked_location
 
@@ -138,10 +139,10 @@ class OrderTrackingConsumer(AsyncWebsocketConsumer):
             )
 
     @database_sync_to_async
-    def get_rider_locked_location(self, phone):
+    def get_rider_locked_location(self, user_id):
         from rider.models import Rider
         try:
-            rider = Rider.objects.get(phone=phone)
+            rider = Rider.objects.get(user_id=user_id)
             if rider.is_online and rider.city in rider.CITY_CENTERS:
                 center = rider.CITY_CENTERS[rider.city]
                 return {'latitude': center['lat'], 'longitude': center['lng']}

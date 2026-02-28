@@ -22,20 +22,22 @@ class City(models.Model):
 class UserManager(BaseUserManager):
     """Custom user manager"""
     
-    def create_user(self, phone=None, email=None, password=None, **extra_fields):
-        if not phone and not email:
-            raise ValueError('The Phone or Email field must be set')
-            
+    def create_user(self, email=None, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        
+        email = self.normalize_email(email)
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         
-        user = self.model(phone=phone, email=email, **extra_fields)
+        user = self.model(email=email, **extra_fields)
         if password:
             user.set_password(password)
         user.save(using=self._db)
         return user
     
-    def create_superuser(self, phone, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
+        email = self.normalize_email(email)
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -46,11 +48,11 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         
-        return self.create_user(phone=phone, password=password, **extra_fields)
+        return self.create_user(email=email, password=password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """Custom User Model"""
+    """Custom User Model - Email-based Authentication"""
     
     ROLE_CHOICES = [
         ('CLIENT', 'Client'),
@@ -59,13 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('ADMIN', 'Admin'),
     ]
     
-    phone_regex = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$',
-        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
-    )
-    
-    phone = models.CharField(validators=[phone_regex], max_length=17, unique=True, null=True, blank=True)
-    email = models.EmailField(unique=True, null=True, blank=True)
+    email = models.EmailField(unique=True, null=False, blank=False)
     name = models.CharField(max_length=255)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CLIENT')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
@@ -73,13 +69,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_login = models.DateTimeField(null=True, blank=True)
     
     objects = UserManager()
     
-    USERNAME_FIELD = 'phone'
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
     
     class Meta:
@@ -88,7 +85,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = 'Users'
     
     def __str__(self):
-        return f"{self.name} ({self.phone})"
+        return f"{self.name} ({self.email})"
 
 
 class Address(models.Model):
@@ -123,8 +120,7 @@ class OTP(models.Model):
         ('PIN_RESET', 'Pin Reset'),
     ]
     
-    phone = models.CharField(max_length=17, db_index=True)
-    email = models.EmailField(null=True, blank=True, db_index=True)
+    email = models.EmailField(db_index=True)
     otp_code = models.CharField(max_length=6)
     purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default='LOGIN')
     is_verified = models.BooleanField(default=False)
@@ -139,12 +135,11 @@ class OTP(models.Model):
         verbose_name_plural = 'OTPs'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['phone', 'otp_code', 'is_verified', 'is_used']),
             models.Index(fields=['email', 'otp_code', 'is_verified', 'is_used']),
         ]
     
     def __str__(self):
-        return f"{self.phone} - {self.otp_code}"
+        return f"{self.email} - {self.otp_code}"
     
     def is_expired(self):
         return timezone.now() > self.expires_at

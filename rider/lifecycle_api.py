@@ -14,7 +14,7 @@ class AcceptOrderAPIView(APIView):
 
     def post(self, request, order_id):
         try:
-            rider = Rider.objects.get(phone=request.user.phone)
+            rider = Rider.objects.get(email=request.user.email)
         except Rider.DoesNotExist:
             return Response({'error': 'Rider profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -79,7 +79,7 @@ class PickupOrderAPIView(APIView):
             return Response({'error': 'OTP is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            assignment = OrderAssignment.objects.get(id=assignment_id, rider__phone=request.user.phone)
+            assignment = OrderAssignment.objects.get(id=assignment_id, rider__email=request.user.email)
             order = Order.objects.get(id=assignment.order_id)
             
             if assignment.status != 'ACCEPTED':
@@ -106,7 +106,7 @@ class StartDeliveryAPIView(APIView):
 
     def post(self, request, assignment_id):
         try:
-            assignment = OrderAssignment.objects.get(id=assignment_id, rider__phone=request.user.phone)
+            assignment = OrderAssignment.objects.get(id=assignment_id, rider__email=request.user.email)
             order = Order.objects.get(id=assignment.order_id)
 
             if assignment.status != 'PICKED_UP':
@@ -136,9 +136,9 @@ class CompleteOrderAPIView(APIView):
 
         try:
             with transaction.atomic():
-                assignment = OrderAssignment.objects.select_for_update().get(id=assignment_id, rider__phone=request.user.phone)
+                assignment = OrderAssignment.objects.select_for_update().get(id=assignment_id, rider__email=request.user.email)
                 order = Order.objects.select_for_update().get(id=assignment.order_id)
-                rider = Rider.objects.get(phone=request.user.phone)
+                rider = Rider.objects.get(email=request.user.email)
 
                 if assignment.status != 'ON_THE_WAY':
                     return Response({'error': 'Invalid status for completion'}, status=status.HTTP_400_BAD_REQUEST)
@@ -179,9 +179,9 @@ class FailDeliveryAPIView(APIView):
     def post(self, request, assignment_id):
         reason = request.data.get('reason', 'Unknown reason')
         try:
-            assignment = OrderAssignment.objects.get(id=assignment_id, rider__phone=request.user.phone)
+            assignment = OrderAssignment.objects.get(id=assignment_id, rider__email=request.user.email)
             order = Order.objects.get(id=assignment.order_id)
-            rider = Rider.objects.get(phone=request.user.phone)
+            rider = Rider.objects.get(email=request.user.email)
 
             assignment.status = 'REJECTED' # Reuse for failure
             assignment.save()

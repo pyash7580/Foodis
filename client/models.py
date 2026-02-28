@@ -42,8 +42,9 @@ class Restaurant(models.Model):
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='restaurants/', blank=True, null=True)
     cover_image = models.ImageField(upload_to='restaurants/covers/', blank=True, null=True)
-    phone = models.CharField(max_length=17)
-    email = models.EmailField(blank=True, null=True)
+    # phone = models.CharField(max_length=17, blank=True, null=True)  # REMOVED
+    email = models.EmailField(null=True, blank=True, default='')  # Primary auth identifier
+    password = models.CharField(max_length=255, null=True, blank=True)  # Hashed password for email+password auth
     address = models.TextField()
     city = models.CharField(max_length=100)
     city_id = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True, related_name='restaurants')
@@ -60,7 +61,6 @@ class Restaurant(models.Model):
     is_active = models.BooleanField(default=True, db_index=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.00)  # percentage
-    password_plain = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -329,7 +329,7 @@ class Order(models.Model):
     delivery_address = models.TextField()
     delivery_latitude = models.DecimalField(max_digits=18, decimal_places=6)
     delivery_longitude = models.DecimalField(max_digits=18, decimal_places=6)
-    delivery_phone = models.CharField(max_length=17)
+    # delivery_phone = models.CharField(max_length=17) # REMOVED
     delivery_instructions = models.TextField(blank=True, null=True)
     
     # Pricing

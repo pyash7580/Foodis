@@ -17,7 +17,7 @@ class CategoryAdmin(admin.ModelAdmin):
 class RestaurantAdmin(admin.ModelAdmin):
     list_display = ['name', 'owner', 'city', 'status', 'rating', 'is_active', 'created_at']
     list_filter = ['status', 'is_active', 'city', 'created_at']
-    search_fields = ['name', 'owner__phone', 'city']
+    search_fields = ['name', 'owner__email', 'city']
     readonly_fields = ['created_at', 'updated_at']
 
 
@@ -32,7 +32,7 @@ class MenuItemAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['order_id', 'user', 'restaurant', 'status', 'payment_status', 'total', 'placed_at']
     list_filter = ['status', 'payment_status', 'payment_method', 'placed_at']
-    search_fields = ['order_id', 'user__phone', 'restaurant__name']
+    search_fields = ['order_id', 'user__email', 'restaurant__name']
     readonly_fields = ['order_id', 'placed_at', 'confirmed_at', 'preparing_at', 
                       'ready_at', 'picked_up_at', 'delivered_at', 'cancelled_at']
 
@@ -47,20 +47,20 @@ class CouponAdmin(admin.ModelAdmin):
 @admin.register(Wallet)
 class WalletAdmin(admin.ModelAdmin):
     list_display = ['user', 'balance', 'created_at', 'updated_at']
-    search_fields = ['user__phone', 'user__name']
+    search_fields = ['user__email', 'user__name']
 
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ['user', 'restaurant', 'rating', 'created_at']
     list_filter = ['rating', 'created_at']
-    search_fields = ['user__phone', 'restaurant__name']
+    search_fields = ['user__email', 'restaurant__name']
 
 
 @admin.register(OrderOTP)
 class OrderOTPAdmin(admin.ModelAdmin):
     list_display = ['order', 'otp_type', 'is_used', 'attempt_count', 'expires_at', 'created_at']
     list_filter = ['otp_type', 'is_used', 'created_at']
-    search_fields = ['order__order_id', 'order__related_user__phone']
+    search_fields = ['order__order_id', 'order__related_user__email']
     readonly_fields = ['otp_hash', 'created_at', 'expires_at']
 

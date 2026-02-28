@@ -15,13 +15,10 @@ const getStorageKey = (pathname) => {
     return 'token_client';
 };
 
-// ✅ FIX 1: Normalize phone to always send +91 prefix consistently
-//    so send-otp and verify-otp use the same format as the OTP cache key
-const normalizePhone = (phone) => {
-    if (!phone) return '';
-    const digits = phone.replace(/\D/g, '');
-    const last10 = digits.slice(-10);
-    return `+91${last10}`;
+// Email normalization if needed, otherwise skip
+const normalizeEmail = (email) => {
+    if (!email) return '';
+    return email.trim().toLowerCase();
 };
 
 export const AuthProvider = ({ children }) => {
@@ -128,13 +125,12 @@ export const AuthProvider = ({ children }) => {
         }
     }, [location.pathname]);
 
-    const sendOtp = useCallback(async (contact, type = 'phone') => {
+    const sendOtp = useCallback(async (email) => {
         try {
-            // ✅ FIX 2: Always send phone with +91 prefix so OTP is cached under consistent key
-            const phone = (type === 'phone' || type === 'mobile') ? normalizePhone(contact) : null;
-            const payload = phone ? { phone } : { email: contact };
+            const normalizedEmail = normalizeEmail(email);
+            const payload = { email: normalizedEmail };
 
-            console.log('[sendOtp] Sending payload:', payload); // debug aid
+            console.log('[sendOtp] Sending payload:', payload);
 
             const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp/`, payload);
             return { success: true, otp: res.data.otp, message: res.data.message };
@@ -151,26 +147,24 @@ export const AuthProvider = ({ children }) => {
             }
             return {
                 success: false,
-                // ✅ FIX 3: Prefer human-readable .message over raw error code
                 error: error.response?.data?.message || updateMsg,
                 code: error.response?.data?.error || null,
             };
         }
     }, []);
 
-    const verifyOtp = useCallback(async (contact, otp, type = 'phone', name = '', role = 'CLIENT') => {
+    const verifyOtp = useCallback(async (email, otp, name = '', role = 'CLIENT') => {
         try {
-            // ✅ FIX 4: Same normalizePhone so verify-otp key matches send-otp key in cache
-            const phone = (type === 'phone' || type === 'mobile') ? normalizePhone(contact) : null;
+            const normalizedEmail = normalizeEmail(email);
+            const payload = {
+                email: normalizedEmail,
+                otp_code: String(otp),
+                role
+            };
 
-            const payload = phone
-                ? { phone, otp_code: String(otp), role }  // ✅ FIX 5: otp as String, skip empty name
-                : { email: contact, otp_code: String(otp), role };
-
-            // Only include name if it's actually provided (avoids serializer rejecting empty string)
             if (name && name.trim()) payload.name = name.trim();
 
-            console.log('[verifyOtp] Sending payload:', payload); // debug aid
+            console.log('[verifyOtp] Sending payload:', payload);
 
             const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp/`, payload);
 
@@ -188,8 +182,6 @@ export const AuthProvider = ({ children }) => {
             return { success: true, ...res.data };
         } catch (error) {
             console.error("OTP Verification Error:", error);
-            // ✅ FIX 6: Show .message (human readable) not .error (code like "SERVER_ERROR")
-            //    Fallback chain: message → error code → generic
             const errData = error.response?.data;
             return {
                 success: false,

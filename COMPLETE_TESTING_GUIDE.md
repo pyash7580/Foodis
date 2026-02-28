@@ -46,27 +46,29 @@ curl https://happy-purpose-production.up.railway.app/api/health/
 ```
 
 ### 1.3 Prepare Test Accounts
-Use these phone numbers for testing (OTP will auto-generate in DEBUG mode):
+Use these emails for testing (OTP will auto-generate/send via SendGrid):
 
-| Role | Phone | Purpose |
-|------|-------|---------|
-| Client 1 | +919999999991 | Place orders |
-| Client 2 | +919999999992 | Second client |
-| Restaurant | +919999999993 | Accept orders |
-| Rider | +919999999994 | Deliver orders |
-| Admin | +919999999995 | Monitor dashboard |
+| Role | Email | Auth Method |
+|------|-------|-------------|
+| Client 1 | mryash7580@gmail.com | Email OTP |
+| Client 2 | test_client_2@example.com | Email OTP |
+| Restaurant | test_restaurant@example.com | Email + Password |
+| Rider | test_rider@example.com | Email + Password |
+| Admin | admin@foodis.com | Email OTP |
+
+Password for all test accounts: `password123`
 
 ---
 
 ## PHASE 2: CLIENT LOGIN & RESTAURANT BROWSE
 
 ### 2.1 Client Login Flow
-1. Open https://foodis-gamma.vercel.app in browser
+1. Open http://localhost:3000 in browser
 2. Select "Client" login
-3. Enter phone: `+919999999991`
+3. Enter email: `mryash7580@gmail.com`
 4. Click "Send OTP"
-5. Wait for OTP (appears in console if DEBUG mode)
-6. Enter OTP
+5. Wait for OTP (Check your real email or console if DEBUG)
+6. Enter 6-digit OTP
 7. Click "Verify"
 
 **Expected:** Redirects to restaurant list page
@@ -174,11 +176,12 @@ curl -X POST https://happy-purpose-production.up.railway.app/api/client/orders/ 
 
 ### 4.1 Restaurant Login
 1. In separate browser tab/incognito window
-2. Go to https://foodis-gamma.vercel.app
+2. Go to http://localhost:3000
 3. Select "Restaurant" login
-4. Enter phone: `+919999999993`
-5. Go through OTP flow
-6. See restaurant dashboard
+4. Enter email: `test_restaurant@example.com`
+5. Enter password: `password123`
+6. Click "Login"
+7. See restaurant dashboard
 
 **Expected:**
 - Dashboard loads with restaurant name
@@ -230,11 +233,12 @@ curl -X POST https://happy-purpose-production.up.railway.app/api/client/orders/ 
 
 ### 5.1 Rider Login
 1. Third browser tab/incognito window
-2. Go to https://foodis-gamma.vercel.app
+2. Go to http://localhost:3000
 3. Select "Rider" login
-4. Enter phone: `+919999999994`
-5. OTP flow
-6. See rider dashboard
+4. Enter email: `test_rider@example.com`
+5. Enter password: `password123`
+6. Click "Login"
+7. See rider dashboard
 
 ### 5.2 Go Online
 1. Toggle "Go Online" switch
@@ -302,10 +306,10 @@ curl -X POST https://happy-purpose-production.up.railway.app/api/client/orders/ 
 
 ### 6.1 Admin Login
 1. Fourth browser tab
-2. Go to https://foodis-gamma.vercel.app
+2. Go to http://localhost:3000
 3. Select "Admin" login
-4. Phone: `+919999999995`
-5. OTP flow
+4. Email: `admin@foodis.com`
+5. Pass through OTP or Password flow (as configured)
 
 ### 6.2 Orders Tab
 1. View all orders across platform
