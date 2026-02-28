@@ -25,10 +25,10 @@ class RiderLoginAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
-        phone = request.data.get('phone')
+        email = request.data.get('email')
         password = request.data.get('password')
         
-        user = authenticate(phone=phone, password=password)
+        user = authenticate(email=email, password=password)
         if user and user.role == 'RIDER':
             if not user.is_active:
                 return Response({'error': 'Account suspended'}, status=status.HTTP_403_FORBIDDEN)
@@ -38,7 +38,7 @@ class RiderLoginAPIView(APIView):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'name': user.name,
-                'phone': user.phone
+                'email': user.email
             })
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -47,14 +47,14 @@ class RiderProfileAPIView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
-        return Rider.objects.get(phone=self.request.user.phone)
+        return Rider.objects.get(email=self.request.user.email)
 
 class RiderStatusAPIView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def patch(self, request):
         try:
-            rider = Rider.objects.get(phone=request.user.phone)
+            rider = Rider.objects.get(email=request.user.email)
         except Rider.DoesNotExist:
             return Response({'error': 'Rider profile not found'}, status=status.HTTP_404_NOT_FOUND)
             

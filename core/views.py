@@ -8,7 +8,7 @@ from .serializers import (
     UserSerializer, AddressSerializer, OTPSendSerializer,
     OTPVerifySerializer, LoginSerializer, RegistrationSerializer
 )
-from .utils import send_otp, verify_otp, send_email_otp, verify_email_otp
+from .services.email_service import send_email_otp, verify_email_otp
 from .models import Address
 from django.conf import settings
 from django.utils import timezone
@@ -19,26 +19,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-
-
-def normalize_phone(phone):
-    """Normalize phone to last 10 digits for consistent auth lookups."""
-    if not phone:
-        return ""
-    digits = ''.join(filter(str.isdigit, str(phone)))
-    return digits[-10:] if len(digits) >= 10 else digits
-
-
-def find_user_by_phone(phone):
-    """Find user using multiple phone formats (+91, 91, plain 10-digit)."""
-    normalized = normalize_phone(phone)
-    if not normalized:
-        return None
-    candidates = [normalized, f"+91{normalized}", f"91{normalized}"]
-    user = User.objects.filter(phone__in=candidates).first()
-    if user:
-        return user
-    return User.objects.filter(phone__endswith=normalized).first()
 
 
 def log_debug(message):
@@ -79,44 +59,32 @@ def home_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def send_otp_view(request):
-    """API for sending OTP to phone or email"""
-    log_debug(f"\n--- [{timezone.now()}] SEND OTP REQUEST ---\nDATA: {request.data}")
+    """API for sending OTP via email"""
+    log_debug(f"\n--- SEND OTP REQUEST ---\nDATA: {request.data}")
 
     try:
         serializer = OTPSendSerializer(data=request.data)
         if serializer.is_valid():
-            phone = serializer.validated_data.get('phone')
             email = serializer.validated_data.get('email')
+            purpose = serializer.validated_data.get('purpose', 'LOGIN')
 
-            otp_code = None
-            flow = "REGISTER"
-            is_registered = False
+            # Check if user already exists
+            user = User.objects.filter(email=email).first()
+            is_registered = user is not None
+            flow = "LOGIN" if is_registered else "REGISTER"
 
-            if phone:
-                # ✅ FIX 1: Always normalize to +91 format BEFORE calling send_otp
-                #    so the OTP cache key is always consistent with verify_otp calls
-                normalized = normalize_phone(phone)
-                canonical_phone = f"+91{normalized}"
-
-                user = find_user_by_phone(normalized)
-                is_registered = user is not None
-                if user:
-                    flow = "LOGIN"
-
-                log_debug(f"Calling send_otp with canonical phone: {canonical_phone}")
-                # ✅ FIX 2: send_otp always receives +91XXXXXXXXXX format
-                otp_code = send_otp(canonical_phone)
-
-            elif email:
-                user = User.objects.filter(email=email).first()
-                is_registered = user is not None
-                if user:
-                    flow = "LOGIN"
-                otp_code = send_email_otp(email)
+            # Send OTP email
+            otp_code = send_email_otp(email, purpose=purpose)
+            
+            if not otp_code:
+                return Response({
+                    "error": "EMAIL_FAILED",
+                    "message": "Failed to send OTP to your email. Please check the email address and try again.",
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             return Response({
-                'message': 'OTP sent successfully',
-                'otp': otp_code,  # Remove in production
+                'message': 'OTP sent to your email',
+                'otp': otp_code if settings.DEBUG else None,  # Only for debug mode
                 'flow': flow,
                 'is_registered': is_registered,
                 'is_new_user': not is_registered
@@ -126,28 +94,25 @@ def send_otp_view(request):
         log_debug(f"VALIDATION FAILED: {errors}")
         return Response({
             "error": "INVALID_DATA",
-            "message": "Validation failed",
+            "message": "Please provide a valid email address",
             "details": errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
         tb = traceback.format_exc()
         log_debug(f"CRASH IN send_otp_view: {str(e)}\n{tb}")
-        response_data = {
+        return Response({
             "error": "SERVER_ERROR",
             "message": "Failed to send OTP. Please try again.",
-            "details": str(e)
-        }
-        if settings.DEBUG:
-            response_data["traceback"] = tb
-        return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            "details": str(e) if settings.DEBUG else None
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_otp_view(request):
     """API for verifying OTP and logging in/initiating registration"""
-    log_debug(f"\n--- [{timezone.now()}] VERIFY OTP REQUEST ---\nDATA: {request.data}")
+    log_debug(f"\n--- VERIFY OTP REQUEST ---\nDATA: {request.data}")
 
     try:
         serializer = OTPVerifySerializer(data=request.data)
@@ -155,96 +120,62 @@ def verify_otp_view(request):
             log_debug(f"VERIFY VALIDATION FAILED: {serializer.errors}")
             return Response({
                 "error": "INVALID_DATA",
-                # ✅ FIX 3: Return human-readable message so frontend shows it directly
                 "message": "Invalid request data. Please check your input.",
                 "details": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        phone = serializer.validated_data.get('phone')
         email = serializer.validated_data.get('email')
-        otp_code = str(serializer.validated_data['otp_code'])  # ✅ FIX 4: ensure string
+        otp_code = str(serializer.validated_data['otp_code']).strip()
+        name = serializer.validated_data.get('name')
         role_requested = serializer.validated_data.get('role', 'CLIENT')
 
-        is_verified = False
-
-        if phone:
-            # ✅ FIX 5: Normalize to +91 format so it matches the cache key used in send_otp
-            normalized = normalize_phone(phone)
-            canonical_phone = f"+91{normalized}"
-            log_debug(f"Verifying OTP for canonical phone: {canonical_phone}")
-
-            try:
-                is_verified = verify_otp(canonical_phone, otp_code)
-            except Exception as e:
-                log_debug(f"verify_otp() raised exception: {str(e)}\n{traceback.format_exc()}")
-                return Response({
-                    "error": "SERVER_ERROR",
-                    # ✅ FIX 6: Human-readable message, not a raw error code
-                    "message": "OTP verification service failed. Please try again.",
-                    "details": str(e) if settings.DEBUG else None
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        elif email:
-            try:
-                is_verified = verify_email_otp(email, otp_code)
-            except Exception as e:
-                log_debug(f"verify_email_otp() raised exception: {str(e)}\n{traceback.format_exc()}")
-                return Response({
-                    "error": "SERVER_ERROR",
-                    "message": "OTP verification service failed. Please try again.",
-                    "details": str(e) if settings.DEBUG else None
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Verify OTP
+        log_debug(f"Verifying OTP for email: {email}")
+        is_verified = verify_email_otp(email, otp_code)
 
         if not is_verified:
-            log_debug(f"FAILURE: Invalid or Expired OTP for {phone or email}")
+            log_debug(f"FAILURE: Invalid or Expired OTP for {email}")
             return Response({
                 "error": "INVALID_OTP",
-                # ✅ FIX 7: This is what the user sees — make it clear
                 "message": "Invalid or expired OTP. Please check the code and try again.",
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # OTP is verified — find or create user
-        user = None
-        if phone:
-            normalized = normalize_phone(phone)
-            log_debug(f"LOOKUP: normalized='{normalized}'")
-            user = find_user_by_phone(normalized)
-            log_debug(f"FOUND USER: {user} (ID: {user.id if user else 'None'})")
-        elif email:
-            user = User.objects.filter(email=email).first()
+        user = User.objects.filter(email=email).first()
+        created = False
 
         if user:
-            created = False
+            # Existing user login
+            log_debug(f"EXISTING USER: {email}")
         else:
-            # User not found — create new account
-            log_debug(f"REGISTER: Phone/Email {phone or email} not found. Creating new user.")
-            if phone:
-                normalized = normalize_phone(phone)
-                user = User.objects.create(
-                    phone=normalized,
-                    role='CLIENT',
-                    is_verified=True,
-                    is_active=True
-                )
-            elif email:
-                user = User.objects.create(
-                    email=email,
-                    role='CLIENT',
-                    is_verified=True,
-                    is_active=True
-                )
+            # New user registration
+            if not name:
+                return Response({
+                    "error": "MISSING_NAME",
+                    "message": "Name is required for new account registration. Please provide your name.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            log_debug(f"REGISTERING NEW USER: {email}")
+            user = User.objects.create(
+                email=email,
+                name=name.strip(),
+                role=role_requested,
+                is_verified=True,
+                email_verified=True,
+                is_active=True
+            )
             created = True
 
         # Role mismatch check
         if not created and role_requested and user.role != role_requested:
-            log_debug(f"ROLE MISMATCH: User {user.phone} is {user.role}, but requested {role_requested}")
+            log_debug(f"ROLE MISMATCH: User {email} is {user.role}, but requested {role_requested}")
             return Response({
                 "error": "ROLE_MISMATCH",
-                "message": f"This number is registered as a {user.role.capitalize()}. Please use the correct login page.",
+                "message": f"This email is registered as a {user.role.capitalize()}. Please use the correct login page.",
                 "registered_role": user.role
             }, status=status.HTTP_403_FORBIDDEN)
 
-        # Issue JWT
+        # Issue JWT tokens
         refresh = RefreshToken.for_user(user)
         refresh['role'] = user.role
 
@@ -257,32 +188,35 @@ def verify_otp_view(request):
             "user": UserSerializer(user, context={'request': request}).data
         }
 
-        # Rider-specific redirect logic
-        if user.role == 'RIDER':
+        # Role-specific redirect logic
+        if user.role == 'CLIENT':
+            response_data['redirect_to'] = 'home'
+        elif user.role == 'RESTAURANT':
             try:
-                from rider_legacy.models import RiderProfile
-                profile = RiderProfile.objects.filter(rider=user).first()
-                if profile:
-                    if profile.status == 'APPROVED' and profile.is_onboarding_complete:
-                        response_data['redirect_to'] = 'dashboard'
-                    elif profile.status == 'UNDER_REVIEW':
-                        response_data['redirect_to'] = 'status'
-                    elif profile.status == 'REJECTED':
-                        response_data['redirect_to'] = 'rejected'
-                    elif profile.status == 'BLOCKED':
-                        response_data['redirect_to'] = 'blocked'
-                    else:
-                        response_data['redirect_to'] = 'onboarding'
-                        response_data['step'] = profile.onboarding_step
-                    response_data['rider_status'] = profile.status
+                from client.models import Restaurant
+                restaurant = Restaurant.objects.filter(owner=user).first()
+                if restaurant:
+                    response_data['redirect_to'] = 'dashboard'
+                    response_data['restaurant_id'] = restaurant.id
                 else:
                     response_data['redirect_to'] = 'onboarding'
-                    response_data['step'] = 0
-                    response_data['rider_status'] = 'NEW'
             except Exception as e:
-                log_debug(f"Error fetching rider profile: {e}")
+                log_debug(f"Error fetching restaurant: {e}")
+                response_data['redirect_to'] = 'dashboard'
+        elif user.role == 'RIDER':
+            try:
+                from rider.models import Rider
+                rider = Rider.objects.filter(email=user.email).first()
+                if rider:
+                    response_data['redirect_to'] = 'dashboard'
+                    response_data['rider_id'] = rider.id
+                else:
+                    response_data['redirect_to'] = 'onboarding'
+            except Exception as e:
+                log_debug(f"Error fetching rider: {e}")
+                response_data['redirect_to'] = 'dashboard'
 
-        log_debug(f"SUCCESS: User {user.phone or user.email} logged in as {user.role}")
+        log_debug(f"SUCCESS: User {email} logged in as {user.role}")
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -298,81 +232,114 @@ def verify_otp_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
-    """Create a new user after OTP verification"""
+    """Register a new user with email OTP verification"""
     serializer = RegistrationSerializer(data=request.data)
     if serializer.is_valid():
-        phone = serializer.validated_data.get('phone')
         email = serializer.validated_data.get('email')
+        otp_code = serializer.validated_data.get('otp_code')
         name = serializer.validated_data.get('name')
         role = serializer.validated_data.get('role', 'CLIENT')
-        normalized_phone = normalize_phone(phone)
 
-        if find_user_by_phone(normalized_phone):
-            return Response({"error": "User with this phone number already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        # Verify OTP first
+        is_verified = verify_email_otp(email, otp_code)
+        if not is_verified:
+            return Response({
+                "error": "INVALID_OTP",
+                "message": "Invalid or expired OTP. Please try again."
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        if email and User.objects.filter(email=email).exists():
-            return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        # Check if user already exists
+        if User.objects.filter(email=email).exists():
+            return Response({
+                "error": "EMAIL_EXISTS",
+                "message": "This email is already registered. Please login instead."
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create(
-            phone=normalized_phone,
-            email=email if email else None,
-            name=name,
-            role=role,
-            is_verified=True,
-            is_active=True
-        )
+        # Create user
+        try:
+            user = User.objects.create(
+                email=email,
+                name=name,
+                role=role,
+                is_verified=True,
+                email_verified=True,
+                is_active=True
+            )
 
-        refresh = RefreshToken.for_user(user)
-        refresh['role'] = user.role
+            refresh = RefreshToken.for_user(user)
+            refresh['role'] = user.role
 
-        return Response({
-            "message": "User registered successfully",
-            "token": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user": UserSerializer(user, context={'request': request}).data,
-            "action": "LOGIN"
-        }, status=status.HTTP_201_CREATED)
+            return Response({
+                "message": "User registered successfully",
+                "token": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user, context={'request': request}).data,
+                "action": "LOGIN"
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Registration error: {e}")
+            return Response({
+                "error": "REGISTRATION_FAILED",
+                "message": "Failed to register user. Please try again.",
+                "details": str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+        "error": "VALIDATION_ERROR",
+        "message": "Invalid registration data",
+        "details": serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    """Login with email and password"""
+    """Login with email and password (for restaurants, riders, admin)"""
     serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
-        email = serializer.validated_data['email'].strip()
+        email = serializer.validated_data['email'].strip().lower()
         password = serializer.validated_data['password']
 
         user = None
         try:
-            user = authenticate(username=email, password=password)
+            # Try to authenticate using Django's authenticate function
+            user = authenticate(request, username=email, password=password)
+            
+            # If not authenticated, try manual lookup and password check
             if not user:
                 user_obj = User.objects.filter(email__iexact=email).first()
-                if not user_obj and email.lower() == 'admin':
-                    user_obj = User.objects.filter(role='ADMIN', is_superuser=True).first()
-                if not user_obj:
-                    user_obj = find_user_by_phone(email)
                 if user_obj and user_obj.check_password(password):
                     user = user_obj
         except Exception as e:
-            print(f"DEBUG: Exception during auth: {e}")
+            logger.error(f"Authentication error: {e}")
 
         if user:
             if not user.is_active:
-                return Response({'error': 'User account is disabled.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'error': 'ACCOUNT_DISABLED',
+                    'message': 'Your account has been disabled. Please contact support.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Issue JWT tokens
             refresh = RefreshToken.for_user(user)
             refresh['role'] = user.role
+            
             return Response({
                 'token': str(refresh.access_token),
                 'refresh': str(refresh),
-                'user': UserSerializer(user).data
+                'user': UserSerializer(user, context={'request': request}).data
             }, status=status.HTTP_200_OK)
         else:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': 'INVALID_CREDENTIALS',
+                'message': 'Invalid email or password. Please check and try again.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+        'error': 'VALIDATION_ERROR',
+        'message': 'Invalid login data',
+        'details': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -399,14 +366,12 @@ class ProfileView(APIView):
             fallback_name = str(getattr(user, 'name', '') or '')
             data = {
                 'id': user.pk,
-                'phone': str(getattr(user, 'phone', '') or ''),
                 'email': str(user.email or ''),
                 'first_name': first_name,
                 'last_name': last_name,
                 'name': (
                     full_name
                     or fallback_name
-                    or str(getattr(user, 'phone', ''))
                     or user.email or ''
                 ),
                 'role': str(getattr(user, 'role', '') or ''),
@@ -507,19 +472,14 @@ def seed_riders_view(request):
                 'city': parts[12] if len(parts) > 12 else ''
             }
 
-            raw_phone = re.sub(r'\D', '', data['phone'])
-            if len(raw_phone) > 10:
-                phone = raw_phone[-10:]
-            elif len(raw_phone) == 10:
-                phone = raw_phone
-            else:
+            if not data['email']:
                 continue
+            email = data['email']
 
             user, created = User.objects.get_or_create(
-                phone=phone,
+                email=email,
                 defaults={
                     'name': data['name'],
-                    'email': data['email'] or f"rider{phone}@example.com",
                     'role': 'RIDER',
                     'is_active': True,
                     'is_verified': True
@@ -542,7 +502,6 @@ def seed_riders_view(request):
             profile.vehicle_number = data['vehicle'] if data['vehicle'] != 'N/A' else f"GJ-01-XX-{random.randint(1000,9999)}"
             profile.vehicle_type = 'BIKE'
             profile.city = data['city']
-            profile.mobile_number = phone
             profile.status = 'APPROVED'
             profile.license_number = data['license']
             profile.is_onboarding_complete = True
@@ -557,14 +516,14 @@ def seed_riders_view(request):
             bank.save()
 
             template_rider, _ = TemplateRider.objects.get_or_create(
-                phone=phone,
+                email=email,
                 defaults={'full_name': data['name']}
             )
             template_rider.full_name = data['name']
             template_rider.is_active = True
             template_rider.save()
 
-            logs.append(f"Processed: {user.name} ({phone})")
+            logs.append(f"Processed: {user.name} ({email})")
 
         return Response({
             'message': 'Seeding Complete',

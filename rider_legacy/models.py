@@ -40,7 +40,7 @@ class RiderProfile(models.Model):
     )
     
     # Identity (Mobile is Truth)
-    mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True, help_text="Single Source of Truth")
+    # mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True, help_text="Single Source of Truth") # REMOVED
     
     # Profile Details
     profile_photo = models.ImageField(upload_to='rider_profiles/', blank=True, null=True)
@@ -79,7 +79,7 @@ class RiderProfile(models.Model):
         verbose_name_plural = 'Rider Profiles'
     
     def __str__(self):
-        return f"{self.mobile_number} - {self.status}"
+        return f"{self.rider.email} - {self.status}"
 
     CITY_CENTERS = {
         'Mehsana': {'lat': 23.5880, 'lng': 72.3693},
@@ -87,9 +87,7 @@ class RiderProfile(models.Model):
     }
 
     def save(self, *args, **kwargs):
-        # Sync mobile number from User if not set
-        if not self.mobile_number and self.rider.phone:
-            self.mobile_number = self.rider.phone
+        # mobile_number sync removed
             
         # Auto-sync city_id from city string if possible
         if self.city and not self.city_id:

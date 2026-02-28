@@ -34,10 +34,10 @@ for /f "usebackq tokens=1" %%I in (`where node 2^>nul`) do if exist "%%I" set "N
 set "NPM_AVAILABLE=0"
 for /f "usebackq tokens=1" %%I in (`where npm 2^>nul`) do if exist "%%I" set "NPM_AVAILABLE=1"
 
-if %NODE_AVAILABLE%==0 (
+if "%NODE_AVAILABLE%"=="0" (
     echo Warning: Node.js not found in PATH. Frontend dev server may not run.
 )
-if %NPM_AVAILABLE%==0 (
+if "%NPM_AVAILABLE%"=="0" (
     echo Warning: npm not found in PATH. Frontend dev server may not run.
 )
 
@@ -66,20 +66,20 @@ if "%BACKEND_OK%"=="1" (
 REM 3. Start React Frontend in a new window. Prefer dev server; fallback to serving built assets.
 echo Starting React Frontend...
 if exist "%SCRIPT_DIR%frontend" (
-    if %NPM_AVAILABLE%==1 (
+    if "%NPM_AVAILABLE%"=="1" (
         start "Foodis Frontend" cmd /k "title Foodis Frontend && cd /d "%SCRIPT_DIR%frontend" && npm start"
     ) else if exist "%SCRIPT_DIR%frontend\build" (
         echo npm not available; serving built frontend at port 3000 using npx serve (if available)...
         start "Foodis Frontend (serve build)" cmd /k "title Foodis Frontend && cd /d "%SCRIPT_DIR%frontend" && npx serve -s build -l 3000"
     ) else (
         echo ERROR: Cannot start frontend dev server - npm not found and no build directory present.
-        echo To run frontend, install Node.js and npm, then run: cd frontend && npm install && npm start
+        echo To run frontend, install Node.js and npm, then run: cd /d "%SCRIPT_DIR%frontend" ^&^& npm install ^&^& npm start
     )
 ) else (
     echo ERROR: frontend directory not found in %SCRIPT_DIR%
 )
 
-cd ..
+echo.
 
 echo.
 echo ========================================

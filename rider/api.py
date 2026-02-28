@@ -9,8 +9,10 @@ from django.urls import reverse
 class RiderPollingAPI(View):
     @method_decorator(rider_required)
     def get(self, request):
-        phone = request.session['rider_phone']
-        rider = Rider.objects.get(phone=phone)
+        email = request.session.get('rider_email')
+        if not email and request.user.is_authenticated:
+            email = request.user.email
+        rider = Rider.objects.get(email=email)
         
         # 1. Active Assignment
         active = OrderAssignment.objects.filter(

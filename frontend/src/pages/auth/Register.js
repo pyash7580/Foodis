@@ -10,19 +10,18 @@ const Register = () => {
     const location = useLocation();
     const { register } = useAuth();
 
-    // Get phone from navigation state (passed from Login.js)
-    const [phone] = useState(location.state?.phone || '');
-    const [email, setEmail] = useState(location.state?.email || '');
+    // Get email from navigation state (passed from Login.js)
+    const [email] = useState(location.state?.email || '');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!phone) {
-            toast.error("Please verify your mobile number first");
+        if (!email) {
+            toast.error("Please verify your email address first");
             navigate('/login');
         }
-    }, [phone, navigate]);
+    }, [email, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -35,9 +34,8 @@ const Register = () => {
         setError('');
 
         const res = await register({
-            phone,
-            name,
             email,
+            name,
             role: 'CLIENT'
         });
 
@@ -73,12 +71,12 @@ const Register = () => {
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
+                            <label className="block text-sm font-medium text-gray-700">Email Address</label>
                             <input
                                 type="text"
                                 disabled
-                                className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500 sm:text-sm cursor-not-allowed"
-                                value={`+91 ${phone}`}
+                                className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500 sm:text-sm cursor-not-allowed font-bold"
+                                value={email}
                             />
                         </div>
 
@@ -96,18 +94,6 @@ const Register = () => {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                                Email Address <span className="text-gray-400 font-normal">(Optional)</span>
-                            </label>
-                            <input
-                                type="email"
-                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                placeholder="Enter your email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
 
                         <div>
                             <button

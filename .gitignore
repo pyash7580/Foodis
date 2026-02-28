@@ -80,6 +80,12 @@ frontend/*.json
 !frontend/package-lock.json
 !frontend/tsconfig.json
 
+# Credentials and Local Management
+RESTAURANT_LOGIN_CREDENTIALS.csv
+RIDER_LOGIN_CREDENTIALS.csv
+START_ALL.bat
+STOP_ALL.bat
+
 # Temporary files
 tmpclaude-*
 nul

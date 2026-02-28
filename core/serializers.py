@@ -31,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     def get_name(self, obj):
         try:
-            return getattr(obj, 'name', '') or getattr(obj, 'phone', '') or getattr(obj, 'email', '') or ''
+            return getattr(obj, 'name', '') or getattr(obj, 'email', '') or ''
         except Exception:
             return ''
 
@@ -45,7 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'phone', 'email', 'name', 'password', 'profile_image', 'role', 'created_at']
+        fields = ['id', 'email', 'name', 'password', 'profile_image', 'role', 'is_verified', 'email_verified', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def update(self, instance, validated_data):
@@ -81,93 +81,98 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class OTPSendSerializer(serializers.Serializer):
-    phone = serializers.CharField(max_length=17, required=False)
-    mobile = serializers.CharField(max_length=17, required=False)
-    email = serializers.EmailField(required=False)
+    """Serializer for sending OTP via email"""
+    email = serializers.EmailField(required=True)
+    purpose = serializers.CharField(max_length=20, required=False, default='LOGIN')
     
-    def validate_phone(self, value):
-        # Standardize phone to 10 digits
-        if value:
-            digits = ''.join(filter(str.isdigit, str(value)))
-            if len(digits) >= 10:
-                return digits[-10:]
-            raise serializers.ValidationError("Phone number must be at least 10 digits.")
-        return value
-
-    def validate_mobile(self, value):
-        return self.validate_phone(value)
-
-    def validate(self, data):
-        # Allow 'mobile' as an alias for 'phone'
-        if 'mobile' in data and not data.get('phone'):
-            data['phone'] = data.pop('mobile')
-            
-        if not data.get('phone') and not data.get('email'):
-            raise serializers.ValidationError("Either phone or email is required")
-        return data
+    def validate_email(self, value):
+        """Validate email format"""
+        if not value or '@' not in value:
+            raise serializers.ValidationError("Invalid email address")
+        return value.lower().strip()
+    
+    def validate_purpose(self, value):
+        """Validate OTP purpose"""
+        valid_purposes = ['LOGIN', 'REGISTER', 'PIN_RESET']
+        if value.upper() not in valid_purposes:
+            raise serializers.ValidationError(f"Purpose must be one of: {', '.join(valid_purposes)}")
+        return value.upper()
 
 
 class OTPVerifySerializer(serializers.Serializer):
-    phone = serializers.CharField(max_length=17, required=False)
-    mobile = serializers.CharField(max_length=17, required=False)
-    email = serializers.EmailField(required=False)
+    """Serializer for verifying OTP (email-based only)"""
+    email = serializers.EmailField(required=True)
     otp_code = serializers.CharField(max_length=6, required=True)
     name = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    role = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    role = serializers.CharField(max_length=20, required=False, default='CLIENT')
     password = serializers.CharField(required=False, write_only=True)
 
-    def validate_phone(self, value):
-        # Standardize phone to 10 digits
-        if value:
-            val_str = str(value)
-            digits = ''.join(filter(str.isdigit, val_str))
-            
-            # If user enters +911234567890 (length 12), take last 10
-            # If user enters 1234567890 (length 10), take as is
-            if len(digits) >= 10:
-                return digits[-10:]
-            
-            raise serializers.ValidationError("Phone number must be at least 10 digits.")
-        return value
-
-    def validate_mobile(self, value):
-        return self.validate_phone(value)
+    def validate_email(self, value):
+        """Validate email format"""
+        if not value or '@' not in value:
+            raise serializers.ValidationError("Invalid email address")
+        return value.lower().strip()
+    
+    def validate_otp_code(self, value):
+        """Validate OTP code format"""
+        value_str = str(value).strip()
+        if not value_str or len(value_str) < 4:
+            raise serializers.ValidationError("OTP must be at least 4 digits")
+        if not value_str.isdigit():
+            raise serializers.ValidationError("OTP must contain only digits")
+        return value_str
 
     def validate_role(self, value):
+        """Validate and standardize role"""
         if value:
-            # Standardize role to uppercase to match User.ROLE_CHOICES
             return str(value).upper()
-        return value
+        return 'CLIENT'
 
-    def validate(self, data):
-        # Allow 'mobile' as an alias for 'phone'
-        if 'mobile' in data and not data.get('phone'):
-            data['phone'] = data.pop('mobile')
-
-        if not data.get('phone') and not data.get('email'):
-            raise serializers.ValidationError("Either phone or email is required")
-        return data
+    def validate_name(self, value):
+        """Validate name for registration"""
+        if value:
+            return value.strip()
+        return None
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.CharField()  # Changed from EmailField to accept phone numbers too
-    password = serializers.CharField(write_only=True)
+    """Serializer for email + password login"""
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+    
+    def validate_email(self, value):
+        """Validate email format"""
+        if not value or '@' not in value:
+            raise serializers.ValidationError("Invalid email address")
+        return value.lower().strip()
 
 
 class RegistrationSerializer(serializers.Serializer):
-    phone = serializers.CharField(max_length=17, required=True)
+    """Serializer for email-based user registration"""
+    email = serializers.EmailField(required=True)
     name = serializers.CharField(max_length=255, required=True)
-    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
-    role = serializers.CharField(max_length=20, default='CLIENT')
+    otp_code = serializers.CharField(max_length=6, required=True)
+    role = serializers.CharField(max_length=20, required=False, default='CLIENT')
+    password = serializers.CharField(required=False, write_only=True)
 
-    def validate_phone(self, value):
-        if value:
-            digits = ''.join(filter(str.isdigit, str(value)))
-            if len(digits) >= 10:
-                return digits[-10:]
-            raise serializers.ValidationError("Phone number must be at least 10 digits.")
-        return value
-
+    def validate_email(self, value):
+        """Validate email is not already registered"""
+        if value and User.objects.filter(email=value.lower()).exists():
+            raise serializers.ValidationError("Email is already registered")
+        return value.lower().strip()
+    
+    def validate_name(self, value):
+        """Validate name"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Name is required")
+        return value.strip()
+    
+    def validate_otp_code(self, value):
+        """Validate OTP code"""
+        value_str = str(value).strip()
+        if not value_str.isdigit() or len(value_str) < 4:
+            raise serializers.ValidationError("Invalid OTP format")
+        return value_str
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

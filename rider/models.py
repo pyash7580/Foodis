@@ -1,22 +1,25 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.contrib.auth.hashers import make_password
 
 class Rider(models.Model):
     """
     Delivery Partner (Rider) core model.
-    Mobile number is the unique identifier.
+    Email is now the unique identifier for authentication.
     """
-    phone_regex = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$',
-        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
-    )
     STATUS_CHOICES = [
         ('ONLINE', 'Online'),
         ('OFFLINE', 'Offline'),
         ('BUSY', 'Busy'),
     ]
     
-    phone = models.CharField(validators=[phone_regex], max_length=17, unique=True, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    
+    # Authentication
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Profile
     full_name = models.CharField(max_length=255)
     
     # Status
@@ -64,7 +67,7 @@ class Rider(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.full_name} ({self.phone})"
+        return f"{self.full_name} ({self.email})"
 
 
 class OrderAssignment(models.Model):
@@ -91,7 +94,7 @@ class OrderAssignment(models.Model):
         ordering = ['-assigned_at']
 
     def __str__(self):
-        return f"Order {self.order_id} - {self.rider.phone} ({self.status})"
+        return f"Order {self.order_id} - {self.rider.email} ({self.status})"
 
 
 class Earning(models.Model):
@@ -115,7 +118,7 @@ class Earning(models.Model):
         ordering = ['-timestamp']
 
     def __str__(self):
-        return f"₹{self.amount} - {self.rider.phone} ({self.transaction_type})"
+        return f"₹{self.amount} - {self.rider.email} ({self.transaction_type})"
 class Payout(models.Model):
     """
     Rider payout request and status.
@@ -137,4 +140,4 @@ class Payout(models.Model):
         ordering = ['-requested_at']
 
     def __str__(self):
-        return f"Payout ₹{self.amount} - {self.rider.phone} ({self.status})"
+        return f"Payout ₹{self.amount} - {self.rider.email} ({self.status})"

@@ -7,16 +7,15 @@ User = get_user_model()
 class RiderRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
     name = serializers.CharField(required=True)
-    phone = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
     
     class Meta:
         model = User
-        fields = ('phone', 'name', 'email', 'password')
+        fields = ('email', 'name', 'password')
 
     def create(self, validated_data):
         user = User.objects.create_user(
-            phone=validated_data['phone'],
-            email=validated_data.get('email'),
+            email=validated_data['email'],
             password=validated_data['password'],
             name=validated_data['name'],
             role='RIDER'
@@ -24,10 +23,10 @@ class RiderRegistrationSerializer(serializers.ModelSerializer):
         
         # Automatically create Rider profile
         Rider.objects.create(
-            phone=user.phone,
+            email=user.email,
             full_name=user.name,
             is_active=True,
-            is_online=False
+            status='OFFLINE'
         )
         
         return user
@@ -35,8 +34,8 @@ class RiderRegistrationSerializer(serializers.ModelSerializer):
 class RiderProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rider
-        fields = ('phone', 'full_name', 'city', 'is_active', 'is_online', 'wallet_balance', 'total_distance')
-        read_only_fields = ('phone', 'wallet_balance', 'total_distance')
+        fields = ('email', 'full_name', 'city', 'is_active', 'status', 'wallet_balance')
+        read_only_fields = ('email', 'wallet_balance')
 
 class RiderStatusSerializer(serializers.ModelSerializer):
     class Meta:

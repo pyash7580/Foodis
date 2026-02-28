@@ -5,14 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const Login = () => {
-    const [activeTab, setActiveTab] = useState('mobile');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [step, setStep] = useState('input');
 
-    const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
     const [name, setName] = useState('');
     const [isSignup, setIsSignup] = useState(false);
@@ -36,10 +33,7 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        // ✅ FIX 1: contact is the raw 10-digit mobile or email —
-        //    AuthContext.sendOtp now handles +91 normalization internally
-        const contact = activeTab === 'mobile' ? mobile : email;
-        const res = await sendOtp(contact, activeTab);
+        const res = await sendOtp(email);
 
         if (res.success) {
             setStep('otp');
@@ -75,7 +69,6 @@ const Login = () => {
                 ), { duration: 30000 });
             }
         } else {
-            // ✅ FIX 2: res.error is now always human-readable from AuthContext
             setError(res.error || 'Failed to send OTP. Please try again.');
         }
         setLoading(false);
@@ -85,7 +78,6 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
-        // ✅ FIX 3: Basic client-side OTP length validation before hitting server
         if (!otp || otp.length < 4) {
             setError('Please enter a valid OTP.');
             return;
@@ -93,38 +85,21 @@ const Login = () => {
 
         setLoading(true);
 
-        const contact = activeTab === 'mobile' ? mobile : email;
-
-        // ✅ FIX 4: Pass name only when in signup mode; empty string causes serializer issues
-        const res = await verifyOtp(contact, otp, activeTab, isSignup ? name : '');
+        const res = await verifyOtp(email, otp, isSignup ? name : '');
 
         if (res.success) {
             if (res.action === 'REGISTER') {
                 toast.success("OTP Verified! Please complete your profile.");
-                navigate('/register', { state: { phone: res.phone || contact, email: res.email } });
+                navigate('/register', { state: { email: res.email } });
             } else {
                 navigate('/client');
             }
         } else {
-            // ✅ FIX 5: res.error is now always the human-readable message
             setError(res.error || 'Verification failed. Please try again.');
         }
         setLoading(false);
     };
 
-    const handleEmailLogin = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
-
-        const res = await login(email, password, 'CLIENT');
-        if (res.success) {
-            navigate('/client');
-        } else {
-            setError(res.error);
-        }
-        setLoading(false);
-    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -151,139 +126,56 @@ const Login = () => {
 
                     {step === 'input' && (
                         <>
-                            <div className="flex border-b border-gray-200 mb-6">
-                                <button
-                                    className={`flex-1 py-2 text-center font-medium ${activeTab === 'mobile' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                    onClick={() => setActiveTab('mobile')}
-                                >
-                                    Mobile Number
-                                </button>
-                                <button
-                                    className={`flex-1 py-2 text-center font-medium ${activeTab === 'email' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                    onClick={() => setActiveTab('email')}
-                                >
-                                    Email
-                                </button>
-                            </div>
+                            <form className="space-y-6" onSubmit={handleSendOtp}>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Email address</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                        placeholder="Enter your email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                                    />
+                                </div>
 
-                            {activeTab === 'mobile' ? (
-                                <form className="space-y-6" onSubmit={handleSendOtp}>
+                                {isSignup && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
-                                        <div className="mt-1 flex">
-                                            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                                                +91
-                                            </span>
-                                            <input
-                                                type="tel"
-                                                required
-                                                className="appearance-none rounded-r-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                                placeholder="Enter 10-digit mobile number"
-                                                value={mobile}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                                    setMobile(val);
-                                                }}
-                                            />
-                                        </div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Your Full Name <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
+                                            placeholder="Enter your full name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                        />
                                     </div>
+                                )}
 
-                                    {isSignup && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Your Full Name <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                required
-                                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                                placeholder="Enter your full name"
-                                                value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                            />
-                                        </div>
-                                    )}
+                                <button
+                                    type="submit"
+                                    disabled={loading || !email || (isSignup && !name.trim())}
+                                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                                >
+                                    {loading ? 'Sending OTP...' : (isSignup ? 'Create Account' : 'Send OTP')}
+                                </button>
 
-                                    <button
-                                        type="submit"
-                                        disabled={loading || mobile.length !== 10 || (isSignup && !name.trim())}
-                                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                                    >
-                                        {loading ? 'Sending...' : mobile.length !== 10 ? 'Enter 10 Digits' : (isSignup ? 'Create Account' : 'Send OTP')}
-                                    </button>
-
-                                    <div className="text-center mt-4">
-                                        <p className="text-sm text-gray-600">
-                                            {isSignup ? "Already have an account?" : "New to Foodis?"}
-                                            <button
-                                                type="button"
-                                                onClick={() => { setIsSignup(!isSignup); setError(''); }}
-                                                className="ml-1 font-bold text-red-600 hover:text-red-500"
-                                            >
-                                                {isSignup ? "Login Instead" : "Sign Up Now"}
-                                            </button>
-                                        </p>
-                                    </div>
-                                </form>
-                            ) : (
-                                <form className="space-y-6" onSubmit={handleEmailLogin}>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Email address</label>
-                                            <input
-                                                type="email"
-                                                required
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                                placeholder="Enter email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Password</label>
-                                            <input
-                                                type="password"
-                                                required
-                                                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                                placeholder="Enter password"
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-sm">
-                                            <button
-                                                type="button"
-                                                onClick={() => toast.error("Please contact support to reset password")}
-                                                className="font-medium text-red-600 hover:text-red-500"
-                                            >
-                                                Forgot password?
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-70"
-                                    >
-                                        {loading ? 'Logging in...' : 'Login'}
-                                    </button>
-
-                                    <div className="text-center mt-4">
-                                        <span className="text-sm text-gray-500">Or use </span>
+                                <div className="text-center mt-4">
+                                    <p className="text-sm text-gray-600">
+                                        {isSignup ? "Already have an account?" : "New to Foodis?"}
                                         <button
                                             type="button"
-                                            onClick={handleSendOtp}
-                                            className="text-sm font-medium text-red-600 hover:text-red-500"
+                                            onClick={() => { setIsSignup(!isSignup); setError(''); }}
+                                            className="ml-1 font-bold text-red-600 hover:text-red-500"
                                         >
-                                            OTP via Email
+                                            {isSignup ? "Login Instead" : "Sign Up Now"}
                                         </button>
-                                    </div>
-                                </form>
-                            )}
+                                    </p>
+                                </div>
+                            </form>
                         </>
                     )}
 
@@ -291,9 +183,7 @@ const Login = () => {
                         <form className="space-y-6" onSubmit={handleVerifyOtp}>
                             <p className="text-center text-gray-600 text-sm">
                                 We sent a code to <br />
-                                <span className="font-bold text-gray-900">
-                                    {activeTab === 'mobile' ? `+91 ${mobile}` : email}
-                                </span>
+                                <span className="font-bold text-gray-900">{email}</span>
                             </p>
 
                             <div>
@@ -338,7 +228,7 @@ const Login = () => {
                                 onClick={() => { setStep('input'); setOtp(''); setResendTimer(0); setError(''); }}
                                 className="w-full text-center text-sm text-gray-500 hover:text-gray-700 pt-2"
                             >
-                                Change Number / Email
+                                Change Email
                             </button>
                         </form>
                     )}
