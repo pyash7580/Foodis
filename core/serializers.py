@@ -6,22 +6,38 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+def _to_relative_media_path(image_str):
+    """Strip any backend domain and return a relative /media/ path.
+    Cloudinary URLs (res.cloudinary.com) are kept as-is."""
+    if not image_str:
+        return None
+    s = str(image_str)
+    # Keep Cloudinary URLs as-is
+    if 'res.cloudinary.com' in s:
+        return s
+    # Strip backend domain if present (e.g. https://...railway.app/media/...)
+    if s.startswith('http'):
+        from urllib.parse import urlparse
+        path = urlparse(s).path
+        if path:
+            s = path
+        else:
+            return None
+    # Ensure /media/ prefix
+    if not s.startswith('/media/'):
+        s = f'/media/{s}' if not s.startswith('/') else f'/media{s}'
+    return s
+
+
 class SmartImageField(serializers.ImageField):
     """
     Custom ImageField that returns relative /media/ paths for local files,
-    or full URLs for external/Cloudinary images.
+    or full URLs for Cloudinary images.
     """
     def to_representation(self, value):
         if not value:
             return None
-        image_str = str(value)
-        # If already a full URL, return as-is
-        if image_str.startswith('http'):
-            return image_str
-        # Return relative path with /media/ prefix for local files
-        if image_str and not image_str.startswith('/media/'):
-            return f'/media/{image_str}'
-        return image_str
+        return _to_relative_media_path(str(value))
 
 
 class UserSerializer(serializers.ModelSerializer):
