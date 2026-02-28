@@ -35,11 +35,8 @@ class RestaurantSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         try:
             if hasattr(obj, 'image') and obj.image:
-                url = str(obj.image)
-                # Return relative path with /media/ prefix
-                if url and not url.startswith('http'):
-                    return f'/media/{url}' if not url.startswith('/media/') else url
-                return url
+                from core.serializers import _to_relative_media_path
+                return _to_relative_media_path(str(obj.image))
             return None
         except Exception:
             return None
@@ -47,11 +44,8 @@ class RestaurantSerializer(serializers.ModelSerializer):
     def get_cover_image_url(self, obj):
         try:
             if hasattr(obj, 'cover_image') and obj.cover_image:
-                url = str(obj.cover_image)
-                # Return relative path with /media/ prefix
-                if url and not url.startswith('http'):
-                    return f'/media/{url}' if not url.startswith('/media/') else url
-                return url
+                from core.serializers import _to_relative_media_path
+                return _to_relative_media_path(str(obj.cover_image))
             return None
         except Exception:
             return None
