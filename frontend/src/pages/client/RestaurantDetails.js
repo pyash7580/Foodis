@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import Navbar from '../../components/Navbar';
 import { getRestaurantCover, getRestaurantImage } from '../../utils/images';
+import { getMediaImageUrl } from '../../utils/mediaImageUrl';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -108,7 +109,7 @@ const RestaurantDetails = () => {
     );
     if (!restaurant) return <div className="p-8 text-center text-red-500 font-bold">🚫 Restaurant not found</div>;
 
-    const coverImage = restaurant.cover_image_url || getRestaurantCover(restaurant.id);
+    const coverImage = getMediaImageUrl(restaurant.cover_image_url) || getRestaurantCover(restaurant.id);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
@@ -127,13 +128,12 @@ const RestaurantDetails = () => {
                         <div className="relative hidden sm:block">
                             <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-white">
                                 <img
-                                    src={restaurant.image_url || getRestaurantImage(restaurant.id)}
+                                    src={getMediaImageUrl(restaurant.image_url) || getRestaurantImage(restaurant.id)}
                                     alt={restaurant.name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
-                                        if (e.target.src !== getRestaurantImage(restaurant.id)) {
-                                            e.target.src = getRestaurantImage(restaurant.id);
-                                        }
+                                        const fallback = getRestaurantImage(restaurant.id);
+                                        if (e.target.src !== fallback) e.target.src = fallback;
                                     }}
                                 />
                             </div>
@@ -226,9 +226,9 @@ const RestaurantDetails = () => {
 
                                     <div className="relative flex-shrink-0">
                                         <div className="h-24 w-24 rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-gray-50">
-                                            {item.image_url ? (
+                                            {(() => { const dishImg = getMediaImageUrl(item.image_url) || item.image_url; return dishImg ? (
                                                 <img
-                                                    src={item.image_url}
+                                                    src={dishImg}
                                                     alt={item.name}
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => { e.target.style.display = 'none'; }}
@@ -237,7 +237,7 @@ const RestaurantDetails = () => {
                                                 <div className="w-full h-full flex items-center justify-center text-3xl">
                                                     🍜
                                                 </div>
-                                            )}
+                                            ); })()}
                                         </div>
 
                                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20">

@@ -49,8 +49,8 @@ const Home = () => {
 
     const handleLocationDetected = useCallback((location) => {
         if (location) {
-            if (location.city) {
-                setSelectedCity(location.city);
+            if ('city' in location) {
+                setSelectedCity(location.city || '');
                 setUserLocation(null);
             } else if (location.latitude && location.longitude) {
                 setUserLocation({ latitude: location.latitude, longitude: location.longitude });

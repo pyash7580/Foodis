@@ -70,6 +70,18 @@ const LocationDetector = ({ onLocationDetected }) => {
             {isOpen && (
                 <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
                     <button
+                        onClick={() => {
+                            setLocation('All cities');
+                            setIsOpen(false);
+                            if (onLocationDetected) {
+                                onLocationDetected({ city: '' }); // Empty city = show all restaurants
+                            }
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center font-medium"
+                    >
+                        <span className="mr-2">🌐</span> All cities
+                    </button>
+                    <button
                         onClick={detectLocation}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                     >

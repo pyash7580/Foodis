@@ -1,25 +1,17 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../config';
+import { getMediaImageUrl } from '../utils/mediaImageUrl';
 
 const ImageWithFallback = ({ src, alt, className, type = 'restaurant' }) => {
     const [error, setError] = useState(false);
 
-    // Helper function to get proper image URL
     const getImageUrl = (imageSrc) => {
-        if (!imageSrc) return null;
-        
-        // If already absolute URL, return as-is
-        if (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) {
-            return imageSrc;
-        }
-        
-        // If relative path and we have API base URL, prepend it
-        if (imageSrc.startsWith('/') && API_BASE_URL) {
-            return `${API_BASE_URL}${imageSrc}`;
-        }
-        
-        // Return as-is (works with local proxy)
-        return imageSrc;
+        const mediaUrl = getMediaImageUrl(imageSrc);
+        if (!mediaUrl) return null;
+        if (mediaUrl.startsWith('http')) return mediaUrl;
+        if (mediaUrl.startsWith('/media/')) return mediaUrl;
+        if (API_BASE_URL && mediaUrl.startsWith('/')) return `${API_BASE_URL}${mediaUrl}`;
+        return mediaUrl;
     };
 
     const imageUrl = getImageUrl(src);
