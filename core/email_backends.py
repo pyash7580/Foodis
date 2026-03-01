@@ -39,13 +39,15 @@ class UnsafeEmailBackend(EmailBackend):
             # Create an unverified SSL context
             context = ssl._create_unverified_context()
             
-            # Open connection
+            # Open connection with timeout
             self.connection = self.connection_class(
                 self.host, self.port, timeout=self.timeout
             )
+            self.connection.ehlo()
             
             if self.use_tls:
                 self.connection.starttls(context=context)
+                self.connection.ehlo()
             if self.username and self.password:
                 self.connection.login(self.username, self.password)
             return True
