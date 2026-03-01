@@ -2,18 +2,18 @@
 Email Service Module for Foodis
 
 Handles OTP generation, sending, and verification via email.
-Uses SendGrid SMTP backend configured in Django settings.
+Uses SendGrid HTTP API v3 (port 443) to avoid SMTP port blocking on Railway/cloud.
+Falls back to Django send_mail() for local dev when no API key is set.
 """
 
 import random
 import string
 import logging
+import requests
 from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
 from core.models import OTP
 
 logger = logging.getLogger(__name__)
@@ -105,16 +105,42 @@ def send_email_otp(email, purpose='LOGIN'):
         
         plain_message = f"Your Foodis verification code is: {otp_code}\n\nThis code expires in {expiry_minutes} minutes."
         
-        # Send email (uses EMAIL_BACKEND: ConsoleEmailBackend when no API key, else SendGrid SMTP)
-        # For real delivery: set EMAIL_HOST_PASSWORD (SendGrid API key) and verify EMAIL_FROM in SendGrid
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.EMAIL_FROM,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        # Use SendGrid HTTP API if API key is available (bypasses SMTP port blocking)
+        api_key = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+        from_email = settings.EMAIL_FROM
+        
+        if api_key:
+            # SendGrid v3 Mail Send API — uses HTTPS port 443, never blocked
+            resp = requests.post(
+                'https://api.sendgrid.com/v3/mail/send',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'personalizations': [{'to': [{'email': email}]}],
+                    'from': {'email': from_email},
+                    'subject': subject,
+                    'content': [
+                        {'type': 'text/plain', 'value': plain_message},
+                        {'type': 'text/html', 'value': html_message},
+                    ],
+                },
+                timeout=15,
+            )
+            if resp.status_code not in (200, 201, 202):
+                logger.error(f"[SENDGRID_HTTP_ERROR] {resp.status_code}: {resp.text}")
+                raise Exception(f"SendGrid API error {resp.status_code}: {resp.text}")
+        else:
+            # Local dev — use Django email backend (ConsoleEmailBackend)
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[email],
+                html_message=html_message,
+                fail_silently=False,
+            )
         
         logger.info(f"[EMAIL_OTP_SENT] Email: {email} | OTP: {otp_code} | Expires: {expires_at}")
         
