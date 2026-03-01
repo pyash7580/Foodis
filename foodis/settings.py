@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Format requested for Render + Neon
 SECRET_KEY = config('SECRET_KEY', default='strong_random_key_foodis_2026')
 DEBUG = config('DEBUG', default='True', cast=bool)
-ALLOWED_HOSTS = ['*', 'foodis-gamma.vercel.app', '.vercel.app', 'happy-purpose-production.up.railway.app']
+ALLOWED_HOSTS = ['*', 'foodis-gamma.vercel.app', '.vercel.app', 'happy-purpose-production.up.railway.app', 'foodis-backend-production.up.railway.app']
 
 # Render sets this automatically
 _RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
@@ -158,8 +158,10 @@ if not DEBUG:
         'https://foodis-nu.vercel.app',
         'https://foodis-coral.vercel.app',
         'https://foodis-gamma.vercel.app',
+        'https://foodis-xnn1.vercel.app',
         'https://*.vercel.app',
         'https://happy-purpose-production.up.railway.app',
+        'https://foodis-backend-production.up.railway.app',
     ]
 
 # Redis Configuration
@@ -329,6 +331,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CORS_ALLOWED_ORIGINS = [
     'https://foodis-nu.vercel.app',
     'https://foodis-coral.vercel.app',
+    'https://foodis-xnn1.vercel.app',
     'https://foodis-ordcwtays-pyash7580s-projects.vercel.app',
     'https://foodis-git-main-pyash7580s-projects.vercel.app',
     'http://localhost:3000',
@@ -400,6 +403,7 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='apikey')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 # EMAIL_FROM must be a verified sender in SendGrid (Single Sender Verification or Domain Authentication)
 EMAIL_FROM = config('EMAIL_FROM', default='foodisindia@gmail.com')
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)  # seconds — prevents SMTP hangs
 
 if not EMAIL_HOST_PASSWORD:
     # No API key: print OTP to console only (no real email sent)
