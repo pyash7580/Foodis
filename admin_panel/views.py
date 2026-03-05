@@ -343,6 +343,15 @@ class RiderViewSet(viewsets.ModelViewSet):
         rider.save()
         return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve rider"""
+        rider = self.get_object()
+        rider.is_active = True
+        rider.status = 'OFFLINE' # Should probably be offline initially after approval
+        rider.save()
+        return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
+
 
 # Legacy viewset kept for backward compatibility but not registered in urls
 class RiderProfileViewSet(viewsets.ModelViewSet):
