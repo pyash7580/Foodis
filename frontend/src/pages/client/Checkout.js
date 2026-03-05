@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../config';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -152,16 +152,6 @@ const Checkout = () => {
         }
     }, []);
 
-    // Get Current Location
-    const getCurrentLocation = useCallback(() => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const { latitude, longitude } = pos.coords;
-                setMapCenter({ lat: latitude, lng: longitude });
-                if (!markerPosition) setMarkerPosition({ lat: latitude, lng: longitude });
-            });
-        }
-    }, [markerPosition]);
 
     // Totals Calculation
     const subtotal = getCartTotal();
