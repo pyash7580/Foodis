@@ -158,11 +158,11 @@ class RiderSerializer(serializers.ModelSerializer):
         try:
             from core.models import User
             user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.status or 'NEW'
+            if user and hasattr(user, 'rider_profile') and getattr(user.rider_profile, 'status', None):
+                return user.rider_profile.status
         except:
             pass
-        return 'NEW'
+        return 'APPROVED' if obj.is_active else 'NEW'
 
     def get_license_number(self, obj):
         """Get license number from RiderProfile if it exists"""
