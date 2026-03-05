@@ -375,11 +375,41 @@ class RiderOnboardingViewSet(viewsets.GenericViewSet):
 def rider_login_status(request):
     """API for strict redirection logic"""
     try:
+        # ✅ PRIMARY CHECK: If the user exists in the operational rider.Rider model,
+        # they are an active/approved rider. Send them directly to dashboard.
+        from rider.models import Rider as OperationalRider
+        try:
+            op_rider = OperationalRider.objects.get(email=request.user.email)
+            if op_rider.is_active:
+                # Auto-sync: update their RiderProfile to APPROVED if not already,
+                # so subsequent calls are also fast.
+                try:
+                    profile = RiderProfile.objects.get(rider=request.user)
+                    if profile.status not in ('APPROVED', 'BLOCKED'):
+                        profile.status = 'APPROVED'
+                        profile.is_onboarding_complete = True
+                        profile.save(update_fields=['status', 'is_onboarding_complete'])
+                    if profile.status == 'BLOCKED':
+                        return Response({"redirect": "blocked"})
+                except RiderProfile.DoesNotExist:
+                    RiderProfile.objects.create(
+                        rider=request.user,
+                        mobile_number=None,
+                        status='APPROVED',
+                        is_onboarding_complete=True,
+                        onboarding_step=6,
+                        city=op_rider.city
+                    )
+                return Response({"redirect": "dashboard"})
+        except OperationalRider.DoesNotExist:
+            pass  # Not in operational model, fall through to RiderProfile check
+
+        # SECONDARY CHECK: RiderProfile based routing (for new applicants)
         profile = RiderProfile.objects.get(rider=request.user)
-        
+
         if profile.status == 'BLOCKED':
             return Response({"redirect": "blocked"})
-            
+
         if profile.status == 'APPROVED' and profile.is_onboarding_complete:
             return Response({"redirect": "dashboard"})
         elif profile.status == 'UNDER_REVIEW':
@@ -392,11 +422,11 @@ def rider_login_status(request):
                 "step": profile.onboarding_step
             })
     except RiderProfile.DoesNotExist:
-        # Avoid crash if phone is null or other profiling issues
+        # New rider: no profile yet - send to onboarding
         profile, created = RiderProfile.objects.get_or_create(
             rider=request.user,
             defaults={
-                'mobile_number': request.user.phone,
+                'mobile_number': None,
                 'status': 'NEW',
                 'onboarding_step': 0
             }
