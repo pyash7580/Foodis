@@ -178,7 +178,7 @@ const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }
                 if (!order) return null; // Fallback if item is malformed
 
                 const distance = item?.distance;
-                const earnings = item?.estimated_earning || '40+'; // Fallback
+                const orderTotal = item?.order?.total_amount || item?.order?.total || '0';
 
                 return (
                     <motion.div
@@ -196,8 +196,8 @@ const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }
                                     <p className="text-[10px] text-gray-400 uppercase tracking-wider">{order.restaurant_address}</p>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-emerald-400 font-black text-xl">₹{Math.round(earnings)}</div>
-                                    <div className="text-[9px] text-gray-500 uppercase tracking-widest">Est. Earnings</div>
+                                    <div className="text-emerald-400 font-black text-xl">₹{orderTotal}</div>
+                                    <div className="text-[9px] text-gray-500 uppercase tracking-widest">Order Total</div>
                                 </div>
                             </div>
 

@@ -11,7 +11,7 @@ const RestaurantManagement = () => {
     const [restaurants, setRestaurants] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('PENDING'); // Default to PENDING
+    const [filterStatus, setFilterStatus] = useState('APPROVED'); // Default to APPROVED
     const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
 
 

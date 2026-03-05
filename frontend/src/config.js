@@ -27,12 +27,11 @@ const getBaseUrl = () => {
     const envApiUrl = normalizeUrl(process.env.REACT_APP_API_URL || '');
 
     if (isLocalFrontend) {
-        // On localhost, prefer CRA proxy for local APIs to avoid CORS issues.
-        // If env points to a remote backend, respect it.
+        // On localhost, point directly to backend at 8000
         if (envApiUrl && !isLocalAddress(envApiUrl)) {
             return envApiUrl;
         }
-        return '';
+        return 'http://localhost:8000';
     }
 
     // Respect explicit env first. If env incorrectly points to localhost in production,

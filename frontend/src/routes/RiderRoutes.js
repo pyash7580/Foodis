@@ -6,10 +6,10 @@ import RiderEarningsDesktop from '../pages/rider/RiderEarningsDesktop';
 import RiderProfileDesktop from '../pages/rider/RiderProfileDesktop';
 import RiderOnboarding from '../pages/rider/RiderOnboarding';
 import RiderStatus from '../pages/rider/RiderStatus';
-import ActiveOrder from '../pages/rider/ActiveOrder';
 import RiderMissions from '../pages/rider/RiderMissions';
 import NotificationCenter from '../pages/rider/NotificationCenter';
 import RiderOrdersPage from '../pages/rider/RiderOrders';
+import ActiveOrder from '../pages/rider/ActiveOrder';
 import RiderProtectedRoute from './RiderProtectedRoute';
 
 import { RiderProvider } from '../contexts/RiderContext';
@@ -47,11 +47,6 @@ const RiderRoutes = () => {
                             <RiderProfileDesktop />
                         </RiderProtectedRoute>
                     } />
-                    <Route path="/order/:id" element={
-                        <RiderProtectedRoute key="active-order">
-                            <ActiveOrder />
-                        </RiderProtectedRoute>
-                    } />
                     <Route path="/missions" element={
                         <RiderProtectedRoute key="missions">
                             <RiderMissions />
@@ -65,6 +60,11 @@ const RiderRoutes = () => {
                     <Route path="/orders" element={
                         <RiderProtectedRoute key="orders">
                             <RiderOrdersPage />
+                        </RiderProtectedRoute>
+                    } />
+                    <Route path="/order/:id" element={
+                        <RiderProtectedRoute key="order-detail">
+                            <ActiveOrder />
                         </RiderProtectedRoute>
                     } />
                 </Route>

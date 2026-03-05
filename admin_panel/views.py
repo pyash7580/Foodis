@@ -18,9 +18,10 @@ from django.contrib.auth import get_user_model
 from client.models import Restaurant, Order, Coupon, Wallet, WalletTransaction, Category, MenuItem, Review
 from restaurant.models import RestaurantEarnings
 from rider_legacy.models import RiderProfile, RiderEarnings, RiderBank
+from rider.models import Rider
 from .models import Banner, Commission, SitePolicy, SystemSettings
 from .serializers import (
-    UserSerializer, RestaurantSerializer, RiderProfileSerializer, OrderSerializer,
+    UserSerializer, RestaurantSerializer, RiderSerializer, RiderProfileSerializer, OrderSerializer,
     BannerSerializer, CommissionSerializer, CouponSerializer, WalletTransactionSerializer,
     SitePolicySerializer, SystemSettingsSerializer, RestaurantEarningsSerializer, ReviewSerializer,
     MenuItemSerializer
@@ -283,153 +284,74 @@ class RestaurantViewSet(viewsets.ModelViewSet):
 
 
 
-class RiderProfileViewSet(viewsets.ModelViewSet):
-    """ViewSet for Rider Management"""
-    serializer_class = RiderProfileSerializer
+class RiderViewSet(viewsets.ModelViewSet):
+    """ViewSet for Rider Management (uses rider.Rider)"""
+    serializer_class = RiderSerializer
     permission_classes = [IsAdminUser]
-    queryset = RiderProfile.objects.all()
-    filterset_fields = ['status', 'is_online', 'vehicle_type']
-    search_fields = ['rider__phone', 'rider__name', 'vehicle_number', 'license_number']
-    
+    queryset = Rider.objects.all().order_by('-created_at')
+    filterset_fields = ['status', 'is_online', 'city', 'is_active']
+    search_fields = ['email', 'full_name', 'city']
+
     def create(self, request, *args, **kwargs):
-        """Create rider with user account, profile, and bank details"""
-        # [MODIFIED]: Inline imports safely moved to top of the file
-        rider_user = None  # Track user to clean up if creation fails
-        
+        """Create a new rider"""
         try:
-            # Extract rider details from request
-            name = request.data.get('name')
-            email = request.data.get('email', '')
-            password = request.data.get('password')
-            phone = request.data.get('phone')
-            
-            # Validate required fields
-            if not name:
-                return Response({'error': 'Name is required'}, status=status.HTTP_400_BAD_REQUEST)
-            if not password:
-                return Response({'error': 'Password is required'}, status=status.HTTP_400_BAD_REQUEST)
-            if not phone:
-                return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Format phone number - add +91 prefix if only 10 digits
-            if len(phone) == 10 and phone.isdigit():
-                phone = f'+91{phone}'
-            
-            # Check if user with this phone already exists
-            if User.objects.filter(phone=phone).exists():
-                return Response({'error': 'A user with this phone number already exists'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Create rider user account
-            rider_user = User.objects.create_user(
-                phone=phone,
-                name=name,
-                email=email if email else None,
-                password=password,
-                role='RIDER',
-                is_verified=True
-            )
-            
-            # Prepare rider profile data
+            email = request.data.get('email')
+            full_name = request.data.get('full_name', request.data.get('name', ''))
+            password = request.data.get('password', '')
             city = request.data.get('city', 'Himmatnagar')
-            vehicle_number = request.data.get('vehicle_number', '')
-            license_number = request.data.get('license_number', '')
-            rider_status = request.data.get('status', 'APPROVED')
-            
-            # Create rider profile
-            rider_profile = RiderProfile.objects.create(
-                rider=rider_user,
-                mobile_number=phone,
+
+            if not email:
+                return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+            if not full_name:
+                return Response({'error': 'Full name is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if Rider.objects.filter(email=email).exists():
+                return Response({'error': 'A rider with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+            from django.contrib.auth.hashers import make_password
+            rider = Rider.objects.create(
+                email=email,
+                full_name=full_name,
+                password=make_password(password) if password else None,
                 city=city,
-                vehicle_number=vehicle_number,
-                license_number=license_number,
-                status=rider_status,
-                vehicle_type='BIKE'  # Default
+                status='OFFLINE',
+                is_active=True,
             )
-            
-            # Create bank details if provided
-            account_holder = request.data.get('account_holder_name', '')
-            account_number = request.data.get('account_number', '')
-            ifsc_code = request.data.get('ifsc_code', '')
-            bank_name = request.data.get('bank_name', '')
-            
-            if account_holder and account_number and ifsc_code and bank_name:
-                RiderBank.objects.create(
-                    rider=rider_user,
-                    account_holder_name=account_holder,
-                    account_number=account_number,
-                    ifsc_code=ifsc_code,
-                    bank_name=bank_name,
-                    verified=False
-                )
-            
-            # Return response
-            serializer = self.get_serializer(rider_profile)
+
+            serializer = self.get_serializer(rider)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-            
+
         except IntegrityError as e:
-            # Clean up rider user if it was created
-            if rider_user:
-                rider_user.delete()
-            
-            error_msg = str(e)
-            if 'phone' in error_msg.lower():
-                return Response({'error': 'Phone number already exists'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({'error': f'Database constraint error: {error_msg}'}, status=status.HTTP_400_BAD_REQUEST)
-                
-        except ValidationError as e:
-            # Clean up rider user if it was created
-            if rider_user:
-                rider_user.delete()
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            
+            return Response({'error': f'Database error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # Clean up rider user if it was created
-            if rider_user:
-                rider_user.delete()
             return Response({'error': f'Failed to create rider: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    @action(detail=True, methods=['post'])
-    def approve(self, request, pk=None):
-        """Approve rider"""
-        profile = self.get_object()
-        profile.status = 'APPROVED'
-        profile.save()
-        
-        serializer = RiderProfileSerializer(profile, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    @action(detail=True, methods=['post'])
-    def reject(self, request, pk=None):
-        """Reject rider"""
-        profile = self.get_object()
-        profile.status = 'REJECTED'
-        profile.save()
-        
-        serializer = RiderProfileSerializer(profile, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=['post'])
     def block(self, request, pk=None):
         """Block rider"""
-        profile = self.get_object()
-        profile.status = 'BLOCKED'
-        profile.is_online = False
-        profile.save()
-        
-        serializer = RiderProfileSerializer(profile, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        rider = self.get_object()
+        rider.is_active = False
+        rider.status = 'OFFLINE'
+        rider.save()
+        return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
-    def suspend(self, request, pk=None):
-        """Suspend rider"""
-        profile = self.get_object()
-        profile.status = 'SUSPENDED'
-        profile.is_online = False
-        profile.save()
-        
-        serializer = RiderProfileSerializer(profile, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def unblock(self, request, pk=None):
+        """Unblock rider"""
+        rider = self.get_object()
+        rider.is_active = True
+        rider.save()
+        return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
+
+
+# Legacy viewset kept for backward compatibility but not registered in urls
+class RiderProfileViewSet(viewsets.ModelViewSet):
+    """ViewSet for Rider Management (legacy - rider_legacy.RiderProfile)"""
+    serializer_class = RiderProfileSerializer
+    permission_classes = [IsAdminUser]
+    queryset = RiderProfile.objects.all()
+    filterset_fields = ['status', 'is_online']
+    search_fields = ['rider__name', 'vehicle_number']
 
 
 

@@ -161,12 +161,12 @@ const RiderManagement = () => {
     // Filtering logic
     const filteredRiders = riders.filter(rider => {
         const matchesSearch =
-            (rider.rider_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (rider.rider_phone?.includes(searchTerm)) ||
+            (rider.full_name?.toLowerCase() || rider.rider_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (rider.rider_phone?.toString().includes(searchTerm)) ||
             (rider.vehicle_number?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
         const matchesStatus =
-            filterStatus === 'ALL' ? true : rider.status === filterStatus;
+            filterStatus === 'ALL' ? true : (rider.profile_status || rider.status === filterStatus);
 
         return matchesSearch && matchesStatus;
     });
@@ -201,8 +201,12 @@ const RiderManagement = () => {
                         className="p-3 border border-gray-200 rounded-lg focus:outline-none"
                     >
                         <option value="ALL">All Status</option>
+                        <option value="NEW">New</option>
+                        <option value="ONBOARDING">Onboarding</option>
                         <option value="UNDER_REVIEW">Under Review</option>
                         <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="SUSPENDED">Suspended</option>
                     </select>
                 </div>
 
@@ -238,30 +242,30 @@ const RiderManagement = () => {
                                                     <FaMotorcycle />
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-gray-800">{rider.rider_name}</p>
+                                                    <p className="font-bold text-gray-800">{rider.full_name || rider.rider_name}</p>
                                                     <div className="flex items-center text-xs text-yellow-500 font-bold">
-                                                        <FaStar className="mr-1" /> {rider.rating || 'New'}
+                                                        <FaStar className="mr-1" /> {rider.rating > 0 ? rider.rating.toFixed(1) : 'New'}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <p className="font-medium text-gray-800">{rider.rider_phone}</p>
-                                            <p className="text-xs text-gray-400">{rider.rider_email}</p>
+                                            <p className="font-medium text-gray-800">{rider.rider_phone || 'N/A'}</p>
+                                            <p className="text-xs text-gray-400">{rider.rider_email || rider.email}</p>
                                         </td>
                                         <td className="p-4">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-gray-700">{rider.vehicle_number}</span>
-                                                <span className="text-xs text-gray-500 uppercase">{rider.vehicle_type}</span>
+                                                <span className="font-bold text-gray-700">{rider.vehicle_number || 'N/A'}</span>
+                                                <span className="text-xs text-gray-500 uppercase">{rider.vehicle_type || 'N/A'}</span>
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${rider.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-                                                rider.status === 'UNDER_REVIEW' ? 'bg-orange-100 text-orange-700' :
-                                                    rider.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${rider.profile_status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                                                rider.profile_status === 'UNDER_REVIEW' ? 'bg-orange-100 text-orange-700' :
+                                                    (rider.profile_status === 'PENDING' || rider.profile_status === 'NEW') ? 'bg-yellow-100 text-yellow-700' :
                                                         'bg-red-100 text-red-700'
                                                 }`}>
-                                                {rider.status === 'UNDER_REVIEW' ? 'UNDER REVIEW' : rider.status}
+                                                {rider.profile_status === 'UNDER_REVIEW' ? 'UNDER REVIEW' : rider.profile_status || 'NEW'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
@@ -274,7 +278,7 @@ const RiderManagement = () => {
                                                     <FaEye />
                                                 </button>
 
-                                                {(rider.status === 'PENDING' || rider.status === 'UNDER_REVIEW') && (
+                                                {(rider.profile_status === 'ONBOARDING' || rider.profile_status === 'UNDER_REVIEW' || rider.profile_status === 'NEW') && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAction(rider.id, 'approve')}
@@ -293,7 +297,7 @@ const RiderManagement = () => {
                                                     </>
                                                 )}
 
-                                                {rider.status === 'APPROVED' && (
+                                                {rider.profile_status === 'APPROVED' && (
                                                     <button
                                                         onClick={() => handleAction(rider.id, 'suspend')}
                                                         className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"
@@ -302,7 +306,7 @@ const RiderManagement = () => {
                                                         <FaBan />
                                                     </button>
                                                 )}
-                                                {rider.status === 'SUSPENDED' && (
+                                                {rider.profile_status === 'SUSPENDED' && (
                                                     <button
                                                         onClick={() => handleAction(rider.id, 'approve')}
                                                         className="p-2 bg-green-50 text-green-500 rounded-lg hover:bg-green-100"

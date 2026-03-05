@@ -72,6 +72,14 @@ class OTPService:
         cache_key = OTPService._get_cache_key(order.order_id, otp_type)
         cache.set(cache_key, otp_plain, timeout=cache_timeout)
 
+        # 7. Persist to Order model directly so UI doesn't lose it after 5 mins
+        if otp_type == 'PICKUP':
+            order.pickup_otp = otp_plain
+            order.save(update_fields=['pickup_otp'])
+        elif otp_type == 'DELIVERY':
+            order.delivery_otp = otp_plain
+            order.save(update_fields=['delivery_otp'])
+
         return otp_plain
 
     @staticmethod

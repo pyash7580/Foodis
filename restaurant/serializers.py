@@ -52,8 +52,8 @@ class RestaurantSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'slug', 'description', 'image', 'cover_image', 'image_url', 'cover_image_url',
-                  'phone', 'email', 'address', 'city', 'state', 'pincode',
+        fields = ['id', 'name', 'slug', 'cuisine', 'description', 'image', 'cover_image', 'image_url', 'cover_image_url',
+                  'email', 'address', 'city', 'state', 'pincode',
                   'latitude', 'longitude', 'rating', 'total_ratings',
                   'delivery_time', 'delivery_fee', 'min_order_amount',
                   'is_veg', 'is_active', 'status', 'commission_rate', 'profile']
@@ -98,7 +98,7 @@ from client.serializers import PublicRiderSerializer
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     user_name = serializers.CharField(source='user.name', read_only=True)
-    user_phone = serializers.CharField(source='user.phone', read_only=True)
+    user_phone = serializers.SerializerMethodField()
     rider = PublicRiderSerializer(read_only=True)
     rider_name = serializers.CharField(source='rider.name', read_only=True, allow_null=True)
     
@@ -108,13 +108,16 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id', 'order_id', 'user', 'user_name', 'user_phone', 'restaurant',
                   'rider', 'rider_name', 'delivery_address', 'delivery_latitude',
-                  'delivery_longitude', 'delivery_phone', 'delivery_instructions', 
+                  'delivery_longitude', 'delivery_instructions', 
                   'subtotal', 'delivery_fee', 'discount', 'tax', 'total', 
                   'coupon', 'status', 'payment_method', 'payment_status', 
                   'items', 'pickup_otp', 'delivery_otp',
                   'placed_at', 'confirmed_at', 'preparing_at', 'ready_at',
                   'picked_up_at', 'delivered_at', 'rider_latitude',
                   'rider_longitude', 'estimated_delivery_time']
+
+    def get_user_phone(self, obj):
+        return getattr(obj.user, 'phone', None)
 
     def get_pickup_otp(self, obj):
         if obj.pickup_otp:

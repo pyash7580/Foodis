@@ -5,7 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'users', views.UserViewSet, basename='user')
 router.register(r'restaurants', views.RestaurantViewSet, basename='restaurant')
-router.register(r'riders', views.RiderProfileViewSet, basename='rider')
+router.register(r'riders', views.RiderViewSet, basename='rider')
 router.register(r'orders', views.OrderViewSet, basename='order')
 router.register(r'banners', views.BannerViewSet, basename='banner')
 router.register(r'commissions', views.CommissionViewSet, basename='commission')

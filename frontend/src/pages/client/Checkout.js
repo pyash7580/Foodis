@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../config';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -9,6 +9,75 @@ import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import PaymentProcessModal from '../../components/PaymentProcessModal';
 import PaymentQRModal from '../../components/PaymentQRModal';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+    iconUrl: require('leaflet/dist/images/marker-icon.png'),
+    shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
+// Location Marker Component
+const LocationMarker = ({ position, setPosition, onPositionChange }) => {
+    useMapEvents({
+        click(e) {
+            setPosition(e.latlng);
+            onPositionChange(e.latlng.lat, e.latlng.lng);
+        },
+    });
+
+    return position === null ? null : (
+        <Marker position={position}></Marker>
+    );
+};
+
+// Map Search Component
+const MapSearch = ({ setMarkerPosition, onSearchChange }) => {
+    const [query, setQuery] = useState('');
+    const map = useMap();
+
+    const handleSearch = async (e) => {
+        e.preventDefault();
+        if (!query.trim()) return;
+        try {
+            const res = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`, {
+                headers: { 'User-Agent': 'FoodisApp/1.0' }
+            });
+            if (res.data && res.data.length > 0) {
+                const { lat, lon } = res.data[0];
+                const newPos = { lat: parseFloat(lat), lng: parseFloat(lon) };
+                map.flyTo(newPos, 16);
+                setMarkerPosition(newPos);
+                onSearchChange(lat, lon);
+            } else {
+                toast.error("Location not found");
+            }
+        } catch (error) {
+            toast.error("Search failed");
+        }
+    };
+
+    return (
+        <div className="absolute top-4 left-4 right-4 z-[1000]">
+            <form onSubmit={handleSearch} className="flex space-x-2">
+                <input
+                    type="text"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Search for your area / street..."
+                    className="flex-1 bg-white/90 backdrop-blur px-5 py-3 rounded-xl shadow-lg text-sm font-bold border-none outline-none focus:ring-2 ring-red-500"
+                />
+                <button type="submit" className="bg-red-600 text-white px-5 py-3 rounded-xl shadow-lg font-black text-sm">
+                    🔍
+                </button>
+            </form>
+        </div>
+    );
+};
 
 const Checkout = () => {
     const { cartItems, restaurant, getCartTotal, clearCart } = useCart();
@@ -34,6 +103,10 @@ const Checkout = () => {
         longitude: 77.5946
     });
 
+    // Map State
+    const [mapCenter, setMapCenter] = useState({ lat: 12.9716, lng: 77.5946 });
+    const [markerPosition, setMarkerPosition] = useState(null);
+
     const [razorpayKey, setRazorpayKey] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
     const [savedPayments, setSavedPayments] = useState([]);
@@ -54,6 +127,41 @@ const Checkout = () => {
     });
     const [showQRModal, setShowQRModal] = useState(false);
     const [pendingOrderId, setPendingOrderId] = useState(null);
+
+    // Reverse Geocoding - Auto-fill address fields
+    const reverseGeocode = useCallback(async (lat, lng) => {
+        try {
+            const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: { 'User-Agent': 'FoodisApp/1.0' }
+            });
+            if (res.data && res.data.address) {
+                const addr = res.data.address;
+                setNewAddress(prev => ({
+                    ...prev,
+                    address_line1: addr.road || addr.suburb || addr.neighbourhood || '',
+                    city: addr.city || addr.town || addr.village || '',
+                    state: addr.state || '',
+                    pincode: addr.postcode || '',
+                    latitude: lat,
+                    longitude: lng
+                }));
+                toast.success("Location auto-filled!");
+            }
+        } catch (error) {
+            console.error("Geocoding failed", error);
+        }
+    }, []);
+
+    // Get Current Location
+    const getCurrentLocation = useCallback(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const { latitude, longitude } = pos.coords;
+                setMapCenter({ lat: latitude, lng: longitude });
+                if (!markerPosition) setMarkerPosition({ lat: latitude, lng: longitude });
+            });
+        }
+    }, [markerPosition]);
 
     // Totals Calculation
     const subtotal = getCartTotal();
@@ -109,6 +217,14 @@ const Checkout = () => {
 
         fetchData();
 
+        // Get user's current location for map
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const { latitude, longitude } = pos.coords;
+                setMapCenter({ lat: latitude, lng: longitude });
+            });
+        }
+
         // Load Razorpay
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -124,8 +240,21 @@ const Checkout = () => {
 
     const handleAddAddress = async (e) => {
         e.preventDefault();
+
+        if (!markerPosition) {
+            toast.error("Please pin location on map");
+            return;
+        }
+
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/client/addresses/`, newAddress);
+            // Always use the pinned coordinates from the map marker
+            // Round to 6 dp to match backend DecimalField(decimal_places=6)
+            const payload = {
+                ...newAddress,
+                latitude: parseFloat(markerPosition.lat.toFixed(6)),
+                longitude: parseFloat(markerPosition.lng.toFixed(6)),
+            };
+            const res = await axios.post(`${API_BASE_URL}/api/client/addresses/`, payload);
             setAddresses([...addresses, res.data]);
             setSelectedAddress(res.data);
             setIsAddingAddress(false);
@@ -138,9 +267,14 @@ const Checkout = () => {
                 latitude: 12.9716,
                 longitude: 77.5946
             });
+            setMarkerPosition(null);
             toast.success("Address added successfully!");
         } catch (err) {
-            toast.error("Failed to add address. Check fields.");
+            console.error("Address save error:", err.response?.data || err.message);
+            const errorMsg = err.response?.data
+                ? Object.entries(err.response.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
+                : "Failed to add address. Check fields.";
+            toast.error(errorMsg);
         }
     };
 
@@ -274,10 +408,11 @@ const Checkout = () => {
         }
     };
 
-    if (cartItems.length === 0) {
-        navigate('/client/cart');
-        return null;
-    }
+    useEffect(() => {
+        if (cartItems.length === 0) {
+            navigate('/client/cart');
+        }
+    }, [cartItems.length, navigate]);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
@@ -372,7 +507,10 @@ const Checkout = () => {
                             <h2 className="text-2xl font-black text-gray-900">Delivery at</h2>
                             {!isAddingAddress && (
                                 <button
-                                    onClick={() => setIsAddingAddress(true)}
+                                    onClick={() => {
+                                        setIsAddingAddress(true);
+                                        setMarkerPosition(mapCenter);
+                                    }}
                                     className="text-red-600 font-bold text-sm bg-red-50 px-4 py-2 rounded-full hover:bg-red-100 transition"
                                 >
                                     + Add New
@@ -380,115 +518,148 @@ const Checkout = () => {
                             )}
                         </div>
 
-                        {isAddingAddress ? (
-                            <form onSubmit={handleAddAddress} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mb-8 space-y-4">
-                                <h3 className="font-black text-gray-900 mb-2">New Address Details</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-bold text-gray-400 uppercase tracking-widest sm:pl-2 mt-6 sm:mt-8 mb-2">
-                                    <div className="sm:col-span-2">
-                                        <label className="block mb-1 text-[10px]">Label (e.g. Home, Work)</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full p-3 rounded-xl border border-gray-200 text-gray-900 focus:border-red-500 outline-none"
-                                            value={newAddress.label}
-                                            onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <label className="block mb-1 text-[10px]">Address Line 1</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full p-3 rounded-xl border border-gray-200 text-gray-900 focus:border-red-500 outline-none"
-                                            value={newAddress.address_line1}
-                                            onChange={(e) => setNewAddress({ ...newAddress, address_line1: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <label className="block mb-1 text-[10px]">City</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full p-3 rounded-xl border border-gray-200 text-gray-900 focus:border-red-500 outline-none"
-                                            value={newAddress.city}
-                                            onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block mb-1 text-[10px]">State</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full p-3 rounded-xl border border-gray-200 text-gray-900 focus:border-red-500 outline-none"
-                                            value={newAddress.state}
-                                            onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block mb-1 text-[10px]">Pincode</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full p-3 rounded-xl border border-gray-200 text-gray-900 focus:border-red-500 outline-none"
-                                            value={newAddress.pincode}
-                                            onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsAddingAddress(false)}
-                                        className="flex-1 py-3 rounded-xl border border-gray-200 font-bold text-gray-500 hover:bg-gray-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg"
-                                    >
-                                        Save Address
-                                    </button>
-                                </div>
-                            </form>
-                        ) : (
-                            <div className="space-y-4 mb-8">
-                                {addresses.length === 0 ? (
-                                    <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 text-gray-400 font-bold">
-                                        No addresses saved. Please add one.
-                                    </div>
-                                ) : (
-                                    Array.isArray(addresses) && addresses.map(addr => (
-                                        <div
-                                            key={addr.id}
-                                            onClick={() => setSelectedAddress(addr)}
-                                            className={`p-5 rounded-3xl border-2 cursor-pointer transition-all ${selectedAddress?.id === addr.id ? 'border-red-600 bg-red-50' : 'border-white bg-white hover:border-gray-200'}`}
+                        {isAddingAddress && (
+                            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                                <div className="bg-white w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+                                    {/* Map Side */}
+                                    <div className="w-full md:w-1/2 h-64 md:h-auto bg-gray-100 relative">
+                                        <MapContainer
+                                            center={mapCenter}
+                                            zoom={15}
+                                            style={{ height: '100%', width: '100%' }}
                                         >
-                                            <div className="flex items-start">
-                                                <span className="text-2xl mr-4 hidden sm:block">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-xl sm:hidden">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
-                                                        <p className="font-black text-gray-900 text-lg uppercase tracking-tight m-0 leading-none">{addr.label}</p>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 font-medium leading-snug mt-1">
-                                                        {addr.address_line1}, {addr.city}, {addr.state} - {addr.pincode}
-                                                    </p>
-                                                    {selectedAddress?.id === addr.id && (
-                                                        <div className="mt-4 flex items-center text-red-600 text-xs font-bold bg-white w-fit px-3 py-1.5 rounded-full border border-red-100">
-                                                            <span className="w-2 h-2 bg-red-600 rounded-full mr-2 animate-pulse"></span>
-                                                            DELIVERING TO THIS ADDRESS
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedAddress?.id === addr.id ? 'border-red-600' : 'border-gray-300'}`}>
-                                                    {selectedAddress?.id === addr.id && <div className="w-3 h-3 bg-red-600 rounded-full"></div>}
+                                            <TileLayer
+                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                                attribution='&copy; OpenStreetMap contributors'
+                                            />
+                                            <MapSearch
+                                                setMarkerPosition={setMarkerPosition}
+                                                onSearchChange={reverseGeocode}
+                                            />
+                                            <LocationMarker
+                                                position={markerPosition}
+                                                setPosition={setMarkerPosition}
+                                                onPositionChange={reverseGeocode}
+                                            />
+                                        </MapContainer>
+                                        <div className="absolute bottom-4 left-4 right-4 bg-white/70 backdrop-blur p-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center shadow-lg border border-white/50 z-[1000]">
+                                            Pin location or use search for auto-fill
+                                        </div>
+                                    </div>
+
+                                    {/* Form Side */}
+                                    <div className="w-full md:w-1/2 p-8 overflow-y-auto">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h2 className="text-xl font-black text-gray-900">Add New Address</h2>
+                                            <button
+                                                onClick={() => {
+                                                    setIsAddingAddress(false);
+                                                    setMarkerPosition(null);
+                                                }}
+                                                className="text-gray-400 hover:text-gray-900 text-xl"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handleAddAddress} className="space-y-4">
+                                            <div>
+                                                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Label</label>
+                                                <div className="flex space-x-2">
+                                                    {['Home', 'Work', 'Other'].map(l => (
+                                                        <button
+                                                            key={l}
+                                                            type="button"
+                                                            onClick={() => setNewAddress({ ...newAddress, label: l })}
+                                                            className={`px-4 py-2 rounded-lg text-xs font-black transition ${newAddress.label === l ? 'bg-red-600 text-white shadow-md' : 'bg-gray-100 text-gray-500'}`}
+                                                        >
+                                                            {l}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
-                                )}
+                                            <div>
+                                                <input
+                                                    required
+                                                    value={newAddress.address_line1}
+                                                    onChange={e => setNewAddress({ ...newAddress, address_line1: e.target.value })}
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    placeholder="Flat / House / Floor / Building *"
+                                                />
+                                            </div>
+                                            <div>
+                                                <input
+                                                    required
+                                                    value={newAddress.city}
+                                                    onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    placeholder="City *"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input
+                                                    required
+                                                    value={newAddress.state}
+                                                    onChange={e => setNewAddress({ ...newAddress, state: e.target.value })}
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    placeholder="State *"
+                                                />
+                                                <input
+                                                    required
+                                                    value={newAddress.pincode}
+                                                    onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    placeholder="Pincode *"
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                className="w-full py-3 bg-red-600 text-white rounded-xl font-black shadow-lg shadow-red-100 hover:bg-red-700 transition"
+                                            >
+                                                Save Address
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
+                        )}
+                        <div className="space-y-4 mb-8">
+                            {addresses.length === 0 ? (
+                                <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 text-gray-400 font-bold">
+                                    No addresses saved. Please add one.
+                                </div>
+                            ) : (
+                                Array.isArray(addresses) && addresses.map(addr => (
+                                    <div
+                                        key={addr.id}
+                                        onClick={() => setSelectedAddress(addr)}
+                                        className={`p-5 rounded-3xl border-2 cursor-pointer transition-all ${selectedAddress?.id === addr.id ? 'border-red-600 bg-red-50' : 'border-white bg-white hover:border-gray-200'}`}
+                                    >
+                                        <div className="flex items-start">
+                                            <span className="text-2xl mr-4 hidden sm:block">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xl sm:hidden">{addr.label === 'Home' ? '🏠' : addr.label === 'Work' ? '💼' : '📍'}</span>
+                                                    <p className="font-black text-gray-900 text-lg uppercase tracking-tight m-0 leading-none">{addr.label}</p>
+                                                </div>
+                                                <p className="text-sm text-gray-500 font-medium leading-snug mt-1">
+                                                    {addr.address_line1}, {addr.city}, {addr.state} - {addr.pincode}
+                                                </p>
+                                                {selectedAddress?.id === addr.id && (
+                                                    <div className="mt-4 flex items-center text-red-600 text-xs font-bold bg-white w-fit px-3 py-1.5 rounded-full border border-red-100">
+                                                        <span className="w-2 h-2 bg-red-600 rounded-full mr-2 animate-pulse"></span>
+                                                        DELIVERING TO THIS ADDRESS
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedAddress?.id === addr.id ? 'border-red-600' : 'border-gray-300'}`}>
+                                                {selectedAddress?.id === addr.id && <div className="w-3 h-3 bg-red-600 rounded-full"></div>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                         )}
 
                         <div className="flex space-x-4">

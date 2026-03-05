@@ -3,7 +3,8 @@ from django.contrib.auth import get_user_model
 from client.models import Restaurant, Order, OrderItem, Coupon, Wallet, WalletTransaction, Review, MenuItem, Category
 
 from restaurant.models import RestaurantEarnings
-from rider_legacy.models import RiderProfile, RiderEarnings
+from rider_legacy.models import RiderProfile, RiderEarnings, RiderBank
+from rider.models import Rider
 from .models import Banner, Commission, SitePolicy, SystemSettings
 
 User = get_user_model()
@@ -17,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'phone', 'email', 'name', 'role', 'is_active', 
+        fields = ['id', 'email', 'name', 'role', 'is_active', 
                   'is_verified', 'created_at', 'last_login', 
                   'city', 'total_orders', 'total_spent']
     
@@ -59,7 +60,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = ['id', 'name', 'slug', 'owner', 'owner_name', 'owner_phone', 'owner_email', 'owner_password',
-                  'email', 'phone', 'address', 'city', 'state', 'pincode', 'password_plain',
+                  'email', 'address', 'city', 'state', 'pincode',
                   'status', 'rating', 'total_ratings', 'is_active',
                   'image', 'cover_image', 'cuisine', 'description', 'latitude', 'longitude',
                   'delivery_time', 'delivery_fee', 'min_order_amount', 'commission_rate', 'is_veg',
@@ -68,33 +69,174 @@ class RestaurantSerializer(serializers.ModelSerializer):
         read_only_fields = ['generated_password']
 
 
-class RiderProfileSerializer(serializers.ModelSerializer):
-    rider_name = serializers.CharField(source='rider.name', read_only=True)
-    rider_phone = serializers.CharField(source='rider.phone', read_only=True)
-    rider_email = serializers.CharField(source='rider.email', read_only=True)
+class RiderBankSerializer(serializers.ModelSerializer):
+    """Serializer for RiderBank details"""
+    class Meta:
+        model = RiderBank
+        fields = ['account_holder_name', 'account_number', 'ifsc_code', 'bank_name', 'verified']
+
+
+class RiderSerializer(serializers.ModelSerializer):
+    """Serializer for rider.Rider — the active rider model with extended profile info"""
+    
+    rider_name = serializers.SerializerMethodField()
+    rider_phone = serializers.SerializerMethodField()
+    rider_email = serializers.SerializerMethodField()
+    vehicle_number = serializers.SerializerMethodField()
+    vehicle_type = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    profile_status = serializers.SerializerMethodField()
+    license_number = serializers.SerializerMethodField()
+    aadhar_number = serializers.SerializerMethodField()
+    pan_number = serializers.SerializerMethodField()
+    total_deliveries = serializers.SerializerMethodField()
     bank_details = serializers.SerializerMethodField()
 
-    
     class Meta:
-        model = RiderProfile
-        fields = ['id', 'rider', 'rider_name', 'rider_phone', 'rider_email', 'vehicle_type',
-                  'vehicle_number', 'status', 'rating', 'total_deliveries', 'wallet_balance', 'city',
-                  'is_online', 'created_at', 'license_number', 'aadhar_number', 'pan_number', 'bank_details']
+        model = Rider
+        fields = ['id', 'email', 'full_name', 'city', 'status', 'is_online', 'is_active',
+                  'wallet_balance', 'current_latitude', 'current_longitude',
+                  'rider_name', 'rider_phone', 'rider_email', 'vehicle_number', 'vehicle_type', 
+                  'rating', 'profile_status', 'license_number', 'aadhar_number', 'pan_number',
+                  'total_deliveries', 'bank_details', 'created_at', 'updated_at']
 
+    def get_rider_name(self, obj):
+        """Get name from Rider object"""
+        return obj.full_name
+
+    def get_rider_phone(self, obj):
+        """Get phone from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.mobile_number or 'N/A'
+        except:
+            pass
+        return 'N/A'
+
+    def get_rider_email(self, obj):
+        """Get email from Rider object"""
+        return obj.email
+
+    def get_vehicle_number(self, obj):
+        """Get vehicle number from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.vehicle_number or 'N/A'
+        except:
+            pass
+        return 'N/A'
+
+    def get_vehicle_type(self, obj):
+        """Get vehicle type from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.vehicle_type or 'N/A'
+        except:
+            pass
+        return 'N/A'
+
+    def get_rating(self, obj):
+        """Get rating from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                rating = user.rider_profile.rating
+                return float(rating) if rating else 0.0
+        except:
+            pass
+        return 0.0
+
+    def get_profile_status(self, obj):
+        """Get profile status from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.status or 'NEW'
+        except:
+            pass
+        return 'NEW'
+
+    def get_license_number(self, obj):
+        """Get license number from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.license_number or None
+        except:
+            pass
+        return None
+
+    def get_aadhar_number(self, obj):
+        """Get aadhar number from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.aadhar_number or None
+        except:
+            pass
+        return None
+
+    def get_pan_number(self, obj):
+        """Get PAN number from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.pan_number or None
+        except:
+            pass
+        return None
+
+    def get_total_deliveries(self, obj):
+        """Get total deliveries from RiderProfile if it exists"""
+        try:
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                return user.rider_profile.total_deliveries or 0
+        except:
+            pass
+        return 0
 
     def get_bank_details(self, obj):
-        from rider_legacy.models import RiderBank
+        """Get bank details from RiderBank if it exists"""
         try:
-            bank = RiderBank.objects.get(rider=obj.rider)
-            return {
-                'account_holder_name': bank.account_holder_name,
-                'account_number': bank.account_number,
-                'ifsc_code': bank.ifsc_code,
-                'bank_name': bank.bank_name,
-                'verified': bank.verified
-            }
-        except RiderBank.DoesNotExist:
-            return None
+            from core.models import User
+            user = User.objects.filter(email=obj.email).first()
+            if user and hasattr(user, 'rider_bank'):
+                bank = user.rider_bank
+                return {
+                    'account_holder_name': bank.account_holder_name,
+                    'account_number': bank.account_number,
+                    'ifsc_code': bank.ifsc_code,
+                    'bank_name': bank.bank_name,
+                    'verified': bank.verified
+                }
+        except:
+            pass
+        return None
+
+
+# Keep legacy serializer available for internal use if needed
+class RiderProfileSerializer(serializers.ModelSerializer):
+    rider_name = serializers.CharField(source='rider.name', read_only=True)
+    rider_email = serializers.CharField(source='rider.email', read_only=True)
+
+    class Meta:
+        model = RiderProfile
+        fields = ['id', 'rider', 'rider_name', 'rider_email', 'vehicle_type',
+                  'vehicle_number', 'status', 'rating', 'total_deliveries', 'wallet_balance', 'city',
+                  'is_online', 'created_at']
 
 
 
