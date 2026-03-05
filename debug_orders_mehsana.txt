@@ -1,0 +1,5 @@
+Testing with Rider: Suresh Patel (ID: 504), City: Mehsana
+Rider Location: lat=None, lng=None
+Orders passing city filters: 1
+Order #1 missing location!!
+Final Nearby Orders IDs: [1]

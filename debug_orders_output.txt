@@ -1,0 +1,5 @@
+Rider Profile: Rakesh Kumar, City: Mehsana
+Rider Location: lat=23.588000, lng=72.369300
+Orders passing city filters: 1
+Order #1 - Dist: 0.0 km
+Final Nearby Orders IDs: [1]
