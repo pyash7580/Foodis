@@ -291,6 +291,7 @@ def login_view(request):
             logger.error(f"Authentication error: {e}")
 
         if user:
+            print(f"DEBUG: Login successful for {email}")
             if not user.is_active:
                 return Response({
                     'error': 'ACCOUNT_DISABLED',
@@ -307,6 +308,10 @@ def login_view(request):
                 'user': UserSerializer(user, context={'request': request}).data
             }, status=status.HTTP_200_OK)
         else:
+            print(f"DEBUG: Login FAILED for {email}")
+            # Check if user exists but password is wrong
+            user_exists = User.objects.filter(email__iexact=email).exists()
+            print(f"DEBUG: User exists: {user_exists}")
             return Response({
                 'error': 'INVALID_CREDENTIALS',
                 'message': 'Invalid email or password. Please check and try again.'

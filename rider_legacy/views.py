@@ -193,8 +193,6 @@ class RiderProfileViewSet(viewsets.ModelViewSet):
             'profile': {
                 'id': profile.id,
                 'name': request.user.name,
-                'phone': request.user.phone,
-                'mobile_number': profile.mobile_number,
                 'status': profile.status,
                 'is_online': profile.is_online,
                 'city': profile.city,
@@ -205,7 +203,8 @@ class RiderProfileViewSet(viewsets.ModelViewSet):
                 'vehicle_type': profile.vehicle_type,
                 'license_number': profile.license_number,
                 'profile_photo': str(profile.profile_photo) if profile.profile_photo else None,
-                'bank_details': bank_details
+                'bank_details': bank_details,
+                'mobile_number': profile.mobile_number
             },
             'stats': {
                 'today_earnings': float(today_earnings),
@@ -473,7 +472,8 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
                     try:
                         if order.delivery_latitude and order.delivery_longitude:
                             delivery_location = (float(order.delivery_latitude), float(order.delivery_longitude))
-                            delivery_dist = distance(restaurant_location, delivery_location).km
+                            raw_delivery_dist = distance(restaurant_location, delivery_location).km
+                            delivery_dist = min(raw_delivery_dist, 15)  # Cap at 15km for realistic earnings
                     except Exception as e:
                         print(f"Error calculating delivery dist {order.id}: {e}")
                     
@@ -481,7 +481,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
                     if dist is not None and dist > 20:
                         continue
                         
-                    estimated_earning = 40 + (dist * 5 if dist else 0) + ((delivery_dist or 0) * 10)
+                    estimated_earning = 40 + (dist * 5 if dist else 0) + ((delivery_dist or 0) * 8)
                 
                 nearby_orders.append({
                     'order': OrderSerializer(order, context={'request': request}).data,

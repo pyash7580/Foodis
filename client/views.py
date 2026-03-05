@@ -724,7 +724,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 address = Address.objects.get(id=address_id, user=request.user)
             else:
                 # Try to use primary address if not specified
-                address = Address.objects.filter(user=request.user, is_primary=True).first()
+                address = Address.objects.filter(user=request.user, is_default=True).first()
                 if not address:
                     # Use inline address if provided
                     delivery_data = request.data.get('delivery_address')
@@ -776,7 +776,6 @@ class OrderViewSet(viewsets.ModelViewSet):
                 delivery_address=f"{address.address_line1}, {address.city}, {address.state} - {address.pincode}",
                 delivery_latitude=address.latitude,
                 delivery_longitude=address.longitude,
-                delivery_phone=request.user.phone,
                 delivery_instructions=delivery_instructions,
                 subtotal=subtotal,
                 delivery_fee=delivery_fee,
@@ -1209,7 +1208,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 ['From:', 'To:'],
                 [order.restaurant.name if order.restaurant else 'N/A', order.user.name],
                 [order.restaurant.address if order.restaurant else '', order.delivery_address],
-                [order.restaurant.phone if order.restaurant else '', order.delivery_phone or order.user.phone],
+                [getattr(order.restaurant, 'phone', '') if order.restaurant else '', getattr(order.user, 'phone', '')],
             ]
             
             info_table = Table(info_data, colWidths=[3*inch, 3*inch])

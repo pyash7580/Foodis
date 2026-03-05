@@ -40,7 +40,7 @@ class RiderProfile(models.Model):
     )
     
     # Identity (Mobile is Truth)
-    # mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True, help_text="Single Source of Truth") # REMOVED
+    mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True, help_text="Single Source of Truth")
     
     # Profile Details
     profile_photo = models.ImageField(upload_to='rider_profiles/', blank=True, null=True)

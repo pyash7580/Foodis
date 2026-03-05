@@ -110,17 +110,17 @@ const RiderDetails = ({ riderId, onClose }) => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center border-b border-red-100 pb-2 mb-2">
                                         <label className="text-xs font-bold text-gray-400 uppercase">Wallet Balance</label>
-                                        <p className="text-xl font-black text-red-600">₹{rider.wallet_balance}</p>
+                                        <p className="text-xl font-black text-red-600">₹{parseFloat(rider.wallet_balance).toFixed(2)}</p>
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-400 uppercase">Login ID (Phone)</label>
-                                        <p className="font-medium font-mono">{rider.rider_phone}</p>
+                                        <p className="font-medium font-mono">{rider.rider_phone || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-400 uppercase">Login Password</label>
                                         <div className="flex items-center">
                                             <p className="font-medium font-mono bg-white px-2 py-1 rounded border border-red-200 inline-block">
-                                                {rider.password_plain || '********'}
+                                                ••••••••••
                                             </p>
                                             <span className="ml-2 text-[10px] text-red-400">(Encrypted)</span>
                                         </div>
@@ -135,23 +135,23 @@ const RiderDetails = ({ riderId, onClose }) => {
                             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
                                 <FaIdCard className="mr-2 text-blue-600" /> Bank Account Details
                             </h3>
-                            {rider.bank_details ? (
+                            {rider.bank_details && Object.keys(rider.bank_details).length > 0 && rider.bank_details.bank_name ? (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div>
                                         <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Bank Name</label>
-                                        <p className="font-bold text-gray-800">{rider.bank_details.bank_name}</p>
+                                        <p className="font-bold text-gray-800">{rider.bank_details.bank_name || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Account Number</label>
-                                        <p className="font-bold text-gray-800 font-mono">{rider.bank_details.account_number}</p>
+                                        <p className="font-bold text-gray-800 font-mono">{rider.bank_details.account_number || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">IFSC Code</label>
-                                        <p className="font-bold text-gray-800 font-mono">{rider.bank_details.ifsc_code}</p>
+                                        <p className="font-bold text-gray-800 font-mono">{rider.bank_details.ifsc_code || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Holder Name</label>
-                                        <p className="font-bold text-gray-800">{rider.bank_details.account_holder_name}</p>
+                                        <p className="font-bold text-gray-800">{rider.bank_details.account_holder_name || 'N/A'}</p>
                                     </div>
                                 </div>
                             ) : (
@@ -166,11 +166,11 @@ const RiderDetails = ({ riderId, onClose }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="p-4 border rounded-xl bg-gray-50">
                                         <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Aadhaar Number</label>
-                                        <p className="font-mono font-medium">{rider.aadhar_number || 'Not provided'}</p>
+                                        <p className="font-mono font-medium text-gray-800">{rider.aadhar_number ? (`****${rider.aadhar_number.slice(-4)}`) : 'Not provided'}</p>
                                     </div>
                                     <div className="p-4 border rounded-xl bg-gray-50">
                                         <label className="text-xs font-bold text-gray-400 uppercase block mb-1">PAN Number</label>
-                                        <p className="font-mono font-medium">{rider.pan_number || 'Not provided'}</p>
+                                        <p className="font-mono font-medium text-gray-800">{rider.pan_number ? (`****${rider.pan_number.slice(-4)}`) : 'Not provided'}</p>
                                     </div>
                                 </div>
                             </div>

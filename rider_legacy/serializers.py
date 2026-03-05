@@ -8,18 +8,17 @@ from .models import (
 
 class RiderProfileSerializer(serializers.ModelSerializer):
     rider_name = serializers.CharField(source='rider.name', read_only=True)
-    rider_phone = serializers.CharField(source='rider.phone', read_only=True)
     
     # We remove regex validators here to allow flexible onboarding inputs, validation happens in frontend or clean method if needed
     
     class Meta:
         model = RiderProfile
-        fields = ['id', 'rider', 'rider_name', 'rider_phone', 'mobile_number', 'profile_photo', 'vehicle_type',
+        fields = ['id', 'rider', 'rider_name', 'profile_photo', 'vehicle_type',
                   'vehicle_number', 'license_number', 'aadhar_number', 'pan_number',
                   'is_online', 'city', 'current_latitude', 'current_longitude', 'status', 
                   'onboarding_step', 'is_onboarding_complete', 'current_order',
                   'rating', 'total_deliveries', 'wallet_balance', 'created_at', 'updated_at']
-        read_only_fields = ['rider', 'rider_name', 'rider_phone', 'mobile_number', 'created_at', 'updated_at', 'rating', 'total_deliveries', 'status', 'wallet_balance', 'current_order']
+        read_only_fields = ['rider', 'rider_name', 'created_at', 'updated_at', 'rating', 'total_deliveries', 'status', 'wallet_balance', 'current_order']
 
 
 class RiderDocumentSerializer(serializers.ModelSerializer):
@@ -61,7 +60,7 @@ class OrderSerializer(serializers.ModelSerializer):
     
     # Aliases for frontend consistency
     customer_name = serializers.CharField(source='user.name', read_only=True)
-    customer_phone = serializers.CharField(source='delivery_phone', read_only=True)
+    customer_phone = serializers.CharField(source='user.phone', read_only=True)
     customer_address = serializers.CharField(source='delivery_address', read_only=True)
     total_amount = serializers.DecimalField(source='total', max_digits=10, decimal_places=2, read_only=True)
     
@@ -74,7 +73,7 @@ class OrderSerializer(serializers.ModelSerializer):
                   'restaurant_latitude', 'restaurant_longitude', 'user', 'user_name',
                   'user_phone', 'customer_name', 'customer_phone', 'customer_address',
                   'delivery_address', 'delivery_latitude', 'delivery_longitude',
-                  'delivery_phone', 'delivery_instructions', 'total', 'total_amount', 'status',
+                  'delivery_instructions', 'total', 'total_amount', 'status',
                   'placed_at', 'ready_at', 'estimated_delivery_time', 'pickup_otp', 'delivery_otp', 
                   'order_name', 'items', 'payment_method']
 

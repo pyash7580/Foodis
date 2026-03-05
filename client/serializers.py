@@ -92,7 +92,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = ['id', 'name', 'slug', 'description', 'cuisine', 'image_url', 'cover_image_url',
-                  'phone', 'email', 'address', 'city_name', 'state', 'pincode',
+                  'email', 'address', 'city_name', 'state', 'pincode',
                   'latitude', 'longitude', 'rating', 'total_ratings',
                   'delivery_time', 'delivery_fee', 'min_order_amount',
                   'is_veg', 'is_active', 'is_approved', 'distance', 'menu_items_count', 'cuisine_types', 'is_favourite']
@@ -235,9 +235,14 @@ class PublicRiderSerializer(serializers.ModelSerializer):
     vehicle_type = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
 
+    phone = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ['id', 'name', 'phone', 'avatar', 'vehicle_number', 'vehicle_type', 'rating']
+
+    def get_phone(self, obj):
+        return getattr(obj, 'phone', None)
 
     def get_vehicle_number(self, obj):
         if hasattr(obj, 'rider_profile'):
@@ -270,7 +275,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id', 'order_id', 'user', 'user_name', 'restaurant', 'rider', 'rider_name',
                   'delivery_address', 'delivery_latitude', 'delivery_longitude',
-                  'delivery_phone', 'delivery_instructions', 'subtotal', 'delivery_fee',
+                  'delivery_instructions', 'subtotal', 'delivery_fee',
                   'discount', 'tax', 'total', 'coupon', 'status', 'payment_method',
                   'payment_status', 'items', 'pickup_otp', 'delivery_otp', 
                   'placed_at', 'confirmed_at', 'preparing_at',

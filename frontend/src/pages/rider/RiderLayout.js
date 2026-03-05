@@ -7,7 +7,7 @@ import { useRider } from '../../contexts/RiderContext';
 
 const RiderLayout = ({ children }) => {
     const { logout } = useAuth();
-    const { isOnline, profile, toggleOnline, activeOrder } = useRider();
+    const { isOnline, profile, toggleOnline } = useRider();
 
     const handleLogout = () => {
         logout();
@@ -15,7 +15,6 @@ const RiderLayout = ({ children }) => {
 
     const navItems = [
         { path: '/rider/dashboard', icon: FaHome, label: 'Home' },
-        ...(activeOrder ? [{ path: `/rider/order/${activeOrder.id || activeOrder}`, icon: FaMotorcycle, label: 'Active Mission' }] : []),
         { path: '/rider/orders', icon: FaClipboardList, label: 'Orders' },
         { path: '/rider/earnings', icon: FaWallet, label: 'Earnings' },
         { path: '/rider/incentives', icon: FaTrophy, label: 'Incentives' },
