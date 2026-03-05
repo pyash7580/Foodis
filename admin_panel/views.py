@@ -350,6 +350,57 @@ class RiderViewSet(viewsets.ModelViewSet):
         rider.is_active = True
         rider.status = 'OFFLINE' # Should probably be offline initially after approval
         rider.save()
+        
+        # Sync with legacy rider profile if exists so frontend updates
+        try:
+            from core.models import User
+            user = User.objects.filter(email=rider.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                user.rider_profile.status = 'APPROVED'
+                user.rider_profile.save()
+        except:
+            pass
+            
+        return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject rider"""
+        rider = self.get_object()
+        rider.is_active = False
+        rider.status = 'OFFLINE'
+        rider.save()
+        
+        # Sync with legacy rider profile
+        try:
+            from core.models import User
+            user = User.objects.filter(email=rider.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                user.rider_profile.status = 'REJECTED'
+                user.rider_profile.save()
+        except:
+            pass
+            
+        return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def suspend(self, request, pk=None):
+        """Suspend rider"""
+        rider = self.get_object()
+        rider.is_active = False
+        rider.status = 'OFFLINE'
+        rider.save()
+        
+        # Sync with legacy rider profile
+        try:
+            from core.models import User
+            user = User.objects.filter(email=rider.email).first()
+            if user and hasattr(user, 'rider_profile'):
+                user.rider_profile.status = 'SUSPENDED'
+                user.rider_profile.save()
+        except:
+            pass
+            
         return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
 
 
