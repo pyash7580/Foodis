@@ -15,8 +15,8 @@ User = get_user_model()
 def create_super_admin():
     """Create default Super Admin if not exists"""
     ADMIN_PHONE = '+910000000000' # Dummy phone for admin
-    ADMIN_EMAIL = 'admin@foodis.com'
-    ADMIN_PASS = 'admin123'
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@foodis.com')
+    ADMIN_PASS = os.environ.get('ADMIN_PASSWORD', 'admin@123')
     
     try:
         if not User.objects.filter(phone=ADMIN_PHONE).exists():

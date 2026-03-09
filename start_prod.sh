@@ -9,6 +9,10 @@ echo "Starting Foodis Backend Production Server..."
 echo "Running migrations..."
 python manage.py migrate --noinput
 
+# Auto-create superuser if not exists
+echo "Creating superuser (if not exists)..."
+python scripts/create_admin.py
+
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
