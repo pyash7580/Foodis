@@ -144,7 +144,7 @@ else:
     }
 # Production Security Hardening
 if not DEBUG:
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)  # Render/CF proxy handles HTTPS
     SECURE_REDIRECT_EXEMPT = [r'^health/$']  # Allow Railway healthcheck over HTTP
     SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
     CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
@@ -162,6 +162,8 @@ if not DEBUG:
         'https://*.vercel.app',
         'https://happy-purpose-production.up.railway.app',
         'https://foodis-backend-production.up.railway.app',
+        'https://foodis-c25x.onrender.com',
+        'https://*.onrender.com',
     ]
 
 # Redis Configuration
