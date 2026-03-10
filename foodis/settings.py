@@ -408,21 +408,19 @@ OTP_ATTEMPTS_LIMIT = config('OTP_ATTEMPTS_LIMIT', default=5, cast=int)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
-# Email Configuration (SendGrid for real OTP delivery)
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.sendgrid.net')
+# Email Configuration (Resend for real OTP delivery)
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.resend.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='apikey')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-# EMAIL_FROM must be a verified sender in SendGrid (Single Sender Verification or Domain Authentication)
-EMAIL_FROM = config('EMAIL_FROM', default='foodisindia@gmail.com')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='resend')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='re_CEVg4WGS_5nHG8frmsE7DGJdqoNpewd3u')
+# EMAIL_FROM must be a verified sender in Resend or use their onboarding fallback
+EMAIL_FROM = config('EMAIL_FROM', default='onboarding@resend.dev')
+DEFAULT_FROM_EMAIL = EMAIL_FROM
 EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)  # seconds — prevents SMTP hangs
 
-if not EMAIL_HOST_PASSWORD:
-    # No API key: print OTP to console only (no real email sent)
-    EMAIL_BACKEND = 'core.email_backends.ConsoleEmailBackend'
-elif DEBUG:
-    # Dev with API key: send real email, relax SSL for local issues
+if DEBUG:
+    # Dev with API key: send real email, relax SSL for local Windows issues
     EMAIL_BACKEND = 'core.email_backends.UnsafeEmailBackend'
 else:
     EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
