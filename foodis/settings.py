@@ -124,20 +124,25 @@ except ImportError:
 
 # Database — Supabase PostgreSQL (uses individual DB_* env vars)
 _DB_HOST = os.environ.get('DB_HOST') or config('DB_HOST', default='')
+_DB_PORT = str(os.environ.get('DB_PORT') or config('DB_PORT', default='5432'))
 
 if _DB_HOST:
+    _is_pooler = _DB_PORT == '6543'  # Supabase Transaction Pooler uses port 6543
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME') or config('DB_NAME', default='postgres'),
             'USER': os.environ.get('DB_USER') or config('DB_USER', default='postgres'),
-            'PASSWORD': os.environ.get('DB_PASSWORD') or config('DB_PASSWORD', default=''),
+            'PASSWORD': os.environ.get('DB_PASSWORD') or config('DB_PASSWORD', default='Patelyash@123'),
             'HOST': _DB_HOST,
-            'PORT': os.environ.get('DB_PORT') or config('DB_PORT', default='5432'),
+            'PORT': _DB_PORT,
             'OPTIONS': {
                 'sslmode': 'require',  # Required for Supabase
             },
-            'CONN_MAX_AGE': 600,
+            # Transaction pooler (port 6543) doesn't support persistent connections or server-side cursors
+            # Without these, Django causes 500 errors on the pooler
+            'CONN_MAX_AGE': 0 if _is_pooler else 600,
+            'DISABLE_SERVER_SIDE_CURSORS': _is_pooler,
         }
     }
 else:
