@@ -122,24 +122,30 @@ try:
 except ImportError:
     pass
 
-import dj_database_url
-from decouple import config
+# Database — Supabase PostgreSQL (uses individual DB_* env vars)
+_DB_HOST = os.environ.get('DB_HOST') or config('DB_HOST', default='')
 
-DATABASE_URL = os.environ.get("DATABASE_URL") or config("DATABASE_URL", default=None)
-
-if DATABASE_URL:
+if _DB_HOST:
     DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=True
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME') or config('DB_NAME', default='postgres'),
+            'USER': os.environ.get('DB_USER') or config('DB_USER', default='postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD') or config('DB_PASSWORD', default=''),
+            'HOST': _DB_HOST,
+            'PORT': os.environ.get('DB_PORT') or config('DB_PORT', default='5432'),
+            'OPTIONS': {
+                'sslmode': 'require',  # Required for Supabase
+            },
+            'CONN_MAX_AGE': 600,
+        }
     }
 else:
+    # Local fallback — SQLite when no DB_HOST is configured
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 # Production Security Hardening
