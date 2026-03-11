@@ -10,11 +10,14 @@ import random
 import string
 import logging
 import requests
+import os
 from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from core.models import OTP
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 
 logger = logging.getLogger(__name__)
 
@@ -26,17 +29,7 @@ def generate_otp(length=6):
 
 def send_email_otp(email, purpose='LOGIN'):
     """
-    Generate and send OTP to email address via SendGrid.
-    
-    Args:
-        email (str): Email address to send OTP to
-        purpose (str): Purpose of OTP (LOGIN, REGISTER, PIN_RESET)
-    
-    Returns:
-        str: Generated OTP code on success, None on failure
-    
-    Raises:
-        Exception: If email sending fails (logged, not fatal)
+    Generate and send OTP to email address via Brevo HTTP API.
     """
     try:
         # Validate email
@@ -66,57 +59,35 @@ def send_email_otp(email, purpose='LOGIN'):
             expires_at=expires_at
         )
         
-        # Prepare email content
-        subject = f'Foodis Verification Code: {otp_code}'
+        # Send via Brevo HTTP API
+        configuration = sib_api_v3_sdk.Configuration()
+        configuration.api_key['api-key'] = getattr(settings, 'BREVO_API_KEY', '')
         
-        # Email template context
-        context = {
-            'otp_code': otp_code,
-            'expiry_minutes': expiry_minutes,
-            'purpose': purpose,
-            'company_name': 'Foodis',
-        }
-        
-        # Simple HTML email (can be enhanced with template)
-        html_message = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; background-color: #f5f5f5;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <h2 style="color: #333; text-align: center;">Foodis Verification</h2>
-                    <p style="color: #666; font-size: 16px;">Hi there,</p>
-                    <p style="color: #666; font-size: 16px;">Your verification code is:</p>
-                    
-                    <div style="background-color: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-                        <h1 style="color: #FF6B35; letter-spacing: 5px; margin: 0;">{otp_code}</h1>
-                    </div>
-                    
-                    <p style="color: #999; font-size: 14px;">This code expires in {expiry_minutes} minutes.</p>
-                    <p style="color: #999; font-size: 14px;">Please do not share this code with anyone. Foodis staff will never ask for this code.</p>
-                    
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                    
-                    <p style="color: #999; font-size: 12px; text-align: center;">
-                        © 2026 Foodis. All rights reserved.
-                    </p>
-                </div>
-            </body>
-        </html>
-        """
-        
-        plain_message = f"Your Foodis verification code is: {otp_code}\n\nThis code expires in {expiry_minutes} minutes."
-        
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM', 'onboarding@resend.dev'))
-        
-        # Use Django's configured Email Backend (SMTP with Resend)
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=from_email,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+            sib_api_v3_sdk.ApiClient(configuration)
         )
         
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": email}],
+            sender={"name": "Foodis", "email": getattr(settings, 'BREVO_FROM_EMAIL', 'mryash7580@gmail.com')},
+            subject="Foodis - Email Verification Code",
+            html_content=f"""
+                <div style='font-family:Arial,sans-serif;max-width:400px;margin:auto;padding:20px;'>
+                    <h2 style='color:#e53935;'>Foodis Verification</h2>
+                    <p>Your OTP verification code is:</p>
+                    <h1 style='letter-spacing:8px;color:#333;background:#f5f5f5;
+                               padding:15px;text-align:center;border-radius:8px;'>
+                        {otp_code}
+                    </h1>
+                    <p>This code expires in <strong>{expiry_minutes} minutes</strong>.</p>
+                    <p style='color:#999;font-size:12px;'>
+                        Do not share this with anyone.
+                    </p>
+                </div>
+            """
+        )
+        
+        api_instance.send_transac_email(send_smtp_email)
         logger.info(f"[EMAIL_OTP_SENT] Email: {email} | OTP: {otp_code} | Expires: {expires_at}")
         
         # Dev mode: Log OTP to console

@@ -406,22 +406,10 @@ OTP_ATTEMPTS_LIMIT = config('OTP_ATTEMPTS_LIMIT', default=5, cast=int)
 
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-
-# Email Configuration (Gmail SMTP)
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='mryash7580@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-EMAIL_FROM = config('EMAIL_FROM', default=EMAIL_HOST_USER)
-DEFAULT_FROM_EMAIL = EMAIL_FROM
-EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)  # seconds — prevents SMTP hangs
-
-# Use standard SMTP backend; no UnsafeEmailBackend needed for Gmail on Windows usually
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-
-# Order Settings
+# Email Configuration (Brevo HTTP API)
+# Render blocks SMTP ports, so we use sib-api-v3-sdk over HTTPS
+BREVO_API_KEY = config('BREVO_API_KEY', default='')
+BREVO_FROM_EMAIL = config('BREVO_FROM_EMAIL', default='mryash7580@gmail.com')
 ORDER_CANCELLATION_TIME_LIMIT = 525600  # 1 Year (Effectively Removed)
 RIDER_ASSIGNMENT_RADIUS = 5  # km
 COMMISSION_PERCENTAGE = 15  # percentage
