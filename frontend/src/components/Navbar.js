@@ -148,7 +148,7 @@ const Navbar = () => {
                                                 <Link
                                                     to="/client/help"
                                                     onClick={() => setIsMenuOpen(false)}
-                                                    className="flex items-center px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-all duration-200 italic no-tap-fix"
+                                                    className="flex items-center px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-all duration-200 italic no-tap-fix whitespace-nowrap"
                                                     style={{ minHeight: 'unset' }}
                                                 >
                                                     <span className="mr-4 text-lg">❓</span> Help & Support
