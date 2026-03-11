@@ -219,8 +219,8 @@ const RiderManagement = () => {
                 </button>
             </div>
 
-            {/* Riders Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Riders Table — hidden on mobile */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-600">
                         <thead className="bg-gray-50 text-gray-800 uppercase tracking-wider font-bold">
@@ -337,6 +337,55 @@ const RiderManagement = () => {
                     onClose={() => setSelectedRiderId(null)}
                 />
             )}
+
+            {/* ===== MOBILE CARD VIEW (below md) ===== */}
+            <div className="md:hidden space-y-3">
+                {filteredRiders.length > 0 ? (
+                    filteredRiders.map(rider => (
+                        <div key={rider.id} className="mobile-card">
+                            <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 text-lg flex-shrink-0">
+                                        🏍️
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900 leading-tight">{rider.full_name || rider.rider_name}</p>
+                                        <div className="flex items-center gap-1 text-xs text-yellow-500 font-bold mt-0.5">
+                                            ⭐ {rider.rating > 0 ? rider.rating.toFixed(1) : 'New'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold flex-shrink-0 ${rider.profile_status === 'APPROVED' ? 'bg-green-100 text-green-700' : rider.profile_status === 'UNDER_REVIEW' ? 'bg-orange-100 text-orange-700' : (rider.profile_status === 'PENDING' || rider.profile_status === 'NEW') ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                    {rider.profile_status || 'NEW'}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Phone</p><p className="font-medium">{rider.rider_phone || 'N/A'}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Vehicle</p><p className="font-medium">{rider.vehicle_number || 'N/A'}</p></div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+                                <button onClick={() => setSelectedRiderId(rider.id)} className="flex-1 h-10 rounded-xl bg-blue-50 text-blue-600 text-sm font-bold flex items-center justify-center gap-1" style={{ minHeight: 'unset' }}>👁️ View</button>
+                                {(rider.profile_status === 'ONBOARDING' || rider.profile_status === 'UNDER_REVIEW' || rider.profile_status === 'NEW') && (
+                                    <>
+                                        <button onClick={() => handleAction(rider.id, 'approve')} className="flex-1 h-10 rounded-xl bg-green-50 text-green-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>✅ Approve</button>
+                                        <button onClick={() => handleAction(rider.id, 'reject')} className="flex-1 h-10 rounded-xl bg-red-50 text-red-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>❌ Reject</button>
+                                    </>
+                                )}
+                                {rider.profile_status === 'APPROVED' && (
+                                    <button onClick={() => handleAction(rider.id, 'suspend')} className="flex-1 h-10 rounded-xl bg-red-50 text-red-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>🚫 Suspend</button>
+                                )}
+                                {rider.profile_status === 'SUSPENDED' && (
+                                    <button onClick={() => handleAction(rider.id, 'approve')} className="flex-1 h-10 rounded-xl bg-green-50 text-green-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>✅ Re-activate</button>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-12 text-gray-400">
+                        <p className="text-4xl mb-3">🏍️</p><p className="font-bold">No riders found</p>
+                    </div>
+                )}
+            </div>
 
             {/* Add Rider Modal */}
             {showAddModal && (

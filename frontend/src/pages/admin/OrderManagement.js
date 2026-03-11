@@ -97,8 +97,8 @@ const OrderManagement = () => {
                 </div>
             </div>
 
-            {/* Orders Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Orders Table — hidden on mobile */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-600">
                         <thead className="bg-gray-50 text-gray-800 uppercase tracking-wider font-bold">
@@ -166,8 +166,44 @@ const OrderManagement = () => {
                     onClose={() => setSelectedOrderId(null)}
                 />
             )}
+
+            {/* ===== MOBILE CARD VIEW (below md) ===== */}
+            <div className="md:hidden space-y-3">
+                {filteredOrders.length > 0 ? (
+                    filteredOrders.map(order => (
+                        <div key={order.id} className="mobile-card">
+                            <div className="flex items-start justify-between mb-3">
+                                <div>
+                                    <p className="font-black text-gray-900 text-base">#{order.order_id}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">{format(new Date(order.placed_at), 'MMM dd, yyyy HH:mm')}</p>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${getStatusColor(order.status)}`}>{order.status}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Customer</p><p className="font-medium text-gray-800 truncate">{order.user_name}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Restaurant</p><p className="font-medium text-gray-800 truncate">{order.restaurant_name}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Amount</p><p className="font-black text-gray-900 text-base">₹{parseFloat(order.total).toLocaleString()}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Payment</p><p className="font-medium text-gray-600 text-xs uppercase">{order.payment_method}</p></div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedOrderId(order.id)}
+                                className="w-full h-11 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center gap-2 text-sm hover:bg-blue-100 transition"
+                                style={{ minHeight: 'unset' }}
+                            >
+                                <FaEye /> View Order Details
+                            </button>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-12 text-gray-400">
+                        <p className="text-4xl mb-3">📦</p>
+                        <p className="font-bold">No orders found</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
 
 export default OrderManagement;
+

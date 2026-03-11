@@ -188,14 +188,15 @@ const RestaurantDashboard = () => {
 
                 {/* Orders Management */}
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center flex-wrap gap-3">
                         <h2 className="text-2xl font-black text-gray-900">Live Orders</h2>
-                        <div className="bg-gray-100 p-1 rounded-xl flex space-x-1">
+                        <div className="scroll-x-snap bg-gray-100 p-1 rounded-xl flex-shrink-0 max-w-full">
                             {['PENDING', 'ACTIVE', 'COMPLETED', 'ALL'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${activeTab === tab ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${activeTab === tab ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    style={{ minHeight: 'unset' }}
                                 >
                                     {tab.charAt(0) + tab.slice(1).toLowerCase()}
                                 </button>

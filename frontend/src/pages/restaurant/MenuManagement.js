@@ -206,7 +206,7 @@ const MenuManagement = () => {
                 {/* Modal */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto">
                             <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                                 <h2 className="text-2xl font-black text-gray-900">{editingItem ? 'Edit Dish' : 'Add New Dish'}</h2>
                                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-900 text-2xl">✕</button>

@@ -269,8 +269,8 @@ const RestaurantManagement = () => {
                 </div>
             </div>
 
-            {/* Restaurants Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Restaurants Table — hidden on mobile */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-600">
                         <thead className="bg-gray-50 text-gray-800 uppercase tracking-wider font-bold">
@@ -405,7 +405,43 @@ const RestaurantManagement = () => {
                 />
             )}
 
-
+            {/* ===== MOBILE CARD VIEW (below md) ===== */}
+            <div className="md:hidden space-y-3">
+                {filteredRestaurants.length > 0 ? (
+                    filteredRestaurants.map(restaurant => (
+                        <div key={restaurant.id} className="mobile-card">
+                            <div className="flex items-start gap-3 mb-3">
+                                <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    {restaurant.image ? <img src={restaurant.image} alt="" className="w-full h-full object-cover" /> : <FaStore className="text-gray-400" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-gray-900 truncate">{restaurant.name}</p>
+                                    <div className="flex items-center gap-1 text-xs text-yellow-500 font-bold">⭐ {restaurant.rating || 'New'}</div>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold flex-shrink-0 ${restaurant.status === 'APPROVED' ? 'bg-green-100 text-green-700' : restaurant.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                    {restaurant.status === 'PENDING' ? 'REVIEW' : restaurant.status}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Owner</p><p className="font-medium truncate">{restaurant.owner_name || 'N/A'}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">City</p><p className="font-medium">{restaurant.city}, {restaurant.state}</p></div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+                                <button onClick={() => setSelectedRestaurantId(restaurant.id)} className="flex-1 h-10 rounded-xl bg-blue-50 text-blue-600 text-sm font-bold flex items-center justify-center gap-1" style={{ minHeight: 'unset' }}>👁️ View</button>
+                                {restaurant.status === 'PENDING' && (<>
+                                    <button onClick={() => handleAction(restaurant.id, 'approve')} className="flex-1 h-10 rounded-xl bg-green-50 text-green-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>✅ Approve</button>
+                                    <button onClick={() => handleAction(restaurant.id, 'reject')} className="flex-1 h-10 rounded-xl bg-red-50 text-red-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>❌ Reject</button>
+                                </>)}
+                                {restaurant.status === 'APPROVED' && <button onClick={() => handleAction(restaurant.id, 'suspend')} className="flex-1 h-10 rounded-xl bg-red-50 text-red-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>🚫 Suspend</button>}
+                                {restaurant.status === 'SUSPENDED' && <button onClick={() => handleAction(restaurant.id, 'approve')} className="flex-1 h-10 rounded-xl bg-green-50 text-green-600 text-sm font-bold flex items-center justify-center" style={{ minHeight: 'unset' }}>✅ Re-activate</button>}
+                                <button onClick={() => handleDelete(restaurant.id, restaurant.name)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition" style={{ minHeight: 'unset' }}><FaTrash /></button>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-12 text-gray-400"><p className="text-4xl mb-3">🏪</p><p className="font-bold">No restaurants found</p></div>
+                )}
+            </div>
 
             {/* Add Restaurant Modal */}
 

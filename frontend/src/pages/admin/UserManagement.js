@@ -143,8 +143,8 @@ const UserManagement = () => {
 
             </div>
 
-            {/* Users Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Users Table — hidden on mobile */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-600">
                         <thead className="bg-gray-50 text-gray-800 uppercase tracking-wider font-bold">
@@ -232,8 +232,61 @@ const UserManagement = () => {
                     onClose={() => setSelectedUserId(null)}
                 />
             )}
+
+            {/* ===== MOBILE CARD VIEW (below md) ===== */}
+            <div className="md:hidden space-y-3">
+                {filteredUsers.length > 0 ? (
+                    filteredUsers.map(user => (
+                        <div key={user.id} className="mobile-card">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-lg flex-shrink-0">
+                                        {(user.name || '?')[0].toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900 leading-tight">{user.name || 'Unnamed User'}</p>
+                                        <p className="text-xs text-gray-400">ID: #{user.id}</p>
+                                    </div>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {user.is_active ? 'Active' : 'Blocked'}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Phone</p><p className="font-medium">{user.phone || 'N/A'}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">City</p><p className="font-medium">{user.city || 'N/A'}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Orders</p><p className="font-bold text-gray-900">{user.total_orders}</p></div>
+                                <div><p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Spent</p><p className="font-bold text-green-600">₹{user.total_spent?.toLocaleString()}</p></div>
+                            </div>
+                            <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                <button
+                                    onClick={() => handleBlockUnblock(user.id, user.is_active)}
+                                    className={`flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition ${user.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                                    style={{ minHeight: 'unset' }}
+                                >
+                                    {user.is_active ? <><FaBan /> Block</> : <><FaCheckCircle /> Unblock</>}
+                                </button>
+                                <button
+                                    onClick={() => setSelectedUserId(user.id)}
+                                    className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-gray-100 transition"
+                                    style={{ minHeight: 'unset' }}
+                                >
+                                    <FaEye /> View Profile
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-12 text-gray-400">
+                        <p className="text-4xl mb-3">👤</p>
+                        <p className="text-lg font-bold mb-1">No users found</p>
+                        <p className="text-sm">Try adjusting your search or filters</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
 
 export default UserManagement;
+
