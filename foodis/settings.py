@@ -180,6 +180,9 @@ if not DEBUG:
 # Redis Configuration
 # Default to None to avoid accidental local connections in production
 REDIS_URL = config('REDIS_URL', default=None)
+# Strip out default template values to prevent crashes
+if REDIS_URL == 'VALUE_HERE' or REDIS_URL == '':
+    REDIS_URL = None
 
 # Cache configuration
 CACHES = {
