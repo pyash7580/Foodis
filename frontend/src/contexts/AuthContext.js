@@ -27,10 +27,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem(getStorageKey(location.pathname)));
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const expectedKey = getStorageKey(location.pathname);
-        const storedToken = localStorage.getItem(expectedKey);
-    }, [location.pathname, token]);
+
 
     useEffect(() => {
         const interceptor = axios.interceptors.response.use(
