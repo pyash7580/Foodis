@@ -685,7 +685,24 @@ class OrderViewSet(viewsets.ModelViewSet):
     ordering = ['-placed_at']
     
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(user=self.request.user).select_related(
+            'restaurant',
+            'rider',
+        ).prefetch_related(
+            # prefetch order items + their menu_item + category in one go
+            Prefetch(
+                'items',
+                queryset=OrderItem.objects.select_related(
+                    'menu_item',
+                    'menu_item__category',
+                    'menu_item__restaurant',
+                )
+            ),
+            # prefetch reviews so obj.review.first() doesn't hit DB per order
+            'review',
+            # prefetch rider reviews
+            'rider_review',
+        ).order_by('-placed_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
