@@ -30,19 +30,6 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const expectedKey = getStorageKey(location.pathname);
         const storedToken = localStorage.getItem(expectedKey);
-        if (token !== storedToken) {
-            console.log(`Switching Auth Realm: ${expectedKey}`);
-            setToken(storedToken);
-            if (storedToken) {
-                const role = expectedKey.replace('token_', '').toUpperCase();
-                axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-                axios.defaults.headers.common['X-Role'] = role;
-            } else {
-                delete axios.defaults.headers.common['Authorization'];
-                delete axios.defaults.headers.common['X-Role'];
-                setUser(null);
-            }
-        }
     }, [location.pathname, token]);
 
     useEffect(() => {
@@ -130,8 +117,6 @@ export const AuthProvider = ({ children }) => {
             const normalizedEmail = normalizeEmail(email);
             const payload = { email: normalizedEmail };
 
-            console.log('[sendOtp] Sending payload:', payload);
-
             const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp/`, payload);
             return { success: true, otp: res.data.otp, message: res.data.message };
         } catch (error) {
@@ -163,8 +148,6 @@ export const AuthProvider = ({ children }) => {
             };
 
             if (name && name.trim()) payload.name = name.trim();
-
-            console.log('[verifyOtp] Sending payload:', payload);
 
             const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp/`, payload);
 

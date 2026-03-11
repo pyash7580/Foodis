@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
 import RestaurantCard from '../../components/RestaurantCard';
@@ -19,7 +19,8 @@ const Home = () => {
     const [dishResults, setDishResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    const [loading, setLoading] = useState(true);
+    // FIX: start as false — show page immediately; only show spinner while fetching after city detected
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
@@ -27,6 +28,9 @@ const Home = () => {
     const [selectedCity, setSelectedCity] = useState(''); // Track selected city for filtering
     // eslint-disable-next-line no-unused-vars
     const [_userLocation, setUserLocation] = useState(null); // Track coordinates for live location
+
+    // FIX: abort controller ref to cancel stale dish search requests
+    const searchAbortRef = useRef(null);
 
     // Animation Variants
     const containerVariants = {
@@ -60,11 +64,11 @@ const Home = () => {
         }
     }, []);
 
-    const fetchRestaurants = useCallback(async () => {
+    const fetchRestaurants = useCallback(async (city) => {
         setLoading(true);
         try {
             let url = `${API_BASE_URL}/api/client/restaurants/`;
-            if (selectedCity) url += `?city=${selectedCity}`;
+            if (city) url += `?city=${encodeURIComponent(city)}`;
 
             const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
             const res = await axios.get(url, config);
@@ -77,41 +81,45 @@ const Home = () => {
 
             setRestaurants(data);
             setFilteredRestaurants(data);
-            console.log(`✅ Loaded ${data.length} restaurants`);
             setError(null);
         } catch (err) {
-            console.error('Failed to fetch restaurants:', err);
-            // Log the actual server error message
-            if (err.response?.data) {
-                console.error('Server error:', err.response.data);
-            }
             setRestaurants([]);
             setFilteredRestaurants([]);
             setError("Failed to load restaurants.");
         } finally {
             setLoading(false);
         }
-    }, [selectedCity, token]);
+    }, [token]);
 
+    // FIX: Only fetch when selectedCity changes — prevents double-call on mount.
+    // LocationDetector sets selectedCity, which triggers this fetch exactly once.
     useEffect(() => {
-        fetchRestaurants();
-    }, [fetchRestaurants]);
+        fetchRestaurants(selectedCity);
+    }, [selectedCity, fetchRestaurants]);
 
     const searchDishes = useCallback(async () => {
         if (searchMode === 'dish') {
+            // Cancel any previous in-flight request
+            if (searchAbortRef.current) searchAbortRef.current.abort();
+            searchAbortRef.current = new AbortController();
+
             setIsSearching(true);
             try {
                 const url = searchQuery.length > 0
-                    ? `${API_BASE_URL}/api/client/menu-items/?search=${searchQuery}`
+                    ? `${API_BASE_URL}/api/client/menu-items/?search=${encodeURIComponent(searchQuery)}`
                     : `${API_BASE_URL}/api/client/menu-items/`;
 
-                const config = token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {};
+                const config = {
+                    signal: searchAbortRef.current.signal,
+                    ...(token ? { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' } } : {})
+                };
                 const response = await axios.get(url, config);
                 const data = response.data.results || response.data;
                 const uniqueDishes = Array.from(new Map(data.map(item => [item.id, item])).values());
                 setDishResults(uniqueDishes);
             } catch (err) {
-                console.error("Dish search error", err);
+                // Ignore abort errors (user typed faster than request completed)
+                if (err.name === 'CanceledError' || err.name === 'AbortError') return;
             } finally {
                 setIsSearching(false);
             }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
@@ -7,16 +7,25 @@ import { WebSocketProvider } from './contexts/WebSocketContext';
 import { Toaster } from 'react-hot-toast';
 import { CartProvider } from './contexts/CartContext';
 
-import ClientRoutes from './routes/ClientRoutes';
-import RestaurantRoutes from './routes/RestaurantRoutes';
-import RiderRoutes from './routes/RiderRoutes';
-import AdminRoutes from './routes/AdminRoutes';
+// Eagerly load auth pages (always needed on cold start)
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import RestaurantLogin from './pages/auth/RestaurantLogin';
-// import RestaurantSignup from './pages/auth/RestaurantSignup'; // DISABLED: Only admin can add restaurants
 import RiderLogin from './pages/rider/RiderLogin';
 import AdminLogin from './pages/admin/AdminLogin';
+
+// Lazy-load entire role-based route trees — each role only loads its own bundle
+const ClientRoutes = React.lazy(() => import('./routes/ClientRoutes'));
+const RestaurantRoutes = React.lazy(() => import('./routes/RestaurantRoutes'));
+const RiderRoutes = React.lazy(() => import('./routes/RiderRoutes'));
+const AdminRoutes = React.lazy(() => import('./routes/AdminRoutes'));
+const PaymentSuccessScreen = React.lazy(() => import('./components/PaymentSuccessScreen'));
+
+const PageLoader = () => (
+  <div className="h-screen flex items-center justify-center bg-gray-50">
+    <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 function App() {
   useEffect(() => {
@@ -31,8 +40,6 @@ function App() {
 
           if (config.__retryCount < 3) {
             config.__retryCount += 1;
-            console.log(`Backend connection failed. Retrying in 2s... (Attempt ${config.__retryCount}/3)`);
-
             // Wait for 2 seconds before retrying
             await new Promise(resolve => setTimeout(resolve, 2000));
             return axios(config);
@@ -51,28 +58,24 @@ function App() {
         <Toaster position="top-center" reverseOrder={false} />
         <WebSocketProvider>
           <CartProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/restaurant/login" element={<RestaurantLogin />} />
-              {/* <Route path="/restaurant/signup" element={<RestaurantSignup />} /> */}
-              {/* DISABLED: Restaurant signup removed - only admin can add restaurants */}
-              <Route path="/rider/login" element={<RiderLogin />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/client/*" element={<ClientRoutes />} />
-              <Route path="/restaurant/*" element={<RestaurantRoutes />} />
-              <Route path="/rider/*" element={<RiderRoutes />} />
-              <Route path="/admin/*" element={<AdminRoutes />} />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/restaurant/login" element={<RestaurantLogin />} />
+                <Route path="/rider/login" element={<RiderLogin />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/client/*" element={<ClientRoutes />} />
+                <Route path="/restaurant/*" element={<RestaurantRoutes />} />
+                <Route path="/rider/*" element={<RiderRoutes />} />
+                <Route path="/admin/*" element={<AdminRoutes />} />
 
-              {/* Specialized Full Screen Routes */}
-              <Route path="/payment-success/:orderId" element={
-                <React.Suspense fallback={<div className="h-screen bg-[#19a463]" />}>
-                  {React.createElement(React.lazy(() => import('./components/PaymentSuccessScreen')))}
-                </React.Suspense>
-              } />
+                {/* Specialized Full Screen Routes */}
+                <Route path="/payment-success/:orderId" element={<PaymentSuccessScreen />} />
 
-              <Route path="/" element={<Navigate to="/client" replace />} />
-            </Routes>
+                <Route path="/" element={<Navigate to="/client" replace />} />
+              </Routes>
+            </Suspense>
           </CartProvider>
         </WebSocketProvider>
         <SpeedInsights />

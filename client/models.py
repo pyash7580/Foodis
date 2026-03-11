@@ -221,15 +221,21 @@ class CartItem(models.Model):
         base_price = self.menu_item.price * self.quantity
         customization_price = Decimal('0.00')
         if self.customizations:
-            # Calculate customization prices
-            for cust_id, option_ids in self.customizations.items():
+            # Collect all option IDs first, then bulk-fetch in ONE query
+            all_option_ids = []
+            for option_ids in self.customizations.values():
                 if isinstance(option_ids, list):
-                    for option_id in option_ids:
-                        try:
-                            option = CustomizationOption.objects.get(id=option_id)
-                            customization_price += option.price * self.quantity
-                        except:
-                            pass
+                    all_option_ids.extend(option_ids)
+            if all_option_ids:
+                options_by_id = CustomizationOption.objects.filter(
+                    id__in=all_option_ids
+                ).in_bulk()
+                for option_ids in self.customizations.values():
+                    if isinstance(option_ids, list):
+                        for option_id in option_ids:
+                            opt = options_by_id.get(option_id)
+                            if opt:
+                                customization_price += opt.price * self.quantity
         return base_price + customization_price
 
 
@@ -344,7 +350,7 @@ class Order(models.Model):
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     
     # Status
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
     cancellation_reason = models.TextField(blank=True, null=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')

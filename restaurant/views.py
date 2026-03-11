@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Sum, Count, Avg, Q
+from django.db.models import Sum, Count, Avg, Q, Case, When, IntegerField, F
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
@@ -109,61 +110,66 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def stats(self, request, pk=None):
-        """Get restaurant statistics"""
+        """Get restaurant statistics — consolidated to 3 DB queries total (was 21)"""
         restaurant = self.get_object()
-        
+
         today = timezone.now().date()
         week_ago = today - timedelta(days=7)
         month_ago = today - timedelta(days=30)
-        
-        # Orders
-        total_orders = Order.objects.filter(restaurant=restaurant).count()
-        today_orders = Order.objects.filter(restaurant=restaurant, placed_at__date=today).count()
-        week_orders = Order.objects.filter(restaurant=restaurant, placed_at__date__gte=week_ago).count()
-        month_orders = Order.objects.filter(restaurant=restaurant, placed_at__date__gte=month_ago).count()
-        
-        # Earnings
-        total_earnings = RestaurantEarnings.objects.filter(restaurant=restaurant).aggregate(
-            total=Sum('net_amount')
-        )['total'] or Decimal('0.00')
-        
-        today_earnings = RestaurantEarnings.objects.filter(
-            restaurant=restaurant, date=today
-        ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0.00')
-        
-        week_earnings = RestaurantEarnings.objects.filter(
-            restaurant=restaurant, date__gte=week_ago
-        ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0.00')
-        
-        # Pending orders
-        pending_orders = Order.objects.filter(
-            restaurant=restaurant,
-            status__in=['PENDING', 'CONFIRMED', 'PREPARING']
-        ).count()
-        
-        # Graph Data (Last 7 days)
+
+        # Single aggregated query using conditional annotation (replaces 5 separate COUNTs)
+        order_stats = Order.objects.filter(restaurant=restaurant).aggregate(
+            total=Count('id'),
+            today=Count(Case(When(placed_at__date=today, then=1), output_field=IntegerField())),
+            week=Count(Case(When(placed_at__date__gte=week_ago, then=1), output_field=IntegerField())),
+            month=Count(Case(When(placed_at__date__gte=month_ago, then=1), output_field=IntegerField())),
+            pending=Count(Case(When(status__in=['PENDING', 'CONFIRMED', 'PREPARING'], then=1), output_field=IntegerField())),
+        )
+
+        # Single earnings aggregation (replaces 3 separate SUM queries)
+        earnings_stats = RestaurantEarnings.objects.filter(restaurant=restaurant).aggregate(
+            total=Sum('net_amount'),
+            today=Sum(Case(When(date=today, then=F('net_amount')))),
+            week=Sum(Case(When(date__gte=week_ago, then=F('net_amount')))),
+        )
+
+        # Single queryset for graph data — grouped by date (replaces 7×2 = 14 queries)
+        graph_start = today - timedelta(days=6)
+        daily_orders = (
+            Order.objects.filter(restaurant=restaurant, placed_at__date__gte=graph_start)
+            .annotate(day=TruncDate('placed_at'))
+            .values('day')
+            .annotate(count=Count('id'))
+        )
+        daily_earnings = (
+            RestaurantEarnings.objects.filter(restaurant=restaurant, date__gte=graph_start)
+            .values('date')
+            .annotate(total=Sum('net_amount'))
+        )
+        orders_by_day = {row['day']: row['count'] for row in daily_orders}
+        earnings_by_day = {row['date']: float(row['total']) for row in daily_earnings}
+
         graph_data = []
         for i in range(6, -1, -1):
             date = today - timedelta(days=i)
-            day_orders = Order.objects.filter(restaurant=restaurant, placed_at__date=date)
             graph_data.append({
                 'name': date.strftime('%a'),
-                'orders': day_orders.count(),
-                'earnings': float(RestaurantEarnings.objects.filter(restaurant=restaurant, date=date).aggregate(Sum('net_amount'))['total'] or 0)
+                'orders': orders_by_day.get(date, 0),
+                'earnings': earnings_by_day.get(date, 0.0),
             })
-        
+
         return Response({
             'orders': {
-                'total': total_orders,
-                'today': today_orders,
-                'week': week_orders,
-                'month': month_orders,
-                'pending': pending_orders
+                'total': order_stats['total'] or 0,
+                'today': order_stats['today'] or 0,
+                'week': order_stats['week'] or 0,
+                'month': order_stats['month'] or 0,
+                'pending': order_stats['pending'] or 0,
             },
             'earnings': {
-                'total': float(total_earnings),
-                'today': float(today_earnings),
-                'week': float(week_earnings)
+                'total': float(earnings_stats['total'] or 0),
+                'today': float(earnings_stats['today'] or 0),
+                'week': float(earnings_stats['week'] or 0),
             },
             'graph_data': graph_data
         }, status=status.HTTP_200_OK)
@@ -177,64 +183,67 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def summary(self, request):
-        """Get summary stats for the current user's restaurant"""
+        """Get summary stats for the current user's restaurant — consolidated to 3 DB queries (was 21)"""
         restaurant = Restaurant.objects.filter(owner=request.user).first()
         if not restaurant:
             return Response({'error': 'Restaurant not found'}, status=status.HTTP_404_NOT_FOUND)
-            
+
         today = timezone.now().date()
         week_ago = today - timedelta(days=7)
         month_ago = today - timedelta(days=30)
-        
-        # Orders
-        total_orders = Order.objects.filter(restaurant=restaurant).count()
-        today_orders = Order.objects.filter(restaurant=restaurant, placed_at__date=today).count()
-        week_orders = Order.objects.filter(restaurant=restaurant, placed_at__date__gte=week_ago).count()
-        month_orders = Order.objects.filter(restaurant=restaurant, placed_at__date__gte=month_ago).count()
-        
-        # Earnings
-        total_earnings = RestaurantEarnings.objects.filter(restaurant=restaurant).aggregate(
-            total=Sum('net_amount')
-        )['total'] or Decimal('0.00')
-        
-        today_earnings = RestaurantEarnings.objects.filter(
-            restaurant=restaurant, date=today
-        ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0.00')
-        
-        week_earnings = RestaurantEarnings.objects.filter(
-            restaurant=restaurant, date__gte=week_ago
-        ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0.00')
-        
-        # Pending orders
-        pending_orders = Order.objects.filter(
-            restaurant=restaurant,
-            status__in=['PENDING', 'CONFIRMED', 'PREPARING']
-        ).count()
-        
-        # Graph Data (Last 7 days)
+
+        # Single aggregated query using conditional annotation
+        order_stats = Order.objects.filter(restaurant=restaurant).aggregate(
+            total=Count('id'),
+            today=Count(Case(When(placed_at__date=today, then=1), output_field=IntegerField())),
+            week=Count(Case(When(placed_at__date__gte=week_ago, then=1), output_field=IntegerField())),
+            month=Count(Case(When(placed_at__date__gte=month_ago, then=1), output_field=IntegerField())),
+            pending=Count(Case(When(status__in=['PENDING', 'CONFIRMED', 'PREPARING'], then=1), output_field=IntegerField())),
+        )
+
+        earnings_stats = RestaurantEarnings.objects.filter(restaurant=restaurant).aggregate(
+            total=Sum('net_amount'),
+            today=Sum(Case(When(date=today, then=F('net_amount')))),
+            week=Sum(Case(When(date__gte=week_ago, then=F('net_amount')))),
+        )
+
+        graph_start = today - timedelta(days=6)
+        daily_orders = (
+            Order.objects.filter(restaurant=restaurant, placed_at__date__gte=graph_start)
+            .annotate(day=TruncDate('placed_at'))
+            .values('day')
+            .annotate(count=Count('id'))
+        )
+        daily_earnings = (
+            RestaurantEarnings.objects.filter(restaurant=restaurant, date__gte=graph_start)
+            .values('date')
+            .annotate(total=Sum('net_amount'))
+        )
+        orders_by_day = {row['day']: row['count'] for row in daily_orders}
+        earnings_by_day = {row['date']: float(row['total']) for row in daily_earnings}
+
         graph_data = []
         for i in range(6, -1, -1):
             date = today - timedelta(days=i)
-            day_orders = Order.objects.filter(restaurant=restaurant, placed_at__date=date)
             graph_data.append({
                 'name': date.strftime('%a'),
-                'orders': day_orders.count(),
-                'earnings': float(RestaurantEarnings.objects.filter(restaurant=restaurant, date=date).aggregate(total=Sum('net_amount'))['total'] or 0)
+                'orders': orders_by_day.get(date, 0),
+                'earnings': earnings_by_day.get(date, 0.0),
             })
-            
+
         return Response({
             'restaurant': self._safe_restaurant_data(restaurant, request),
             'orders': {
-                'total': total_orders,
-                'today': today_orders,
-                'week': week_orders,
-                'month': month_orders,
-                'pending': pending_orders
+                'total': order_stats['total'] or 0,
+                'today': order_stats['today'] or 0,
+                'week': order_stats['week'] or 0,
+                'month': order_stats['month'] or 0,
+                'pending': order_stats['pending'] or 0,
             },
             'earnings': {
-                'total': float(total_earnings),
-                'today': float(today_earnings),
-                'week': float(week_earnings)
+                'total': float(earnings_stats['total'] or 0),
+                'today': float(earnings_stats['today'] or 0),
+                'week': float(earnings_stats['week'] or 0),
             },
             'graph_data': graph_data
         }, status=status.HTTP_200_OK)
@@ -331,7 +340,16 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         restaurant = Restaurant.objects.filter(owner=self.request.user).first()
         if restaurant:
-            return Order.objects.filter(restaurant=restaurant).exclude(status='CANCELLED')
+            return Order.objects.filter(restaurant=restaurant).exclude(
+                status='CANCELLED'
+            ).select_related(
+                'user', 'rider'
+            ).prefetch_related(
+                'items__menu_item__category',
+                'items__menu_item__restaurant',
+                'review',
+                'rider_review',
+            ).order_by('-placed_at')
         return Order.objects.none()
     
     @action(detail=True, methods=['post'])
@@ -605,7 +623,7 @@ class RestaurantEarningsViewSet(viewsets.ReadOnlyModelViewSet):
         if not restaurant:
             return Response({'error': 'Restaurant not found'}, status=status.HTTP_404_NOT_FOUND)
             
-        earnings = RestaurantEarnings.objects.filter(restaurant=restaurant).order_by('-date')
+        earnings = RestaurantEarnings.objects.filter(restaurant=restaurant).select_related('order').order_by('-date')
         
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="earnings_{restaurant.slug}.csv"'

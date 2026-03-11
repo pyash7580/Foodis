@@ -1,1 +1,1 @@
-web: gunicorn foodis.wsgi:application
+web: gunicorn foodis.wsgi:application --workers 2 --threads 2 --timeout 120

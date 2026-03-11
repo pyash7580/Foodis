@@ -460,7 +460,12 @@ class CartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Cart.objects.filter(user=self.request.user)
+        return Cart.objects.filter(user=self.request.user).select_related(
+            'restaurant'
+        ).prefetch_related(
+            'items__menu_item__category',
+            'items__menu_item__restaurant',
+        )
     
     def create(self, request):
         """Override create to handle cart sync from frontend

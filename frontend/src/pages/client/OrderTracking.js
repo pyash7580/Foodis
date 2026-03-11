@@ -84,11 +84,9 @@ const OrderTracking = () => {
     useEffect(() => {
         const fetchOrderDetails = async () => {
             try {
-                // Fetch order details first
+                // Fetch order details first — auth headers set globally by AuthContext
                 if (orderId && token) {
-                    const orderRes = await axios.get(`${API_BASE_URL}/api/client/orders/${orderId}/`, {
-                        headers: { Authorization: `Bearer ${token}`, 'X-Role': 'CLIENT' }
-                    });
+                    const orderRes = await axios.get(`${API_BASE_URL}/api/client/orders/${orderId}/`);
                     setOrder(orderRes.data);
 
                     // Check for review modal logic
@@ -110,7 +108,6 @@ const OrderTracking = () => {
                     // Connect to WebSocket with dynamic base URL
                     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
                     const wsUrl = `${API_BASE_URL.replace(/^https?/, wsProtocol)}/ws/order/${orderId}/?token=${token}`;
-                    console.log('Connecting to WS:', wsUrl);
                     socketRef.current = new WebSocket(wsUrl);
 
                     socketRef.current.onmessage = (event) => {
@@ -148,8 +145,6 @@ const OrderTracking = () => {
 
     const handleReviewSubmitted = () => {
         setShowReviewModal(false);
-        // Refresh order to update review flags
-        // fetchOrderDetails(); // Or just manually update state
         setOrder(prev => ({ ...prev, has_restaurant_review: true, has_rider_review: true }));
     };
 

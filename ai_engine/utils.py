@@ -1,10 +1,8 @@
 """
 AI Engine Utilities - No paid APIs, using open-source libraries
 """
-import numpy as np
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+# NOTE: numpy, pandas, sklearn are imported INSIDE functions to avoid
+# ~150-200MB RAM usage on startup (critical for Render free tier)
 from django.db.models import Count, Avg, Sum, Q
 from django.utils import timezone
 from datetime import timedelta
