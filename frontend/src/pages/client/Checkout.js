@@ -44,9 +44,7 @@ const MapSearch = ({ setMarkerPosition, onSearchChange }) => {
         e.preventDefault();
         if (!query.trim()) return;
         try {
-            const res = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`, {
-                headers: { 'User-Agent': 'FoodisApp/1.0' }
-            });
+            const res = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`);
             if (res.data && res.data.length > 0) {
                 const { lat, lon } = res.data[0];
                 const newPos = { lat: parseFloat(lat), lng: parseFloat(lon) };
@@ -131,9 +129,7 @@ const Checkout = () => {
     // Reverse Geocoding - Auto-fill address fields
     const reverseGeocode = useCallback(async (lat, lng) => {
         try {
-            const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
-                headers: { 'User-Agent': 'FoodisApp/1.0' }
-            });
+            const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
             if (res.data && res.data.address) {
                 const addr = res.data.address;
                 setNewAddress(prev => ({

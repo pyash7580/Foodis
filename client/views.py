@@ -881,15 +881,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             if online_amount == 0 or payment_method == 'COD':
                 cart.items.all().delete()
             
-            # Send notification to restaurant
-            async_to_sync(channel_layer.group_send)(
-                f'restaurant_{cart.restaurant.owner.id}',
-                {
-                    'type': 'new_order',
-                    'order_id': order.order_id,
-                    'message': f'New order {order.order_id} received'
-                }
-            )
+            # Send notification to restaurant (non-fatal if WebSocket not available)
+            try:
+                async_to_sync(channel_layer.group_send)(
+                    f'restaurant_{cart.restaurant.owner.id}',
+                    {
+                        'type': 'new_order',
+                        'order_id': order.order_id,
+                        'message': f'New order {order.order_id} received'
+                    }
+                )
+            except Exception as ws_err:
+                logger.warning(f"WebSocket notification failed (order still created): {ws_err}")
             
             serializer = OrderSerializer(order, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
