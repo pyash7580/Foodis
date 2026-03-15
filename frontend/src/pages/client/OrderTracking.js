@@ -5,7 +5,6 @@ import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { motion } from 'framer-motion';
-import Navbar from '../../components/Navbar';
 import 'leaflet/dist/leaflet.css';
 import ReviewModal from '../../components/ReviewModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -169,8 +168,17 @@ const OrderTracking = () => {
     const activeStatus = STATUS_FLOW[currentIdx] || STATUS_FLOW[0];
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar />
+        <div className="min-h-screen bg-gray-50 flex flex-col relative pb-20 md:pb-0">
+            {/* Mobile App Bar */}
+            <div className="md:hidden bg-white flex items-center px-4 h-14 border-b border-gray-100 z-50 shadow-sm relative">
+                <button
+                    onClick={() => navigate('/client/orders')}
+                    className="p-2 -ml-2 text-gray-800 focus:outline-none"
+                >
+                    <span className="text-xl leading-none">←</span>
+                </button>
+                <h1 className="ml-2 text-lg font-black text-gray-900 truncate">Track Order</h1>
+            </div>
 
             <ReviewModal
                 isOpen={showReviewModal}
@@ -179,11 +187,11 @@ const OrderTracking = () => {
                 onReviewSubmitted={handleReviewSubmitted}
             />
 
-            <div className="flex-grow flex flex-col lg:flex-row">
+            <div className="flex-grow flex flex-col lg:flex-row relative">
                 {/* Left Side: Status & Details */}
-                <div className="lg:w-1/3 p-6 overflow-y-auto bg-white shadow-xl z-10">
-                    <div className="mb-8">
-                        <Link to="/client/orders" className="text-gray-400 hover:text-gray-600 flex items-center mb-4 transition">
+                <div className="lg:w-1/3 p-4 sm:p-6 overflow-y-auto bg-white shadow-xl z-10 rounded-b-[2rem] md:rounded-b-none relative">
+                    <div className="mb-6 md:mb-8">
+                        <Link to="/client/orders" className="hidden md:flex text-gray-400 hover:text-gray-600 items-center mb-4 transition">
                             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                             Back to Orders
                         </Link>

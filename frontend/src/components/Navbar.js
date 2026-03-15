@@ -137,10 +137,10 @@ const Navbar = () => {
                                                         key={item.to}
                                                         to={item.to}
                                                         onClick={() => setIsMenuOpen(false)}
-                                                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 no-tap-fix"
+                                                        className="flex items-center w-full justify-start px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 no-tap-fix"
                                                         style={{ minHeight: 'unset' }}
                                                     >
-                                                        <span className="mr-4 text-lg">{item.icon}</span> {item.label}
+                                                        <span className="mr-4 text-lg flex-shrink-0">{item.icon}</span> {item.label}
                                                     </Link>
                                                 ))}
                                             </div>
@@ -148,10 +148,10 @@ const Navbar = () => {
                                                 <Link
                                                     to="/client/help"
                                                     onClick={() => setIsMenuOpen(false)}
-                                                    className="flex items-center px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-all duration-200 italic no-tap-fix whitespace-nowrap"
+                                                    className="flex items-center w-full justify-start px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-all duration-200 italic no-tap-fix"
                                                     style={{ minHeight: 'unset' }}
                                                 >
-                                                    <span className="mr-4 text-lg">❓</span> Help & Support
+                                                    <span className="mr-4 text-lg flex-shrink-0">❓</span> Help & Support
                                                 </Link>
                                                 <button
                                                     onClick={() => { setIsMenuOpen(false); handleLogout(); }}

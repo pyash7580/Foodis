@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import Navbar from '../../components/Navbar';
 import { getRestaurantCover, getRestaurantImage } from '../../utils/images';
 import { getMediaImageUrl } from '../../utils/mediaImageUrl';
 import { useCart } from '../../contexts/CartContext';
@@ -112,11 +111,22 @@ const RestaurantDetails = () => {
     const coverImage = getMediaImageUrl(restaurant.cover_image_url) || getRestaurantCover(restaurant.id);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            <Navbar />
+        <div className="min-h-screen bg-gray-50 pb-20 relative">
+            {/* Desktop Navbar - Hidden on Mobile */}
+            <div className="hidden md:block">
+                {/* Fallback to import Navbar on-the-fly or we assume ClientLayout handles it. Since ClientLayout wraps this route, we actually don't need Navbar here AT ALL! */}
+            </div>
 
-            {/* Compact Hero Section */}
-            <div className="relative h-64 w-full overflow-hidden">
+            {/* Mobile Floating Back Button */}
+            <button
+                onClick={() => navigate(-1)}
+                className="md:hidden absolute top-4 left-4 z-50 w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center text-gray-800 focus:outline-none"
+            >
+                <span className="text-xl leading-none -ml-1">←</span>
+            </button>
+
+            {/* Premium Edge-to-Edge Hero Section */}
+            <div className="relative h-60 sm:h-64 w-full overflow-hidden">
                 <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105"
                     style={{ backgroundImage: `url(${coverImage})` }}>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
@@ -176,7 +186,7 @@ const RestaurantDetails = () => {
                             <button
                                 key={filter}
                                 onClick={() => setDietFilter(filter)}
-                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all duration-200 ${dietFilter === filter
+                                className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all duration-200 ${dietFilter === filter
                                     ? (filter === 'VEG' ? 'bg-green-600 text-white' : filter === 'NON_VEG' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white')
                                     : 'text-gray-500 hover:text-gray-900'
                                     }`}
@@ -240,22 +250,22 @@ const RestaurantDetails = () => {
                                             ); })()}
                                         </div>
 
-                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20">
+                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24">
                                             {quantity > 0 ? (
-                                                <div className="flex items-center justify-between bg-white border border-red-100 rounded-lg overflow-hidden shadow-lg h-8">
+                                                <div className="flex items-center justify-between bg-white border border-red-100 rounded-lg overflow-hidden shadow-lg h-10">
                                                     <button
-                                                        className="flex-1 text-red-600 font-black hover:bg-red-50 transition-colors"
+                                                        className="flex-1 text-red-600 font-black text-lg hover:bg-red-50 transition-colors h-full flex items-center justify-center p-0"
                                                         onClick={() => updateQuantity(item.id, -1)}
                                                     >-</button>
-                                                    <span className="px-1 text-xs font-black text-gray-900">{quantity}</span>
+                                                    <span className="px-2 text-sm font-black text-gray-900">{quantity}</span>
                                                     <button
-                                                        className="flex-1 text-red-600 font-black hover:bg-red-50 transition-colors"
+                                                        className="flex-1 text-red-600 font-black text-lg hover:bg-red-50 transition-colors h-full flex items-center justify-center p-0"
                                                         onClick={() => updateQuantity(item.id, 1)}
                                                     >+</button>
                                                 </div>
                                             ) : (
                                                 <button
-                                                    className="w-full bg-white text-red-600 border border-red-100 h-8 rounded-lg font-black text-xs hover:bg-red-50 transition shadow-md active:scale-95"
+                                                    className="w-full bg-white text-red-600 border border-red-100 h-10 rounded-lg font-black text-sm md:text-xs hover:bg-red-50 transition shadow-md active:scale-95"
                                                     onClick={() => addToCart(item, restaurant)}
                                                 >
                                                     ADD
@@ -271,7 +281,7 @@ const RestaurantDetails = () => {
 
             {/* Floating Cart Button - Refined */}
             {cartItems.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-50">
+                <div className="fixed bottom-[80px] md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-50">
                     <Link to="/client/cart">
                         <motion.div
                             initial={{ y: 50, opacity: 0 }}

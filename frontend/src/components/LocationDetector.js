@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-const LocationDetector = ({ onLocationDetected }) => {
+const LocationDetector = ({ onLocationDetected, compact = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [location, setLocation] = useState('Detecting location...');
@@ -51,17 +51,17 @@ const LocationDetector = ({ onLocationDetected }) => {
     return (
         <div className="relative">
             <div className="flex items-center text-gray-700">
-                <span className="mr-2 text-red-600 text-xl">📍</span>
+                {!compact && <span className="mr-2 text-red-600 text-xl">📍</span>}
                 <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Delivering to</p>
+                    {!compact && <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Delivering to</p>}
                     <div
                         className="flex items-center cursor-pointer hover:text-red-600"
                         onClick={() => setIsOpen(!isOpen)}
                     >
-                        <span className="font-bold text-sm sm:text-base truncate max-w-[150px]">
+                        <span className={`font-bold truncate max-w-[150px] ${compact ? 'text-sm text-gray-900' : 'text-sm sm:text-base'}`}>
                             {location}
                         </span>
-                        <span className="ml-1 text-xs">▼</span>
+                        <span className="ml-1 text-xs text-gray-400">▼</span>
                     </div>
                 </div>
             </div>

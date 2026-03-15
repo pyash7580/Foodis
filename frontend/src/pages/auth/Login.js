@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../../components/Navbar';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -72,10 +71,28 @@ const Login = () => {
 
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar />
+        <div className="min-h-screen bg-gray-50 flex flex-col relative pb-16 md:pb-0">
+            {/* Mobile App Bar */}
+            <div className="md:hidden bg-white flex items-center px-4 h-14 border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <button
+                    onClick={() => navigate('/client')}
+                    className="p-2 -ml-2 text-gray-800 focus:outline-none"
+                >
+                    <span className="text-xl leading-none">←</span>
+                </button>
+                <h1 className="ml-2 text-lg font-black text-gray-900 truncate flex-1">
+                    {step === 'otp' ? 'Login' : (isSignup ? 'Sign Up' : 'Login')}
+                </h1>
+            </div>
 
-            <div className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div className="hidden md:block">
+                {/* Desktop placeholder if needed, though ClientLayout manages nav typically */}
+                <div className="p-4 bg-white border-b border-gray-100 flex items-center justify-between">
+                    <button onClick={() => navigate('/client')} className="text-xl font-black text-red-600">Foodis</button>
+                </div>
+            </div>
+
+            <div className="flex-grow flex items-center justify-center py-6 md:py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
                     <div>
                         <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">

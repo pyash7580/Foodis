@@ -31,28 +31,33 @@ html {
    GLOBAL MOBILE RULES — Applied across all 4 sides
    ============================================================ */
 
-/* Fix iOS auto-zoom on input focus (font-size must be ≥16px) */
-input,
-select,
-textarea {
-  font-size: 16px !important;
-}
+@layer base {
+  /* Fix iOS auto-zoom on input focus (font-size must be ≥16px) */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 
-/* Minimum 44×44px tap target for all interactive elements */
-button,
-a {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+  /* Minimum 44×44px tap target for all interactive elements */
+  button,
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-/* Allow nav links and inline text links to be normal display */
-nav a,
-p a,
-.no-tap-fix {
-  min-height: unset;
-  display: unset;
+  /* Allow nav links and inline text links to be normal display */
+  nav a,
+  .no-tap-fix {
+    min-height: unset;
+  }
+  
+  p a {
+    min-height: unset;
+    display: inline;
+  }
 }
 
 /* Horizontal scroll utility for tabs/chips */

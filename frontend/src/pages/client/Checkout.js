@@ -3,7 +3,6 @@ import { API_BASE_URL } from '../../config';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Navbar from '../../components/Navbar';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -401,13 +400,25 @@ const Checkout = () => {
     }, [cartItems.length, navigate]);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
-            <Navbar />
+        <div className="min-h-screen bg-gray-50 pb-24 relative">
+            {/* Mobile App Bar */}
+            <div className="md:hidden bg-white flex items-center px-4 h-14 border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <button
+                    onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)}
+                    className="p-2 -ml-2 text-gray-800 focus:outline-none"
+                >
+                    <span className="text-xl leading-none">←</span>
+                </button>
+                <h1 className="ml-2 text-lg font-black text-gray-900 truncate">
+                    {step === 1 ? 'Checkout' : step === 2 ? 'Select Address' : 'Payment'}
+                </h1>
+            </div>
+
             <PaymentProcessModal {...processStatus} />
 
-            <div className="max-w-xl mx-auto px-4 py-8">
+            <div className="max-w-xl mx-auto px-4 py-6 sm:py-8">
                 {/* Step Indicator */}
-                <div className="flex items-center justify-between mb-8 px-2">
+                <div className="flex items-center justify-between mb-8 px-2 hidden sm:flex">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="flex items-center flex-1 last:flex-none">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${step >= i ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
@@ -568,7 +579,7 @@ const Checkout = () => {
                                                     required
                                                     value={newAddress.address_line1}
                                                     onChange={e => setNewAddress({ ...newAddress, address_line1: e.target.value })}
-                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-base font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
                                                     placeholder="Flat / House / Floor / Building *"
                                                 />
                                             </div>
@@ -577,7 +588,7 @@ const Checkout = () => {
                                                     required
                                                     value={newAddress.city}
                                                     onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
-                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-base font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
                                                     placeholder="City *"
                                                 />
                                             </div>
@@ -586,14 +597,14 @@ const Checkout = () => {
                                                     required
                                                     value={newAddress.state}
                                                     onChange={e => setNewAddress({ ...newAddress, state: e.target.value })}
-                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-base font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
                                                     placeholder="State *"
                                                 />
                                                 <input
                                                     required
                                                     value={newAddress.pincode}
                                                     onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
+                                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-base font-bold outline-none focus:border-red-500 focus:ring-2 ring-red-100"
                                                     placeholder="Pincode *"
                                                 />
                                             </div>
@@ -646,7 +657,6 @@ const Checkout = () => {
                                 ))
                             )}
                         </div>
-                        )}
 
                         <div className="flex space-x-4">
                             <button onClick={() => setStep(1)} className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-2xl font-black transition hover:bg-gray-300">Back</button>

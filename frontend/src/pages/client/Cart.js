@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
-import Navbar from '../../components/Navbar';
 
 const Cart = () => {
     const { cartItems, restaurant, updateQuantity, getCartTotal } = useCart();
@@ -16,10 +15,17 @@ const Cart = () => {
 
     if (cartItems.length === 0) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-                <Navbar />
+            <div className="min-h-screen bg-gray-50 flex flex-col relative pb-16 md:pb-0">
+                {/* Mobile App Bar */}
+                <div className="md:hidden bg-white flex items-center px-4 h-14 border-b border-gray-100 sticky top-0 z-40">
+                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-gray-800">
+                        <span className="text-xl leading-none">←</span>
+                    </button>
+                    <h1 className="ml-2 text-lg font-black text-gray-900">Cart</h1>
+                </div>
+
                 <div className="flex-grow flex flex-col items-center justify-center p-4">
-                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" alt="Empty Cart" className="w-48 h-48 sm:w-64 sm:h-64 opacity-50 mb-4" />
+                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" alt="Empty Cart" className="w-40 h-40 sm:w-64 sm:h-64 opacity-50 mb-4" />
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-700 mb-2">Your Cart is Empty</h2>
                     <p className="text-gray-500 mb-6 text-center text-sm sm:text-base">Looks like you haven't added anything to your cart yet.</p>
                     <Link to="/client" className="bg-red-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:bg-red-700 transition no-tap-fix" style={{ minHeight: 'unset' }}>
@@ -31,10 +37,19 @@ const Cart = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-40 lg:pb-0">
-            <Navbar />
+        <div className="min-h-screen bg-gray-50 pb-40 lg:pb-0 relative">
+            {/* Mobile App Bar */}
+            <div className="md:hidden bg-white flex items-center px-4 h-14 border-b border-gray-100 sticky top-0 z-40">
+                <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-gray-800">
+                    <span className="text-xl leading-none">←</span>
+                </button>
+                <h1 className="ml-2 text-lg font-black text-gray-900 truncate flex-1">
+                    {restaurant?.name || 'Cart'}
+                </h1>
+            </div>
+
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-8">Your Cart</h1>
+                <h1 className="hidden md:block text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-8">Your Cart</h1>
 
                 <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                     {/* Cart Items */}
@@ -114,7 +129,7 @@ const Cart = () => {
             </div>
 
             {/* ===== MOBILE STICKY BOTTOM CHECKOUT PANEL ===== */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
+            <div className="lg:hidden fixed bottom-[60px] md:bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)]">
                 {/* Expandable bill summary */}
                 {mobileShowSummary && (
                     <div className="px-4 pt-4 pb-2 border-b border-gray-100 space-y-2 text-sm text-gray-700">

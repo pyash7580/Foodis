@@ -2,7 +2,6 @@
 import React from 'react';
 import { Link, useLocation, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import Navbar from '../../../components/Navbar';
 
 const ProfileLayout = () => {
     const { user, logout } = useAuth();
@@ -21,13 +20,23 @@ const ProfileLayout = () => {
     if (!user) return <Navigate to="/login" replace />;
 
     return (
-        <div className="bg-gray-50 min-h-screen">
-            <Navbar />
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-gray-50 min-h-screen relative">
+            {/* Mobile App Bar */}
+            <div className="md:hidden bg-white flex items-center px-4 h-14 border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <button
+                    onClick={() => navigate('/client')}
+                    className="p-2 -ml-2 text-gray-800 focus:outline-none"
+                >
+                    <span className="text-xl leading-none">←</span>
+                </button>
+                <h1 className="ml-2 text-lg font-black text-gray-900 truncate">My Account</h1>
+            </div>
+
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar */}
                     <aside className="w-full lg:w-1/4">
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden lg:sticky lg:top-8">
                             <div className="p-6 border-b border-gray-50">
                                 <div className="flex items-center space-x-4">
                                     <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-2xl font-bold border border-red-200">

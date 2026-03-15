@@ -1,6 +1,6 @@
-
 import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import ClientLayout from '../layouts/ClientLayout';
 
 // Lazy-load all page components — avoids loading entire bundle on first visit
 const Home = React.lazy(() => import('../pages/client/Home'));
@@ -27,25 +27,28 @@ const ClientRoutes = () => {
     return (
         <Suspense fallback={<PageLoader />}>
             <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/search" element={<div className="p-8 text-center text-gray-500">Search Feature Coming Soon</div>} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/track/:orderId" element={<OrderTracking />} />
-                <Route path="/restaurants/:id" element={<RestaurantDetails />} />
+                {/* All Client Routes Wrapped in Premium Layout */}
+                <Route element={<ClientLayout />}>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/search" element={<div className="p-8 text-center text-gray-500">Search Feature Coming Soon</div>} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/track/:orderId" element={<OrderTracking />} />
+                    <Route path="/restaurants/:id" element={<RestaurantDetails />} />
 
-                {/* Profile Section wrapped in Layout */}
-                <Route element={<ProfileLayout />}>
-                    <Route path="/profile" element={<ProfileHome />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/addresses" element={<AddressManagement />} />
-                    <Route path="/wallet" element={<WalletDetails />} />
-                    <Route path="/favourites" element={<Favorites />} />
-                    <Route path="/help" element={<Help />} />
-                    <Route path="/payments" element={<SavedPayments />} />
+                    {/* Profile Section wrapped in Layout */}
+                    <Route element={<ProfileLayout />}>
+                        <Route path="/profile" element={<ProfileHome />} />
+                        <Route path="/orders" element={<Orders />} />
+                        <Route path="/addresses" element={<AddressManagement />} />
+                        <Route path="/wallet" element={<WalletDetails />} />
+                        <Route path="/favourites" element={<Favorites />} />
+                        <Route path="/help" element={<Help />} />
+                        <Route path="/payments" element={<SavedPayments />} />
+                    </Route>
+
+                    <Route path="*" element={<div className="p-8 text-center text-red-500">Page Not Found</div>} />
                 </Route>
-
-                <Route path="*" element={<div className="p-8 text-center text-red-500">Page Not Found</div>} />
             </Routes>
         </Suspense>
     );
