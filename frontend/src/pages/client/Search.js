@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 const Search = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
-    const { addToCart, getCartCount } = useCart();
+    const { addToCart } = useCart();
     
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState('restaurants'); // 'restaurants' | 'dishes'
