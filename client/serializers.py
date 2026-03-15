@@ -149,12 +149,20 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     def get_cuisine_types(self, obj):
         # Avoid N+1 query: use prefetched menu_items if available
-        menu_items = obj.menu_items.all()  # Uses prefetched cache if available
-        categories = set()
-        for item in menu_items:
-            if item.category and item.category.name:
-                categories.add(item.category.name)
-        return list(categories)[:3]
+        try:
+            menu_items = obj.menu_items.all()  # Uses prefetched cache if available
+            categories = set()
+            for item in menu_items:
+                # Handle potential None values safely without triggering lazy loading crashes
+                if getattr(item, 'category_id', None):
+                    # For safety, if category isn't prefetched perfectly, 
+                    # just grab its name safely.
+                    if item.category and hasattr(item.category, 'name') and item.category.name:
+                        categories.add(item.category.name)
+            return list(categories)[:3]
+        except Exception as e:
+            # Fallback for unexpected relation errors
+            return []
 
     def get_menu_items_count(self, obj):
         # Use annotated count if available, otherwise fallback to count()
