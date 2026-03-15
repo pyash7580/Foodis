@@ -2,8 +2,8 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ClientLayout from '../layouts/ClientLayout';
 
-// Lazy-load all page components — avoids loading entire bundle on first visit
 const Home = React.lazy(() => import('../pages/client/Home'));
+const Search = React.lazy(() => import('../pages/client/Search'));
 const RestaurantDetails = React.lazy(() => import('../pages/client/RestaurantDetails'));
 const Cart = React.lazy(() => import('../pages/client/Cart'));
 const Checkout = React.lazy(() => import('../pages/client/Checkout'));
@@ -30,7 +30,7 @@ const ClientRoutes = () => {
                 {/* All Client Routes Wrapped in Premium Layout */}
                 <Route element={<ClientLayout />}>
                     <Route path="/" element={<Home />} />
-                    <Route path="/search" element={<div className="p-8 text-center text-gray-500">Search Feature Coming Soon</div>} />
+                    <Route path="/search" element={<Search />} />
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/track/:orderId" element={<OrderTracking />} />
