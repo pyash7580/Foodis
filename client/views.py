@@ -1677,7 +1677,7 @@ class RestaurantListView(APIView):
             
             qs = Restaurant.objects.filter(
                 is_active=True, status='APPROVED'
-            ).select_related('city_id')
+            ).select_related('city_id').prefetch_related('menu_items__category')
             
             if lat and lng:
                 try:
