@@ -175,6 +175,11 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                     Q(city__icontains=normalized_city) | Q(city_id__name__icontains=normalized_city)
                 )
             
+            fav_ids = set()
+            if request.user.is_authenticated:
+                from .models import FavouriteRestaurant
+                fav_ids = set(FavouriteRestaurant.objects.filter(user=request.user).values_list('restaurant_id', flat=True))
+            
             restaurants = []
             for r in queryset:
                 try:
@@ -191,6 +196,7 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                         'delivery_fee': float(r.delivery_fee) if hasattr(r, 'delivery_fee') and r.delivery_fee else 0.0,
                         'is_active': r.is_active,
                         'is_approved': r.status == 'APPROVED',
+                        'is_favourite': r.pk in fav_ids,
                     }
                     
                     # Add cuisine_types from menu item categories (for frontend category filtering)
@@ -1689,21 +1695,37 @@ class RestaurantListView(APIView):
                     Q(city__icontains=city) | Q(city_id__name__icontains=city)
                 )
             
+            # 1. Fetch user favourites if authenticated
+            fav_ids = set()
+            if request.user.is_authenticated:
+                from .models import FavouriteRestaurant
+                fav_ids = set(FavouriteRestaurant.objects.filter(user=request.user).values_list('restaurant_id', flat=True))
+                
             results = []
             for r in qs:
                 try:
                     image_url = _get_image_url(r, 'image') or _get_image_url(r, 'cover_image')
                     
+                    # 2. Get cuisine types for frontend filtering
+                    cuisine_types = []
+                    if hasattr(r, 'menu_items'):
+                        cuisine_types = list(set([
+                            item.category.name for item in r.menu_items.all() 
+                            if item.category and getattr(item.category, 'is_active', True)
+                        ]))
+                        
                     results.append({
                         'id': r.pk,
                         'name': str(r.name or ''),
                         'image_url': image_url,
                         'city': r.city_id.name if getattr(r, 'city_id', None) else (getattr(r, 'city', '')),
                         'cuisine': str(getattr(r, 'cuisine', '') or ''),
+                        'cuisine_types': cuisine_types,
                         'rating': float(getattr(r, 'rating', 0) or 0),
                         'delivery_time': str(getattr(r, 'delivery_time', '') or ''),
                         'min_order_amount': float(getattr(r, 'min_order_amount', 0) or 0),
                         'delivery_fee': float(getattr(r, 'delivery_fee', 0) or 0),
+                        'is_favourite': r.pk in fav_ids,
                     })
                 except Exception as row_e:
                     print(f"Row error restaurant {r.pk}: {row_e}")
