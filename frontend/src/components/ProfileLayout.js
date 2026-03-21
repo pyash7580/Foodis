@@ -18,7 +18,7 @@ const ProfileLayout = ({ children }) => {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar />
-            <div className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex flex-col md:flex-row gap-8">
                     {/* Sidebar */}
                     <div className="w-full md:w-64 flex-shrink-0">

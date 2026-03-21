@@ -48,7 +48,7 @@ const Cart = () => {
                 </h1>
             </div>
 
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
                 <h1 className="hidden md:block text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-8">Your Cart</h1>
 
                 <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">

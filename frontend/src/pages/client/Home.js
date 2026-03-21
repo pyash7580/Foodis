@@ -172,7 +172,7 @@ const Home = () => {
 
             {/* Desktop Header Container (Hidden on Mobile) */}
             <div className="hidden md:block bg-white sticky top-0 z-40 border-b border-gray-100 shadow-sm">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <LocationDetector onLocationDetected={handleLocationDetected} />
                         <div className="flex-1 max-w-3xl w-full">
@@ -229,7 +229,7 @@ const Home = () => {
                     </div>
                 </div>
             </div>
-            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                     <h2 className="text-3xl font-black text-gray-900 leading-tight">
                         {searchMode === 'restaurant'

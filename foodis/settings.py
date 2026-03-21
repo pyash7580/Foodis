@@ -141,7 +141,7 @@ if _DB_HOST:
             },
             # Transaction pooler (port 6543) doesn't support persistent connections or server-side cursors
             # Without these, Django causes 500 errors on the pooler
-            'CONN_MAX_AGE': 0 if _is_pooler else 600,
+            'CONN_MAX_AGE': 0 if (_is_pooler or DEBUG) else 600,
             'DISABLE_SERVER_SIDE_CURSORS': _is_pooler,
         }
     }

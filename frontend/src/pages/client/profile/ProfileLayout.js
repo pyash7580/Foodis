@@ -32,7 +32,7 @@ const ProfileLayout = () => {
                 <h1 className="ml-2 text-lg font-black text-gray-900 truncate">My Account</h1>
             </div>
 
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar */}
                     <aside className="w-full lg:w-1/4">

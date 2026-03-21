@@ -133,7 +133,7 @@ const RestaurantDetails = () => {
                 </div>
 
                 <div className="absolute inset-0 flex items-end">
-                    <div className="max-w-[1400px] w-full mx-auto px-6 pb-4 flex items-center gap-6">
+                    <div className="w-full mx-auto px-6 pb-4 flex items-center gap-6">
                         {/* Restaurant Logo/Thumbnail */}
                         <div className="relative hidden sm:block">
                             <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-white">
@@ -164,7 +164,7 @@ const RestaurantDetails = () => {
                 </div>
             </div>
 
-            <div className="max-w-[1400px] mx-auto px-6 py-4">
+            <div className="w-full mx-auto px-6 py-4">
                 {/* About Section - Super Compact */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
                     <h2 className="text-lg font-black text-gray-900 mb-1">About the Place</h2>
