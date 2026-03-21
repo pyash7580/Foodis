@@ -25,7 +25,7 @@ const RestaurantImage = ({ src, name }) => {
     if (!imgSrc || error) {
         return (
             <div style={{
-                width: '100%', height: '180px',
+                width: '100%', height: '100%',
                 background: 'linear-gradient(135deg, #fff5f0, #ffe8e0)',
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
@@ -44,7 +44,7 @@ const RestaurantImage = ({ src, name }) => {
             src={imgSrc}
             alt={name}
             style={{
-                width: '100%', height: '180px',
+                width: '100%', height: '100%',
                 objectFit: 'cover',
                 borderRadius: '12px 12px 0 0'
             }}

@@ -143,7 +143,14 @@ const Home = () => {
             );
         }
         if (activeFilter !== 'All') {
-            result = result.filter(r => r.cuisine && r.cuisine.toLowerCase().includes(activeFilter.toLowerCase()));
+            result = result.filter(r => {
+                const cuisineMatch = r.cuisine && r.cuisine.toLowerCase().includes(activeFilter.toLowerCase());
+                const cuisineTypeMatch = r.cuisine_type && r.cuisine_type.toLowerCase().includes(activeFilter.toLowerCase());
+                const cuisineTypesMatch = Array.isArray(r.cuisine_types) &&
+                    r.cuisine_types.some(ct => ct.toLowerCase().includes(activeFilter.toLowerCase()));
+                const nameMatch = r.name && r.name.toLowerCase().includes(activeFilter.toLowerCase());
+                return cuisineMatch || cuisineTypeMatch || cuisineTypesMatch || nameMatch;
+            });
         }
         if (sortBy === 'rating') {
             result.sort((a, b) => b.rating - a.rating);

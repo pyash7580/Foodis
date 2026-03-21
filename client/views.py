@@ -153,7 +153,7 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = Restaurant.objects.filter(
                 is_active=True,
                 status='APPROVED'
-            ).select_related('city_id')
+            ).select_related('city_id').prefetch_related('menu_items__category')
             
             city = request.query_params.get('city', '').strip()
             lat = request.query_params.get('lat', '').strip()
@@ -192,6 +192,17 @@ class RestaurantViewSet(viewsets.ReadOnlyModelViewSet):
                         'is_active': r.is_active,
                         'is_approved': r.status == 'APPROVED',
                     }
+                    
+                    # Add cuisine_types from menu item categories (for frontend category filtering)
+                    try:
+                        cats = set()
+                        for mi in r.menu_items.all():
+                            if mi.category and hasattr(mi.category, 'name') and mi.category.name:
+                                cats.add(mi.category.name)
+                        item['cuisine_types'] = list(cats)
+                    except Exception:
+                        item['cuisine_types'] = []
+
                     
                     # City (Foreign Key is city_id, string is city)
                     try:
