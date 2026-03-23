@@ -15,7 +15,7 @@ const PaymentQRModal = ({ amount, orderId, onSuccess, onClose }) => {
             setStatus('scanning');
         }, 800);
 
-        // Simulate "User Scanned & Paid" after 6 seconds (Demo Flow)
+        // Simulate "User Scanned & Paid" after 30 seconds (Demo Flow)
         // In real app, this would poll an endpoint: /api/orders/{id}/status/
         const timer2 = setTimeout(() => {
             setStatus('processing');
@@ -25,7 +25,7 @@ const PaymentQRModal = ({ amount, orderId, onSuccess, onClose }) => {
                     onSuccess();
                 }, 1000);
             }, 2000);
-        }, 8000);
+        }, 30000);
 
         return () => {
             clearTimeout(timer1);
