@@ -27,18 +27,10 @@ class UserSerializer(serializers.ModelSerializer):
         return address.city if address else 'N/A'
 
     def get_total_orders(self, obj):
-        # Avoid circular import issues by importing locally if needed, 
-        # though models are already imported at top of file usually.
-        # Check imports: from client.models import Order is there.
-        # But 'obj' is a User instance. Relation is reverse foreign key?
-        # Order model has 'user' FK. So obj.order_set.count() works if related_name is default or specific.
-        # Order model in client/models.py: user = models.ForeignKey(User, ...)
-        return Order.objects.filter(user=obj).count()
+        return getattr(obj, 'total_orders_cnt', 0)
 
     def get_total_spent(self, obj):
-        from django.db.models import Sum
-        total = Order.objects.filter(user=obj, payment_status='PAID').aggregate(Sum('total'))['total__sum']
-        return total if total else 0.0
+        return getattr(obj, 'total_spent_amt', 0.0)
 
 
 
@@ -100,19 +92,24 @@ class RiderSerializer(serializers.ModelSerializer):
                   'rating', 'profile_status', 'license_number', 'aadhar_number', 'pan_number',
                   'total_deliveries', 'bank_details', 'created_at', 'updated_at']
 
+    def to_representation(self, instance):
+        if not hasattr(instance, '_user_cache'):
+            try:
+                from core.models import User
+                instance._user_cache = User.objects.filter(email=instance.email).select_related('rider_profile').first()
+            except:
+                instance._user_cache = None
+        return super().to_representation(instance)
+
     def get_rider_name(self, obj):
         """Get name from Rider object"""
         return obj.full_name
 
     def get_rider_phone(self, obj):
         """Get phone from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.mobile_number or 'N/A'
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.mobile_number or 'N/A'
         return 'N/A'
 
     def get_rider_email(self, obj):
@@ -121,111 +118,74 @@ class RiderSerializer(serializers.ModelSerializer):
 
     def get_vehicle_number(self, obj):
         """Get vehicle number from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.vehicle_number or 'N/A'
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.vehicle_number or 'N/A'
         return 'N/A'
 
     def get_vehicle_type(self, obj):
         """Get vehicle type from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.vehicle_type or 'N/A'
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.vehicle_type or 'N/A'
         return 'N/A'
 
     def get_rating(self, obj):
         """Get rating from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                rating = user.rider_profile.rating
-                return float(rating) if rating else 0.0
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            rating = user.rider_profile.rating
+            return float(rating) if rating else 0.0
         return 0.0
 
     def get_profile_status(self, obj):
         """Get profile status from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile') and getattr(user.rider_profile, 'status', None):
-                return user.rider_profile.status
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile') and getattr(user.rider_profile, 'status', None):
+            return user.rider_profile.status
         return 'APPROVED' if obj.is_active else 'NEW'
 
     def get_license_number(self, obj):
         """Get license number from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.license_number or None
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.license_number or None
         return None
 
     def get_aadhar_number(self, obj):
         """Get aadhar number from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.aadhar_number or None
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.aadhar_number or None
         return None
 
     def get_pan_number(self, obj):
-        """Get PAN number from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.pan_number or None
-        except:
-            pass
+        """Get pan number from RiderProfile if it exists"""
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.pan_number or None
         return None
 
     def get_total_deliveries(self, obj):
-        """Get total deliveries from RiderProfile if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_profile'):
-                return user.rider_profile.total_deliveries or 0
-        except:
-            pass
+        """Get total deliveries from Rider profile"""
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_profile'):
+            return user.rider_profile.total_deliveries or 0
         return 0
 
     def get_bank_details(self, obj):
         """Get bank details from RiderBank if it exists"""
-        try:
-            from core.models import User
-            user = User.objects.filter(email=obj.email).first()
-            if user and hasattr(user, 'rider_bank'):
-                bank = user.rider_bank
-                return {
-                    'account_holder_name': bank.account_holder_name,
-                    'account_number': bank.account_number,
-                    'ifsc_code': bank.ifsc_code,
-                    'bank_name': bank.bank_name,
-                    'verified': bank.verified
-                }
-        except:
-            pass
+        user = getattr(obj, '_user_cache', None)
+        if user and hasattr(user, 'rider_bank'):
+            bank = user.rider_bank
+            return {
+                'account_holder_name': bank.account_holder_name,
+                'account_number': bank.account_number,
+                'ifsc_code': bank.ifsc_code,
+                'bank_name': bank.bank_name,
+                'verified': bank.verified
+            }
         return None
-
 
 # Keep legacy serializer available for internal use if needed
 class RiderProfileSerializer(serializers.ModelSerializer):

@@ -892,6 +892,59 @@ class RiderEarningsViewSet(viewsets.ReadOnlyModelViewSet):
             'month': float(month_earnings)
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['post'])
+    def request_payout(self, request):
+        """Submit a payout request"""
+        from decimal import Decimal
+        try:
+            amount = Decimal(request.data.get('amount', 0))
+        except:
+            return Response({'error': 'Invalid amount format.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        payout_method = request.data.get('payout_method', 'UPI')
+        payout_details = request.data.get('payout_details', {})
+        
+        if amount < Decimal('1000.00'):
+            return Response({'error': 'Minimum payout amount is ₹1000.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        profile = RiderProfile.objects.filter(rider=request.user).first()
+        if not profile:
+            return Response({'error': 'Rider profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        if profile.wallet_balance < amount:
+            return Response({'error': 'Insufficient wallet balance.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            from rider.models import Rider, Payout
+            op_rider = Rider.objects.filter(email=request.user.email).first()
+            if not op_rider:
+                return Response({'error': 'Operational rider record not found.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            # Deduct balance from both places
+            profile.wallet_balance -= amount
+            profile.save()
+            
+            op_rider.wallet_balance -= amount
+            op_rider.save()
+            
+            # Create Payout request
+            Payout.objects.create(
+                rider=op_rider,
+                amount=amount,
+                payout_method=payout_method,
+                payout_details=payout_details,
+                status='PENDING'
+            )
+            
+            return Response({
+                'message': f'Payout request for ₹{amount} submitted successfully.',
+                'new_balance': float(profile.wallet_balance)
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 class RiderReviewViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for Rider Reviews"""

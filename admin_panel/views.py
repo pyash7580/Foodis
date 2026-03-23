@@ -41,6 +41,14 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     filterset_fields = ['role', 'is_active', 'is_verified']
     search_fields = ['phone', 'name', 'email']
+
+    def get_queryset(self):
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+        return User.objects.annotate(
+            total_orders_cnt=Count('order'),
+            total_spent_amt=Coalesce(Sum('order__total', filter=Q(order__payment_status='PAID')), Decimal('0.00'))
+        ).prefetch_related('addresses')
     
     @action(detail=True, methods=['post'])
     def block_user(self, request, pk=None):
@@ -118,7 +126,7 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     """ViewSet for Restaurant Management"""
     serializer_class = RestaurantSerializer
     permission_classes = [IsAdminUser]
-    queryset = Restaurant.objects.all().order_by('-created_at')
+    queryset = Restaurant.objects.select_related('owner').all().order_by('-created_at')
     filterset_fields = ['status', 'is_active', 'city']
     search_fields = ['name', 'owner__phone', 'city']
     ordering_fields = ['created_at', 'name', 'rating']
@@ -292,6 +300,26 @@ class RiderViewSet(viewsets.ModelViewSet):
     filterset_fields = ['status', 'is_online', 'city', 'is_active']
     search_fields = ['email', 'full_name', 'city']
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        riders = page if page is not None else queryset
+        
+        # Batch fetch users and profiles to fix N+1 query problem
+        from core.models import User
+        emails = [r.email for r in riders]
+        users_dict = {
+            u.email: u for u 
+            in User.objects.filter(email__in=emails).select_related('rider_profile')
+        }
+        for r in riders:
+            r._user_cache = users_dict.get(r.email)
+
+        serializer = self.get_serializer(riders, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
         """Create a new rider"""
         try:
@@ -403,6 +431,82 @@ class RiderViewSet(viewsets.ModelViewSet):
             
         return Response(self.get_serializer(rider).data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['get'])
+    def payouts(self, request, pk=None):
+        """Get rider payout requests"""
+        rider = self.get_object()
+        from rider.models import Payout
+        payouts = Payout.objects.filter(rider=rider).order_by('-requested_at')
+        
+        data = []
+        for p in payouts:
+            data.append({
+                'id': p.id,
+                'amount': float(p.amount),
+                'payout_method': p.payout_method,
+                'payout_details': p.payout_details,
+                'status': p.status,
+                'requested_at': p.requested_at,
+                'paid_at': p.paid_at
+            })
+            
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def accept_payout(self, request, pk=None):
+        """Accept a payout request"""
+        rider = self.get_object()
+        payout_id = request.data.get('payout_id')
+        try:
+            from rider.models import Payout
+            payout = Payout.objects.get(id=payout_id, rider=rider)
+            if payout.status != 'PENDING':
+                return Response({'error': 'Payout is not pending'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            payout.status = 'PAID'
+            payout.paid_at = timezone.now()
+            payout.save()
+            return Response({'status': 'success', 'message': 'Payout marked as paid'}, status=status.HTTP_200_OK)
+        except Payout.DoesNotExist:
+            return Response({'error': 'Payout not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def reject_payout(self, request, pk=None):
+        """Reject a payout request and refund rider wallet"""
+        rider = self.get_object()
+        payout_id = request.data.get('payout_id')
+        try:
+            from rider.models import Payout
+            payout = Payout.objects.get(id=payout_id, rider=rider)
+            if payout.status != 'PENDING':
+                return Response({'error': 'Payout is not pending'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            payout.status = 'REJECTED'
+            payout.save()
+            
+            # Refund wallet balances
+            rider.wallet_balance += payout.amount
+            rider.save()
+            
+            from rider_legacy.models import RiderProfile
+            try:
+                from core.models import User
+                user = User.objects.get(email=rider.email)
+                profile = RiderProfile.objects.get(rider=user)
+                profile.wallet_balance += payout.amount
+                profile.save()
+            except:
+                pass
+                
+            return Response({'status': 'success', 'message': 'Payout rejected and refunded to wallet'}, status=status.HTTP_200_OK)
+        except Payout.DoesNotExist:
+            return Response({'error': 'Payout not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 # Legacy viewset kept for backward compatibility but not registered in urls
 class RiderProfileViewSet(viewsets.ModelViewSet):
@@ -419,7 +523,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for Order Management"""
     serializer_class = OrderSerializer
     permission_classes = [IsAdminUser]
-    queryset = Order.objects.all()
+    queryset = Order.objects.select_related('user', 'restaurant', 'rider').all()
     filterset_fields = ['status', 'payment_status', 'payment_method']
     search_fields = ['order_id', 'user__phone', 'restaurant__name']
     
@@ -745,7 +849,7 @@ def adjust_wallet(request):
 
 class MenuItemViewSet(viewsets.ModelViewSet):
     """ViewSet for Menu Item Management - All dishes from all restaurants"""
-    pagination_class = None
+    # pagination_class = None  # Removed to enable pagination
     serializer_class = MenuItemSerializer
     permission_classes = [IsAdminUser]
     queryset = MenuItem.objects.select_related('restaurant', 'category').all()

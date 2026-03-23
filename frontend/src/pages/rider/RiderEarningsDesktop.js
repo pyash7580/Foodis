@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config';
 import { useRider } from '../../contexts/RiderContext';
 import { FaCalendarAlt, FaClock, FaChartLine, FaWallet, FaArrowUp } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import PayoutRequestModal from '../../components/rider/PayoutRequestModal';
 
 const RiderEarningsDesktop = () => {
     const { headers } = useRider();
@@ -14,6 +15,7 @@ const RiderEarningsDesktop = () => {
         total_orders: 0
     });
     const [loading, setLoading] = useState(true);
+    const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
     const fetchEarnings = useCallback(async () => {
         try {
@@ -63,7 +65,10 @@ const RiderEarningsDesktop = () => {
                             <span className="text-3xl opacity-40 mr-2 font-light">₹</span>
                             {parseFloat(earnings.wallet_balance || 0).toLocaleString('en-IN')}
                         </h2>
-                        <button className="mt-4 bg-[#FF3008] text-white px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-[#FF6B00] transition-all shadow-[0_10px_20px_rgba(255,48,8,0.3)] font-jakarta">
+                        <button 
+                            onClick={() => setIsPayoutModalOpen(true)}
+                            className="mt-4 bg-[#FF3008] text-white px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-[#FF6B00] transition-all shadow-[0_10px_20px_rgba(255,48,8,0.3)] font-jakarta"
+                        >
                             Request Payout
                         </button>
                     </div>
@@ -157,6 +162,13 @@ const RiderEarningsDesktop = () => {
                     </div>
                 </div>
             </motion.div>
+
+            <PayoutRequestModal 
+                isOpen={isPayoutModalOpen}
+                onClose={() => setIsPayoutModalOpen(false)}
+                walletBalance={earnings.wallet_balance}
+                onSuccess={(newBalance) => setEarnings(prev => ({...prev, wallet_balance: newBalance}))}
+            />
         </div>
     );
 };

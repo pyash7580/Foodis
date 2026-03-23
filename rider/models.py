@@ -128,10 +128,19 @@ class Payout(models.Model):
         ('PAID', 'Paid'),
         ('REJECTED', 'Rejected'),
     ]
+    
+    METHOD_CHOICES = [
+        ('UPI', 'UPI'),
+        ('BANK', 'Bank Transfer'),
+        ('CARD', 'Card'),
+    ]
 
     rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name='payouts')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    payout_method = models.CharField(max_length=20, choices=METHOD_CHOICES, default='UPI')
+    payout_details = models.JSONField(default=dict, blank=True)
     
     requested_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)

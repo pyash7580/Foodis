@@ -1,31 +1,53 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { FaTimes, FaMotorcycle, FaBicycle, FaUser, FaEnvelope, FaStar, FaKey, FaIdCard } from 'react-icons/fa';
-
+import toast from 'react-hot-toast';
+import { FaTimes, FaMotorcycle, FaBicycle, FaUser, FaEnvelope, FaStar, FaKey, FaIdCard, FaMoneyBillWave, FaCheck, FaBan } from 'react-icons/fa';
 
 const RiderDetails = ({ riderId, onClose }) => {
     const [rider, setRider] = useState(null);
+    const [payouts, setPayouts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchDetails = async () => {
-            try {
-                const token = localStorage.getItem('token_admin');
-                const res = await axios.get(`${API_BASE_URL}/api/admin/riders/${riderId}/`, {
+    const fetchDetails = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token_admin');
+            const [riderRes, payoutsRes] = await Promise.all([
+                axios.get(`${API_BASE_URL}/api/admin/riders/${riderId}/`, {
                     headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
-                });
-                setRider(res.data);
-            } catch (error) {
-                console.error("Failed to fetch rider details", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (riderId) fetchDetails();
+                }),
+                axios.get(`${API_BASE_URL}/api/admin/riders/${riderId}/payouts/`, {
+                    headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' }
+                }).catch(() => ({ data: [] })) // Fallback if endpoint fails
+            ]);
+            setRider(riderRes.data);
+            setPayouts(payoutsRes.data);
+        } catch (error) {
+            console.error("Failed to fetch rider details", error);
+        } finally {
+            setLoading(false);
+        }
     }, [riderId]);
+
+    useEffect(() => {
+        if (riderId) fetchDetails();
+    }, [fetchDetails, riderId]);
+
+    const handlePayoutAction = async (payoutId, action) => {
+        if (!window.confirm(`Are you sure you want to ${action} this payout?`)) return;
+        try {
+            const token = localStorage.getItem('token_admin');
+            await axios.post(`${API_BASE_URL}/api/admin/riders/${riderId}/${action}_payout/`, 
+                { payout_id: payoutId }, 
+                { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'ADMIN' } }
+            );
+            toast.success(`Payout ${action}ed successfully`);
+            fetchDetails(); 
+        } catch (error) {
+            console.error(`Failed to ${action} payout`, error);
+            toast.error(error.response?.data?.error || `Failed to ${action} payout`);
+        }
+    };
 
     if (!riderId) return null;
 
@@ -49,7 +71,6 @@ const RiderDetails = ({ riderId, onClose }) => {
                         {/* Header Info */}
                         <div className="flex flex-col md:flex-row gap-6 items-start">
                             <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-                                {/* Profile photo if available, generic icon otherwise */}
                                 <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
                                     <FaUser className="text-4xl" />
                                 </div>
@@ -110,7 +131,7 @@ const RiderDetails = ({ riderId, onClose }) => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center border-b border-red-100 pb-2 mb-2">
                                         <label className="text-xs font-bold text-gray-400 uppercase">Wallet Balance</label>
-                                        <p className="text-xl font-black text-red-600">₹{parseFloat(rider.wallet_balance).toFixed(2)}</p>
+                                        <p className="text-xl font-black text-red-600">₹{parseFloat(rider.wallet_balance || 0).toFixed(2)}</p>
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-400 uppercase">Login ID (Phone)</label>
@@ -124,16 +145,69 @@ const RiderDetails = ({ riderId, onClose }) => {
                                             </p>
                                             <span className="ml-2 text-[10px] text-red-400">(Encrypted)</span>
                                         </div>
-
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Payout Requests */}
+                        {payouts && payouts.length > 0 && (
+                            <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
+                                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                                    <FaMoneyBillWave className="mr-2 text-emerald-600" /> Payout Requests
+                                </h3>
+                                <div className="space-y-4">
+                                    {payouts.map(payout => (
+                                        <div key={payout.id} className="bg-white p-4 rounded-xl border border-emerald-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <span className="font-black text-lg text-emerald-600">₹{payout.amount}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                                        payout.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                                        payout.status === 'PAID' ? 'bg-green-100 text-green-700' :
+                                                        'bg-red-100 text-red-700'
+                                                    }`}>
+                                                        {payout.status}
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    <span className="font-bold">{payout.payout_method}</span>: {' '}
+                                                    {payout.payout_method === 'UPI' && payout.payout_details?.upi_id}
+                                                    {payout.payout_method === 'BANK' && `${payout.payout_details?.bank_name} - ${payout.payout_details?.account_number}`}
+                                                    {payout.payout_method === 'CARD' && `Card: **** **** **** ${payout.payout_details?.card_number?.slice(-4) || 'N/A'}`}
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">
+                                                    Requested: {new Date(payout.requested_at).toLocaleString()}
+                                                    {payout.paid_at && ` • Paid: ${new Date(payout.paid_at).toLocaleString()}`}
+                                                </div>
+                                            </div>
+                                            
+                                            {payout.status === 'PENDING' && (
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => handlePayoutAction(payout.id, 'accept')}
+                                                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold flex items-center text-sm transition"
+                                                    >
+                                                        <FaCheck className="mr-1" /> Accept
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handlePayoutAction(payout.id, 'reject')}
+                                                        className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg font-bold flex items-center text-sm transition"
+                                                    >
+                                                        <FaBan className="mr-1" /> Reject
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Bank Details */}
                         <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
                             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                                <FaIdCard className="mr-2 text-blue-600" /> Bank Account Details
+                                <FaIdCard className="mr-2 text-blue-600" /> Default Bank Account Details
                             </h3>
                             {rider.bank_details && Object.keys(rider.bank_details).length > 0 && rider.bank_details.bank_name ? (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -181,8 +255,6 @@ const RiderDetails = ({ riderId, onClose }) => {
                             <p>Registered: {new Date(rider.created_at).toLocaleString()}</p>
                             <p className="font-bold uppercase tracking-widest text-red-400">Rider ID: {rider.id}</p>
                         </div>
-
-
                     </div>
                 ) : (
                     <div className="p-12 text-center text-red-500">Detailed information not available.</div>

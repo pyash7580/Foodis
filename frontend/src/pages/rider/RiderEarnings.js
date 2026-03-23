@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config';
 import { FaChartLine, FaChevronLeft, FaHistory, FaArrowDown, FaMotorcycle } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import PayoutRequestModal from '../../components/rider/PayoutRequestModal';
 
 const RiderEarnings = () => {
     const navigate = useNavigate();
@@ -16,6 +17,7 @@ const RiderEarnings = () => {
     });
     const [dailyOrders, setDailyOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
     const headers = useMemo(() => {
         const token = localStorage.getItem('token_rider');
@@ -70,7 +72,10 @@ const RiderEarnings = () => {
                     </h2>
 
                     <div className="grid grid-cols-2 gap-4 mt-12">
-                        <button className="bg-[#FF3008] text-white p-5 rounded-3xl flex items-center justify-center space-x-3 shadow-[0_15px_30px_rgba(255,48,8,0.3)] transition-all active:scale-95 border border-white/10">
+                        <button 
+                            onClick={() => setIsPayoutModalOpen(true)}
+                            className="bg-[#FF3008] text-white p-5 rounded-3xl flex items-center justify-center space-x-3 shadow-[0_15px_30px_rgba(255,48,8,0.3)] transition-all active:scale-95 border border-white/10"
+                        >
                             <FaArrowDown className="text-lg" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Withdraw</span>
                         </button>
@@ -151,6 +156,13 @@ const RiderEarnings = () => {
                     )}
                 </div>
             </div>
+
+            <PayoutRequestModal 
+                isOpen={isPayoutModalOpen}
+                onClose={() => setIsPayoutModalOpen(false)}
+                walletBalance={earnings.wallet_balance}
+                onSuccess={(newBalance) => setEarnings(prev => ({...prev, wallet_balance: newBalance}))}
+            />
         </div>
     );
 };
