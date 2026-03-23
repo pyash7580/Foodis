@@ -228,6 +228,13 @@ const RestaurantDashboard = () => {
                                             <p className="text-sm font-bold text-gray-400 uppercase tracking-tighter">
                                                 {order.items.length} Items • ₹{order.total} • {new Date(order.placed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
+                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                {order.items.map((item, idx) => (
+                                                    <span key={idx} className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2.5 py-1 rounded-md border border-gray-200">
+                                                        {item.quantity}x {item.menu_item_name}
+                                                    </span>
+                                                ))}
+                                            </div>
 
                                         </div>
                                     </div>
