@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL } from '../../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaMoneyBillWave, FaUniversity, FaCreditCard, FaCheckCircle } from 'react-icons/fa';
 
