@@ -46,8 +46,8 @@ class UserViewSet(viewsets.ModelViewSet):
         from django.db.models.functions import Coalesce
         from decimal import Decimal
         return User.objects.annotate(
-            total_orders_cnt=Count('order'),
-            total_spent_amt=Coalesce(Sum('order__total', filter=Q(order__payment_status='PAID')), Decimal('0.00'))
+            total_orders_cnt=Count('orders'),
+            total_spent_amt=Coalesce(Sum('orders__total', filter=Q(orders__payment_status='PAID')), Decimal('0.00'))
         ).prefetch_related('addresses')
     
     @action(detail=True, methods=['post'])
