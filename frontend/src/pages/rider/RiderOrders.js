@@ -146,6 +146,8 @@ const RiderOrders = () => {
 };
 
 const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }) => {
+    const [orderToReject, setOrderToReject] = useState(null);
+
     if (!isOnline) {
         return (
             <div className="text-center py-20 px-6 opacity-50">
@@ -174,8 +176,8 @@ const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }
     return (
         <div className="space-y-4">
             {orders.map((item, index) => {
-                const order = item?.order || item; // Handle wrapped or direct object
-                if (!order) return null; // Fallback if item is malformed
+                const order = item?.order || item; 
+                if (!order) return null; 
 
                 const distance = item?.distance;
                 const orderTotal = item?.order?.total_amount || item?.order?.total || '0';
@@ -212,16 +214,16 @@ const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }
                                 </div>
                             </div>
 
-                            <div className="flex space-x-3">
+                            <div className="flex space-x-3 mt-4">
                                 <button
-                                    onClick={() => onReject(order.id)}
-                                    className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-colors"
+                                    onClick={() => setOrderToReject(order.id)}
+                                    className="flex-1 py-3.5 rounded-2xl bg-red-500/10 text-red-500 font-black text-[11px] uppercase tracking-widest hover:bg-red-500/20 transition-all active:scale-95 border border-red-500/20"
                                 >
                                     Ignore
                                 </button>
                                 <button
                                     onClick={() => onAccept(order.id)}
-                                    className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-transform"
+                                    className="flex-[2] py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-[11px] uppercase tracking-widest shadow-[0_10px_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all"
                                 >
                                     Accept Order
                                 </button>
@@ -230,6 +232,37 @@ const AvailableOrdersList = React.memo(({ orders, onAccept, onReject, isOnline }
                     </motion.div>
                 );
             })}
+
+            {/* Confirmation Modal */}
+            {orderToReject && (
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-[#1E293B] border border-red-500/20 p-6 rounded-3xl max-w-sm w-full shadow-2xl text-center"
+                    >
+                        <h3 className="text-xl font-black text-white mb-2">Ignore Order?</h3>
+                        <p className="text-sm text-gray-400 mb-6">Are you sure you want to ignore this order request? This action cannot be undone.</p>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => setOrderToReject(null)}
+                                className="flex-1 py-3 rounded-2xl bg-white/5 text-gray-300 font-bold text-sm hover:bg-white/10 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onReject(orderToReject);
+                                    setOrderToReject(null);
+                                }}
+                                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm shadow-[0_10px_20px_rgba(239,68,68,0.3)] hover:bg-red-600 transition-colors active:scale-95"
+                            >
+                                Yes, Ignore
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 });

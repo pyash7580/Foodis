@@ -122,9 +122,6 @@ const RiderLogin = () => {
                         </button>
                     </form>
 
-                    <p className="mt-6 text-center text-xs text-gray-400">
-                        Password: <span className="font-bold text-gray-600">FirstName@</span> &nbsp;·&nbsp; e.g. <span className="font-bold text-gray-600">Rakesh@</span>
-                    </p>
                 </div>
             </motion.div>
 

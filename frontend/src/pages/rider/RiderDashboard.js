@@ -165,6 +165,19 @@ const RiderDashboard = () => {
         };
     }, [isOnline, updateLocationBackend]);
 
+    // 3.5 Sync default map location with profile city
+    useEffect(() => {
+        // If they are offline or GPS hasn't kicked in yet (like initially),
+        // we fallback to their profile's assigned city center to show the correct zone.
+        if (!isOnline || !navigator.geolocation) {
+            if (profile?.city?.toLowerCase() === 'mehsana') {
+                setLocation({ lat: 23.5880, lng: 72.3693 });
+            } else if (profile?.city?.toLowerCase() === 'himmatnagar') {
+                setLocation({ lat: 23.6000, lng: 72.9500 });
+            }
+        }
+    }, [profile?.city, isOnline]);
+
     // 4. Polling Fallback (For reliable order fetching if WS fails or for pool)
     useEffect(() => {
         const interval = setInterval(() => {

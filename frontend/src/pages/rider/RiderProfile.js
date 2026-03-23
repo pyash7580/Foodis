@@ -11,6 +11,7 @@ const RiderProfile = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const [profile, setProfile] = useState(null);
+    const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const token = localStorage.getItem('token_rider');
@@ -20,19 +21,22 @@ const RiderProfile = () => {
             navigate('/rider/login');
             return;
         }
-        // Use dashboard API for comprehensive data
         const timestamp = new Date().getTime();
-        axios.get(`${API_BASE_URL}/api/rider/profile/dashboard/?_t=${timestamp}`, { headers: { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' } })
-            .then(res => {
-                if (res.data && res.data.profile) {
-                    setProfile(res.data.profile);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setLoading(false);
-            });
+        const headers = { Authorization: `Bearer ${token}`, 'X-Role': 'RIDER' };
+
+        Promise.all([
+            axios.get(`${API_BASE_URL}/api/rider/profile/dashboard/?_t=${timestamp}`, { headers }),
+            axios.get(`${API_BASE_URL}/api/rider/reviews/?_t=${timestamp}`, { headers }).catch(() => ({ data: [] }))
+        ]).then(([profileRes, reviewsRes]) => {
+            if (profileRes.data && profileRes.data.profile) {
+                setProfile(profileRes.data.profile);
+            }
+            setReviews(reviewsRes.data.results || reviewsRes.data || []);
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
     }, [token, navigate]);
 
 
@@ -147,6 +151,40 @@ const RiderProfile = () => {
                             <p className="font-black text-white text-sm">{profile.license_number}</p>
                         </div>
                     </div>
+                </motion.div>
+
+                {/* User Feedback Sections */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="glass-card p-8 rounded-[2.5rem] border border-white/5"
+                >
+                    <h3 className="text-[10px] font-black text-gray-500 mb-6 uppercase tracking-[0.3em] flex items-center">
+                        <FaStar className="mr-2 text-yellow-400" /> User Feedback
+                    </h3>
+                    
+                    {reviews.length === 0 ? (
+                        <p className="text-sm text-gray-500 font-bold text-center italic py-4">No reviews yet.</p>
+                    ) : (
+                        <div className="space-y-4 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                            {reviews.map((review, idx) => (
+                                <div key={idx} className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="flex space-x-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <FaStar key={i} className={`text-[10px] ${i < review.rating ? 'text-yellow-400' : 'text-gray-600'}`} />
+                                            ))}
+                                        </div>
+                                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                                            {new Date(review.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-gray-300 italic">"{review.review_text || 'No comment provided.'}"</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Settlement Card */}
