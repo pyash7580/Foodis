@@ -12,6 +12,19 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
+// Normalize city names to canonical form (mirrors backend city_utils.py)
+const normalizeCity = (city) => {
+    if (!city) return '';
+    const name = city.trim().toLowerCase();
+    const mapping = {
+        'sabarkantha': 'himmatnagar', 'sabar kantha': 'himmatnagar',
+        'himmat nagar': 'himmatnagar', 'himmat-nagar': 'himmatnagar',
+        'himatnagar': 'himmatnagar',
+        'mahesana': 'mehsana', 'mehsanaa': 'mehsana',
+    };
+    return mapping[name] || name;
+};
+
 // Fix Leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -236,6 +249,14 @@ const Checkout = () => {
         const cityLower = (newAddress.city || '').trim().toLowerCase();
         if (!ALLOWED_CITIES.includes(cityLower)) {
             toast.error("Sorry, we currently deliver only in Himmatnagar and Mehsana");
+            return;
+        }
+
+        // Validate city matches restaurant city
+        const addrCity = normalizeCity(newAddress.city);
+        const restCity = normalizeCity(restaurant?.city);
+        if (restCity && addrCity !== restCity) {
+            toast.error(`This address is in ${newAddress.city}. You can only order from ${restaurant.city} restaurants.`);
             return;
         }
 
@@ -637,7 +658,15 @@ const Checkout = () => {
                                 Array.isArray(addresses) && addresses.map(addr => (
                                     <div
                                         key={addr.id}
-                                        onClick={() => setSelectedAddress(addr)}
+                                        onClick={() => {
+                                            const addrCity = normalizeCity(addr.city);
+                                            const restCity = normalizeCity(restaurant?.city);
+                                            if (restCity && addrCity !== restCity) {
+                                                toast.error(`This address is in ${addr.city}. You can only order from ${restaurant.city} restaurants.`);
+                                                return;
+                                            }
+                                            setSelectedAddress(addr);
+                                        }}
                                         className={`p-5 rounded-3xl border-2 cursor-pointer transition-all ${selectedAddress?.id === addr.id ? 'border-red-600 bg-red-50' : 'border-white bg-white hover:border-gray-200'}`}
                                     >
                                         <div className="flex items-start">
@@ -669,7 +698,17 @@ const Checkout = () => {
                         <div className="flex space-x-4">
                             <button onClick={() => setStep(1)} className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-2xl font-black transition hover:bg-gray-300">Back</button>
                             <button
-                                onClick={() => setStep(3)}
+                                onClick={() => {
+                                    if (selectedAddress && restaurant?.city) {
+                                        const addrCity = normalizeCity(selectedAddress.city);
+                                        const restCity = normalizeCity(restaurant.city);
+                                        if (addrCity !== restCity) {
+                                            toast.error(`Your address is in ${selectedAddress.city}. You can only order from ${restaurant.city} restaurants.`);
+                                            return;
+                                        }
+                                    }
+                                    setStep(3);
+                                }}
                                 disabled={!selectedAddress || isAddingAddress}
                                 className={`flex-[2] py-4 rounded-2xl font-black text-lg shadow-xl transition active:scale-95 ${!selectedAddress || isAddingAddress ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' : 'bg-red-600 text-white shadow-red-200'}`}
                             >
