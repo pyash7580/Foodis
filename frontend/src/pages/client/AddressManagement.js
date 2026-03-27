@@ -68,15 +68,24 @@ const AddressManagement = () => {
                 state: '',
                 pincode: '',
                 is_default: false,
-                latitude: 12.9716, // Default to some city coords for now
-                longitude: 77.5946
+                latitude: 23.5969, // Default Himmatnagar
+                longitude: 72.9657
             });
         }
         setIsModalOpen(true);
     };
 
+    const ALLOWED_CITIES = ['himmatnagar', 'mehsana', 'himatnagar', 'mahesana', 'sabarkantha'];
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const cityLower = (formData.city || '').trim().toLowerCase();
+        if (!ALLOWED_CITIES.includes(cityLower)) {
+            toast.error("Sorry, we currently deliver only in Himmatnagar and Mehsana");
+            return;
+        }
+
         try {
             if (editingAddress) {
                 await axios.put(`${API_BASE_URL}/api/client/addresses/${editingAddress.id}/`, formData, {

@@ -96,12 +96,12 @@ const Checkout = () => {
         city: '',
         state: '',
         pincode: '',
-        latitude: 12.9716, // Default Bangalore
-        longitude: 77.5946
+        latitude: 23.5969, // Default Himmatnagar
+        longitude: 72.9657
     });
 
     // Map State
-    const [mapCenter, setMapCenter] = useState({ lat: 12.9716, lng: 77.5946 });
+    const [mapCenter, setMapCenter] = useState({ lat: 23.5969, lng: 72.9657 });
     const [markerPosition, setMarkerPosition] = useState(null);
 
     const [razorpayKey, setRazorpayKey] = useState('');
@@ -223,11 +223,19 @@ const Checkout = () => {
         };
     }, [user, navigate]);
 
+    const ALLOWED_CITIES = ['himmatnagar', 'mehsana', 'himatnagar', 'mahesana', 'sabarkantha'];
+
     const handleAddAddress = async (e) => {
         e.preventDefault();
 
         if (!markerPosition) {
             toast.error("Please pin location on map");
+            return;
+        }
+
+        const cityLower = (newAddress.city || '').trim().toLowerCase();
+        if (!ALLOWED_CITIES.includes(cityLower)) {
+            toast.error("Sorry, we currently deliver only in Himmatnagar and Mehsana");
             return;
         }
 
@@ -249,8 +257,8 @@ const Checkout = () => {
                 city: '',
                 state: '',
                 pincode: '',
-                latitude: 12.9716,
-                longitude: 77.5946
+                latitude: 23.5969,
+                longitude: 72.9657
             });
             setMarkerPosition(null);
             toast.success("Address added successfully!");

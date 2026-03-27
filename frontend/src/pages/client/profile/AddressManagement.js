@@ -78,7 +78,7 @@ const AddressManagement = () => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [mapCenter, setMapCenter] = useState({ lat: 28.6139, lng: 77.2090 }); // Default Delhi
+    const [mapCenter, setMapCenter] = useState({ lat: 23.5969, lng: 72.9657 }); // Default Himmatnagar
     const [markerPosition, setMarkerPosition] = useState(null);
 
     const [formData, setFormData] = useState({
@@ -153,10 +153,18 @@ const AddressManagement = () => {
         getCurrentLocation();
     }, [token, fetchAddresses, getCurrentLocation]);
 
+    const ALLOWED_CITIES = ['himmatnagar', 'mehsana', 'himatnagar', 'mahesana', 'sabarkantha'];
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!markerPosition) {
             toast.error("Please pin location on map");
+            return;
+        }
+
+        const cityLower = (formData.city || '').trim().toLowerCase();
+        if (!ALLOWED_CITIES.includes(cityLower)) {
+            toast.error("Sorry, we currently deliver only in Himmatnagar and Mehsana");
             return;
         }
 
