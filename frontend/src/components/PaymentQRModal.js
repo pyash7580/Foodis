@@ -4,9 +4,9 @@ const PaymentQRModal = ({ amount, orderId, onSuccess, onClose }) => {
     const [status, setStatus] = useState('generating'); // generating, scanning, processing, success
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
 
-    // Generate UPI Intent Link (Using Razorpay Test VPA for realism in test/demo)
-    // In production, this would be a dynamic VPA or Order-specific Intent from backend
-    const upiLink = `upi://pay?pa=success@razorpay&pn=Foodis&am=${amount}&tr=${orderId}&cu=INR`;
+    // Generate UPI Intent Link with real UPI ID
+    const upiId = 'pyash7580@okicici';
+    const upiLink = `upi://pay?pa=${upiId}&pn=Foodis&am=${amount}&tr=${orderId}&cu=INR`;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`;
 
     useEffect(() => {
@@ -113,10 +113,16 @@ const PaymentQRModal = ({ amount, orderId, onSuccess, onClose }) => {
                             <div className="mt-8 space-y-2">
                                 <p className="text-2xl font-bold text-gray-900">₹{parseFloat(amount).toFixed(2)}</p>
                                 {status === 'scanning' && (
-                                    <p className="text-sm text-gray-500 animate-pulse">Scan with any UPI App to pay</p>
+                                    <>
+                                        <p className="text-sm text-gray-500 animate-pulse">Scan with any UPI App to pay</p>
+                                        <div className="mt-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Or pay directly to UPI ID</p>
+                                            <p className="text-sm font-bold text-gray-900 select-all">{upiId}</p>
+                                        </div>
+                                    </>
                                 )}
                                 {status === 'processing' && (
-                                    <p className="text-sm text-blue-600 font-bold">Payment detected! Preserving...</p>
+                                    <p className="text-sm text-blue-600 font-bold">Payment detected! Verifying...</p>
                                 )}
                                 {status === 'success' && (
                                     <p className="text-sm text-green-600 font-bold">Payment Successful!</p>
